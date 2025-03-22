@@ -1,0 +1,16 @@
+---
+description: 
+globs: *.scss
+alwaysApply: false
+---
+// SCSS Best Practices
+
+const scssBestPractices = `
+1. Use elegant and modern design.
+2. On mobile, when necessary, have sibling cards be swipeable horizontally instead of stacked vertically.
+3. Use SCSS variables rather than CSS variables.
+4. Use @use and @forward instead of @import, and no namespacing for scss files and variables.
+5. For scss index files, use @forward to forward all partials to the main index file.
+6. If you make adjustments to variable names, double check the repo to make sure the old variables are not used elsewhere, and if so are also updated.
+7. Do not split class names with scss nesting. When using scss nesting, use entire class names.
+`;

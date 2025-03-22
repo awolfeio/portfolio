@@ -1,0 +1,20 @@
+.full-view {
+    height:100vh;
+    width:100vw;
+}
+
+.flex {
+    display:flex;
+}
+
+.vertical {
+    flex-direction:column;
+}
+
+.center {
+    justify-content:center;
+}
+
+.fade-out {
+    opacity:0;
+}

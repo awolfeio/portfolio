@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Adrain Wolfe | Portfolio</title>
+    {{> meta }}
+  </head>
+  <body data-barba="wrapper">
+    {{> loadingsplash }}
+    <div id="stage">
+      <div id="viewport">
+        <header>{{> nav }}</header>
+        <main data-barba="container" data-barba-namespace="index">
+          <div class="page" id="index">
+            <div class="full-view flex vertical center">
+              <div>
+                <h1 class="center bold">Hey, I'm Adrain</h1>
+                <h2 class="titles-wrapper">
+                  <span class="title active">I'm a UI/UX Designer + Developer</span>
+                  <span class="title">I'm a UX Engineer</span>
+                  <span class="title">I'm a Creative Technologist</span>
+                </h2>
+                <p class="splitting-rows">
+                  I design and code digital experiences, products, ecommerce and more. I love finding ways to evolve the
+                  standards in UI/UX by creating better experiences and building better systems.
+                </p>
+              </div>
+            </div>
+            <div>
+              <div class="projects">
+                <a href="projects/scholastic.html#" data-project="scholastic">Scholastic</a>
+                <a href="projects/jpplus.html#" data-project="jpplus">JPPlus</a>
+                <a href="projects/rowmark.html#" data-project="rowmark">Rowmark</a>
+                <a href="projects/aave.html#" data-project="aave">Aave</a>
+                <!--<a href="projects/bright-future#" data-hover="design">Bright Future</a>-->
+                <a href="projects/ipi.html#" data-project="ipi">IPI</a>
+
+                <!--<a href="projects/rentaru#" data-hover="design">Rentaru</a>
+                        <a href="projects/healpool#">Healpool</a>
+                        <a href="projects/payla#">Payla</a>-->
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>

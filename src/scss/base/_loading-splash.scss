@@ -1,0 +1,122 @@
+@keyframes loading-progress {
+    0% {
+        width:0%;
+    }
+    100% {
+        width:100%;
+    }
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity:0;
+    }
+    100% {
+        opacity:1;
+    }
+}
+@keyframes loaded {
+    0% {
+        transform:translateY(0);
+    }
+    100% {
+        transform:translateY(-104vh);
+    }
+}
+#loading-splash {
+    width:100vw;
+    height:100%;
+    position:fixed;
+    z-index:9999;
+    background:#222;
+    bottom:0;
+    left:0;
+    overflow:hidden;
+    transform:translateY(0);
+
+    &:before, &:after {
+        position:absolute;
+        content:'';
+        top:0;
+        left:0;
+        right:0;
+        bottom:0;
+        z-index:5;
+    }
+    &:before {
+        //background:linear-gradient(45deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.56) 20%, rgba(0,0,0,0.47) 45%, rgba(0,0,0,0.40) 60%, rgba(0,0,0,0.35) 75%, rgba(0,0,0,0) 100%);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='1920' height='1080' viewBox='0 0 1920 1080'%3E%3Cdefs%3E%3ClinearGradient id='linear-gradient' x1='1' x2='0' y2='1' gradientUnits='objectBoundingBox'%3E%3Cstop offset='0' stop-opacity='0'/%3E%3Cstop offset='0.377' stop-opacity='0.369'/%3E%3Cstop offset='0.548' stop-opacity='0.451'/%3E%3Cstop offset='0.682' stop-opacity='0.471'/%3E%3Cstop offset='0.824' stop-opacity='0.561'/%3E%3Cstop offset='1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect id='Rectangle_114' data-name='Rectangle 114' width='1920' height='1080' opacity='0.3' fill='url(%23linear-gradient)'/%3E%3C/svg%3E%0A");
+        opacity:0;
+    }
+    &:after {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='1920' height='1080' viewBox='0 0 1920 1080'%3E%3Cdefs%3E%3ClinearGradient id='linear-gradient' x1='1' x2='0' y2='1' gradientUnits='objectBoundingBox'%3E%3Cstop offset='0' stop-color='%23fff' stop-opacity='0'/%3E%3Cstop offset='0.485' stop-color='%23fff' stop-opacity='0'/%3E%3Cstop offset='0.715' stop-color='%23fff' stop-opacity='0.071'/%3E%3Cstop offset='0.84' stop-color='%23fff' stop-opacity='0.161'/%3E%3Cstop offset='0.908' stop-color='%23fff' stop-opacity='0.22'/%3E%3Cstop offset='1' stop-color='%23fff' stop-opacity='0.302'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect id='Rectangle_115' data-name='Rectangle 115' width='1920' height='1080' transform='translate(1920 1080) rotate(180)' opacity='0.18' fill='url(%23linear-gradient)'/%3E%3C/svg%3E%0A");
+        opacity:0;
+    }
+    .center {
+        position:absolute;
+        top:calc(50% - 2vh);
+        left:50%;
+        transform:translateX(-50%) translateY(-50%);
+        @include smooth;
+        opacity:1;
+        z-index:9999;
+        @media (max-width:768px) {
+            transform:translateX(-50%) translateY(-50%) scale(0.8);
+        }
+        svg {
+            width:100%;
+            width:196px;
+            display:block;
+            opacity:0;
+            animation: fadeIn 0.4s;
+            animation-delay:0.4s;
+            animation-fill-mode:forwards;
+            transform:scale(1) translateY(-16px);
+        }
+        .load-bar {
+            opacity:0;
+            width:196px;
+            height:6px;
+            background:rgba(255,255,255,0.1);
+            overflow:hidden;
+            margin-top:24px;
+            animation: fadeIn 0.4s;
+            animation-delay:0.6s;
+            animation-fill-mode:forwards;
+            position:relative;
+            .load-bar-inner {
+                background:$primary;
+                background:#fff;
+                position:absolute;
+                top:0;
+                left:0;
+                height:6px;
+                @include smooth;
+                width:0%;
+                &.loading {
+                    animation:loading-progress 1.2s;
+                    //animation:loading-progress 0s; //debug
+                    //animation:loading-progress 0.6s; //debug
+                    animation-delay:0.3s;
+                    animation-timing-function:cubic-bezier(.785, 0.135, 0.15, 0.86);
+                    animation-fill-mode:forwards;
+                }
+            }
+        }
+    }
+
+    &.loaded {
+        animation:loaded 1.2s;
+        //animation:loaded 0s; //debug
+        //animation:loaded 0.8s; //debug
+        animation-delay:0.3s;
+        //animation-timing-function:0.785, 0.135, 0.15, 0.86;
+        animation-timing-function:cubic-bezier(.8,.01,.19,1);
+        animation-fill-mode:forwards;
+        .center {
+            opacity:0;
+        }
+
+    }
+
+}

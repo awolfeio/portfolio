@@ -1,0 +1,72 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+// Best Practices
+
+// Desired Folder Structure Guideline
+
+const folderStructureGuideline = `
+    public/
+        assets/
+            images/
+            icons/
+            fonts/
+    src/
+        js/
+            components/
+                global-navigation.js
+                dashboard.js
+            animation/
+                backgrounds.js
+                page-transitions.js
+                text-animations.js
+                scrolling-animations.js
+            audio/
+                audio.js
+            video/
+                video.js
+            debug.js
+        scss/
+            base/
+                _animations.scss
+                _colors.scss
+                _fonts.scss
+                _mixins.scss
+                _reset.scss
+                _typography.scss
+                main.scss
+            components/
+                _button.scss
+                _card.scss
+                _input.scss
+                _modal.scss
+                _table.scss
+                _tooltip.scss
+            layout/
+                _header.scss
+                _footer.scss
+                _sidebar.scss
+                _main.scss
+            pages/
+                _home.scss
+                _about.scss
+                _contact.scss
+                _login.scss
+                _register.scss
+                _profile.scss
+        main.js
+    index.html
+    vite.config.js
+    package.json
+    .gitignore
+    .prettierignore
+    documentation.txt
+    README.md
+`;
+
+const additionalInstructions = `
+1. This project is developed and built with Vite.
+2. When Figma is mentioned, if it makes sense to, use the Figma MCP server.
+`;

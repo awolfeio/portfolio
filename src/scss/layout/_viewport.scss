@@ -1,0 +1,60 @@
+#stage {
+    position:relative;
+    z-index:50;
+
+    #viewport {
+        //overflow: hidden;
+        position: fixed;
+        height: 100%;
+        width: 100%;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index:50;
+        background:#fff;
+        transition:background 0.8s ease-in-out;
+        main {
+            position:absolute;  
+            overflow:hidden;
+            z-index:50;
+            display:flex;
+            justify-content:center;  
+            backface-visibility:hidden;
+            transform-style:preserve-3d;
+            width:100vw;
+        }
+    }
+}
+
+
+body.portrait {
+    #works.page {
+        .projects {
+            height:68vh;
+            justify-content:center;
+            padding-bottom:0;
+        }
+    }
+    .next-project-banner {
+        height:50vw;
+    }
+    main {
+        .page {
+          padding-bottom:12vh;
+          @media (max-width:480px) {
+            padding-bottom:16vh;
+          }
+          &:not(#index) {
+            padding-top:12vh;
+            padding-bottom:0;
+            //@media (min-width:1800px) and (max-height:780px), (min-width:2200px) {
+            //    padding-top:8vh;
+            //}
+            @media (max-width:480px) {
+                padding-top:16vh;
+              }
+          }
+        }
+    }
+}

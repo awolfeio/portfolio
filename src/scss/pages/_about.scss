@@ -1,0 +1,163 @@
+#about.page {
+    min-height: 100vh;
+
+    .skills-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 10vw auto;
+        width: 1200px;
+        max-width: calc(100% - 48px);
+        justify-content: center;
+
+        @media (max-width:768px) {
+            max-width: calc(100% - 32px);
+            //transition-delay:2s;
+        }
+
+        @media (max-width:480px) {
+            max-width: calc(100% - 8px);
+        }
+
+        >div {
+            margin: 20px;
+            background: $primary;
+            background: desaturate($primary, 75%);
+            padding: 24px;
+            aspect-ratio: 1/1;
+            min-width: calc(25% - 40px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0;
+            transition: 0.72s ease;
+            transform: translateZ(0) translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            z-index: 2;
+            border-radius: 16px;
+            overflow: hidden;
+
+            @media (max-width:991px) {
+                margin: 8px;
+                min-width: calc(33.333% - 16px);
+            }
+
+            @media (max-width:768px) {
+                min-width: calc(50% - 22px);
+            }
+
+            @media (max-width:480px) {
+                pointer-events: none;
+                margin: 8px;
+            }
+
+            h5 {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translateX(-50%) translateY(-50%) translateZ(0) translate3d(0, 0, 0);
+                backface-visibility: hidden;
+                width: calc(100% - 48px);
+                transition-delay: 0.32s;
+                transition: 0.74s;
+                transition-timing-function: cubic-bezier(.54, .01, .12, .98);
+                line-height: 1.4;
+                cursor: default;
+
+                @media (max-width:480px) {
+                    font-size: 12px;
+                }
+            }
+
+            .hover-message {
+                position: absolute;
+                width: 100%;
+                top: calc(50% + 20px);
+                left: 50%;
+                transform: translateX(-50%) translateY(-50%) translateZ(0) translate3d(0, 0, 0);
+                backface-visibility: hidden;
+                width: calc(100% - 28px);
+                opacity: 0;
+                @include slow;
+                transition: 0.42s;
+                font-size: 14px;
+                font-weight: 300;
+                line-height: 1.4;
+                font-family: 'Evolve', 'Arial', sans-serif;
+                cursor: default;
+
+                @media (max-width:480px) {
+                    font-size: 10px;
+                    width: calc(100% - 16px);
+                }
+            }
+
+            &.npm {
+                .hover-message {
+                    width: calc(100% - 34px);
+                }
+            }
+
+            * {
+                color: #fff;
+                text-align: center;
+            }
+
+            &:hover {
+                transition: 1s ease;
+                transition-delay: 0.14s !important;
+                transform: scale(1.2);
+                filter: saturate(1.5);
+                z-index: 3;
+
+                @media (max-width:768px) {
+                    transform: scale(1.1);
+                }
+
+                h5 {
+                    top: 28%;
+                    transform: translateY(0) translateX(-50%) scale(1.08);
+                    transition: 0.5s;
+                    transition-delay: 0.1s;
+                }
+
+                .hover-message {
+                    opacity: 1;
+                    transition: 0.72s;
+                    transition-delay: 0.28s;
+                }
+            }
+
+            &.leaving {
+                transition-delay: 0.1s !important;
+            }
+        }
+
+        &.active {
+            @for $i from 1 to 20 {
+                >div:nth-child(#{$i}) {
+                    transition-delay: $i * 0.1s;
+                }
+            }
+
+            >div {
+                opacity: 1;
+            }
+        }
+    }
+
+    .splitting-rows {
+        &.reveal {
+            span.word {
+                animation: zFadeIn 1.4s;
+                animation-delay: calc(0.1s * var(--line-index) + 1s) !important;
+            }
+        }
+
+        span.word {
+            opacity: 0;
+        }
+    }
+
+
+
+}

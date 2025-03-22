@@ -1,0 +1,50 @@
+.projects {
+    display: flex;
+    flex-direction: column;
+    margin-left: auto;
+    margin-right: auto;
+
+    a {
+        color: #000;
+        font-size: 120px;
+        margin: 32px auto;
+        align-self: flex-start;
+        opacity: 0.6;
+        letter-spacing: -4px;
+        @include smooth;
+
+        @media (max-width:1368px) {
+            font-size: 80px;
+            letter-spacing: -2px;
+        }
+
+        @media (max-width:991px) {
+            font-size: 12vw;
+            margin: 2vh auto;
+            letter-spacing: -0.5vw;
+        }
+
+        @media (max-width:480px) {
+            font-size: 16vw;
+        }
+
+        &:hover {
+            opacity: 1;
+        }
+
+        &:nth-child(1) {
+            margin-top: 0;
+        }
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        &[disabled] {
+            opacity: 0.12;
+            pointer-events: none;
+            filter: blur(12px);
+            display: none;
+        }
+    }
+}

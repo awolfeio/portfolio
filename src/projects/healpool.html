@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <title>Adrain Wolfe | Healpool</title>
+        {{> meta }}
+    </head>
+<body>
+{{> loadingsplash }}
+<div id="stage">
+    <div id="viewport">
+        <header>
+            {{> nav }}
+        </header>
+        <main data-router-wrapper>
+            <div class="page project" id="healpool" data-router-view="healpool">
+            </div>
+        </main>
+    </div>
+</div>
+<script type="module" src="../index.js"></script>
+</body>
+</html>
