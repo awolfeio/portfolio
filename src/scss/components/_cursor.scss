@@ -1,3 +1,5 @@
+@use "../base" as *;
+
 @keyframes clickPulse {
     0% {
         opacity: 0;
@@ -182,7 +184,7 @@
             z-index: 999;
             opacity: 0;
             letter-spacing: 1.5px;
-            @include smooth;
+            @include transition-smooth;
         }
     }
 

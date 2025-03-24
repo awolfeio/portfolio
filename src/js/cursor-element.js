@@ -84,7 +84,7 @@ export function cursorCheck() {
   });
 
   const clickableElements = document.querySelectorAll(
-    "a:not('.active'), button, input, select, textarea, span.email, svg.play, svg.pause"
+    "a:not(.active), button, input, select, textarea, span.email, svg.play, svg.pause"
   );
 
   clickableElements.forEach((element) => {

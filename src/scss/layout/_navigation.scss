@@ -1,3 +1,6 @@
+@use "../base" as *;
+@use "../components" as *;
+
 @keyframes logoPathAnimation {
     0% {
         transform: translateY(0);
@@ -106,7 +109,7 @@ header {
 
         svg {
             width: 204px;
-            @include smooth;
+            @include transition-smooth;
             perspective: 1000px;
             position: relative;
             display: block;
@@ -215,7 +218,7 @@ nav {
             margin-bottom: 5.6vw;
             pointer-events: none;
             opacity: 0 !important;
-            @include quick;
+            @include transition-fast;
             color: #fff !important;
         }
 
@@ -237,7 +240,7 @@ nav {
             height: 2px;
             background: $primary;
             opacity: 0;
-            @include smooth;
+            @include transition-smooth;
             display: none;
         }
 
@@ -277,7 +280,7 @@ nav {
             opacity: 1;
             cursor: default;
             filter: hue-rotate(170deg) brightness(18) contrast(0.6);
-            @include medium;
+            @include transition-medium;
 
             @media (max-width:768px) {
                 color: #fff !important;
@@ -313,7 +316,9 @@ nav {
         background: #fff;
         display: block;
         margin-bottom: 6px;
-        @include medium;
+
+
+        @include transition-medium;
 
         &:last-of-type {
             margin-bottom: 0;

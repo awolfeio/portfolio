@@ -5,7 +5,7 @@ import { viewportType } from "./viewport.js";
 
 let lenis;
 
-export default function smoothScroll() {
+export default function initSmoothScroll() {
   // Register GSAP ScrollTrigger
   gsap.registerPlugin(ScrollTrigger);
 
@@ -15,6 +15,10 @@ export default function smoothScroll() {
     "ontouchstart" in window ||
     navigator.maxTouchPoints > 0 ||
     navigator.msMaxTouchPoints > 0;
+
+  // Add lenis class to body to enable proper CSS handling
+  document.documentElement.classList.add("lenis-smooth");
+  document.body.classList.add("lenis");
 
   // Destroy existing instance if it exists
   if (lenis) {
@@ -27,7 +31,7 @@ export default function smoothScroll() {
     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     orientation: "vertical",
     smoothWheel: true,
-    wheelMultiplier: 1,
+    wheelMultiplier: 0.8,
     smoothTouch: false, // Usually better UX to disable smooth scrolling on touch devices
     infinite: false,
   });
@@ -50,6 +54,13 @@ export default function smoothScroll() {
     }
   });
 
+  // Fix for iOS initial scroll position issues
+  if (isTouchDevice) {
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 100);
+  }
+
   return lenis;
 }
 
@@ -57,6 +68,7 @@ export default function smoothScroll() {
 export function stopScroll() {
   if (lenis) {
     lenis.stop();
+    document.body.classList.add("lenis-stopped");
   }
 }
 
@@ -64,6 +76,18 @@ export function stopScroll() {
 export function startScroll() {
   if (lenis) {
     lenis.start();
+    document.body.classList.remove("lenis-stopped");
+  }
+}
+
+// Scroll to a specific element
+export function scrollTo(target, options = {}) {
+  if (lenis) {
+    lenis.scrollTo(target, {
+      offset: 0,
+      duration: 1.2,
+      ...options,
+    });
   }
 }
 

@@ -1,7 +1,7 @@
-import { viewportSize, viewportType } from "./viewport.js";
+import { viewportType, viewportSize } from "./viewport.js";
 import { cursorCheck } from "./cursor-element.js";
 import { fadeInReveal, revealSplitTexts } from "./scroll-triggers.js";
-import smoothScroll from "./smooth-scroll.js";
+import initSmoothScroll from "./smooth-scroll.js";
 import { fogBG } from "./background.js";
 
 // Store viewport measurements
@@ -46,7 +46,7 @@ function handleResize() {
 
     setTimeout(function () {
       fogBG.resize();
-      smoothScroll();
+      initSmoothScroll();
       document.body.classList.remove("resizing");
     }, 1000);
   }

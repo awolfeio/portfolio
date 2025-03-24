@@ -1,6 +1,6 @@
 import { viewportSize, viewportType } from "./viewport.js";
 import { cursorCheck } from "./cursor-element.js";
-import smoothScroll from "./smooth-scroll.js";
+import initSmoothScroll from "./smooth-scroll.js";
 import { fogBG } from "./background.js";
 import { loadingSplash } from "./loading-screen.js";
 import { rotateTitles } from "./type-anim.js";
@@ -42,7 +42,7 @@ function setupVisuals() {
   viewportType();
   viewportSize();
   cursorCheck();
-  smoothScroll();
+  initSmoothScroll();
 }
 
 /**

@@ -1,21 +1,21 @@
-@mixin quick {
-    transition:all 0.18s, filter 0s;
-    transition-timing-function:cubic-bezier(0.785, 0.135, 0.15, 0.86);
+@mixin transition-fast {
+    transition: all 0.18s, filter 0s;
+    transition-timing-function: cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 
-@mixin smooth {
-    transition:0.24s ease;
+@mixin transition-smooth {
+    transition: 0.24s ease;
     //transition-timing-function:cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 
-@mixin medium {
-    transition:all 0.4s, filter 0s;
-    transition-timing-function:cubic-bezier(0,0,.19,1);
+@mixin transition-medium {
+    transition: all 0.4s, filter 0s;
+    transition-timing-function: cubic-bezier(0, 0, .19, 1);
 }
 
-@mixin slow {
-    transition:all 1s, filter 0s;
-    transition-timing-function:cubic-bezier(0,0,.19,1);
+@mixin transition-slow {
+    transition: all 1s, filter 0s;
+    transition-timing-function: cubic-bezier(0, 0, .19, 1);
 }
 
 

@@ -1,5 +1,10 @@
 ---
 description: 
+globs: 
+alwaysApply: false
+---
+---
+description: 
 globs: *.js
 alwaysApply: false
 ---
@@ -9,7 +14,7 @@ const jsLibrariesInstructions = `
 1. Use elegant and modern design, we want soft and smooth animations.
 2. Use GSAP for animations.
 3. Use split-type for text animations, not gsap SplitText.
-4. Use Lenis for smooth scrolling, not GSAP SmoothScroller.
+4. Use Lenis for smooth scrolling, not GSAP transition-smoothScroller.
 5. Use Three.js for GLSL shaders and 3D animations.
 6. Use Barba.js for seamless page transitions.
 7. Use KeenSlider for slider components.

@@ -1,7 +1,7 @@
-import { revealSplitTexts, fadeInReveal, playVideosOnEnter, autoScrollContainer } from "/js/scroll-triggers.js";
-import smoothScroll from "./smooth-scroll.js";
+import { revealSplitTexts, fadeInReveal, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
+import initSmoothScroll from "./smooth-scroll.js";
 import splitText from "./text-splitting.js";
-import { circleText } from "./type-anim.js";
+import { circleText, revealH1Characters } from "./type-anim.js";
 import { removeSpecificElements, checkLocationAndRemoveElements } from "./geographic.js";
 
 export function loadingSplash() {
@@ -19,8 +19,9 @@ export function loadingSplash() {
           loadBar.addEventListener("animationend", () => {
             loadingSplash.classList.add("loaded");
 
-            const chars = document.querySelectorAll(".splitting .char");
-            chars.forEach((char) => char.classList.add("reveal-char"));
+            // Animate loading splash characters
+            const loadingChars = document.querySelectorAll("#loading-splash .char");
+            loadingChars.forEach((char) => char.classList.add("reveal-char"));
 
             window.scrollTo(0, 0);
 
@@ -31,8 +32,11 @@ export function loadingSplash() {
               fadeInReveal();
               playVideosOnEnter();
               autoScrollContainer();
-              smoothScroll();
+              initSmoothScroll();
               circleText();
+
+              // Immediately reveal H1 characters
+              revealH1Characters();
 
               setTimeout(function () {
                 document.body.classList.remove("loaded");
@@ -49,8 +53,9 @@ export function loadingSplash() {
             setTimeout(function () {
               loadingSplash.remove();
 
-              const chars = document.querySelectorAll(".splitting .char");
-              chars.forEach((char) => char.classList.remove("reveal-char"));
+              // Only remove reveal-char from loading splash elements, not from H1
+              const loadingChars = document.querySelectorAll("#loading-splash .char");
+              loadingChars.forEach((char) => char.classList.remove("reveal-char"));
             }, 500);
           });
         }

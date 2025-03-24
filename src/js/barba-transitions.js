@@ -1,7 +1,7 @@
 import barba from "@barba/core";
 import { fadeTransition } from "./transitions.js";
 import { lenis, stopScroll, startScroll } from "./smooth-scroll.js";
-import smoothScroll from "./smooth-scroll.js";
+import initSmoothScroll from "./smooth-scroll.js";
 import { changeBG, fogBG } from "./background.js";
 import splitText from "./text-splitting.js";
 import { revealSplitTexts, fadeInReveal, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
@@ -130,7 +130,7 @@ function handleAfterEnter(data) {
     fadeInReveal();
     playVideosOnEnter();
     autoScrollContainer();
-    smoothScroll();
+    initSmoothScroll();
     startScroll();
 
     if (document.querySelector("main .page#index")) {

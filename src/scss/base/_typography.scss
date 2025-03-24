@@ -1,3 +1,6 @@
+@use "mixins" as *;
+@use "colors" as *;
+
 @font-face {
     font-family: "Evolve";
     font-weight: normal;
@@ -40,7 +43,7 @@ body {
             span,
             li,
             a {
-                @include smooth;
+                @include transition-smooth;
             }
         }
     }
@@ -132,7 +135,7 @@ body {
         margin: 0 auto;
         text-align: center;
         max-width: calc(100vw - 32px);
-        @include smooth;
+        @include transition-smooth;
 
         @media (max-width:1368px) {
             font-size: 20px;
@@ -177,15 +180,14 @@ h2 {
     .title {
         opacity: 0;
         position: absolute;
-        @include smooth;
-        transition: position 0s, all 0.4s;
+        @include transition-smooth;
+        transition: all 0.4s;
         left: 0;
         right: 0;
 
         &.active {
             opacity: 1;
-            position: relative;
-            transition: position 0s, all 0.4s;
+            transition: all 0.4s;
             transition-delay: 0.3s;
         }
     }
@@ -269,17 +271,25 @@ span {
     -webkit-transform: perspective(1000px);
     perspective: 1000px;
     opacity: 0;
+    transition: opacity 0.5s ease;
 
     &.reveal {
         opacity: 1;
 
-        span.word {
+        .line {
             animation: zFadeIn 1.4s;
-            animation-delay: calc(0.1s * var(--line-index) + 2s) !important;
+            animation-fill-mode: forwards;
+            animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
+
+            @for $i from 1 through 10 {
+                &[data-line-index="#{$i - 1}"] {
+                    animation-delay: calc(0.1s * #{$i} + 0.2s);
+                }
+            }
         }
     }
 
-    span.word {
+    .line {
         opacity: 0;
     }
 }
