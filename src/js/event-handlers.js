@@ -12,9 +12,12 @@ export function setupEventHandlers() {
   `;
   document.head.appendChild(styleElement);
 
+  // Delegate click event for all internal links to use Barba
+  document.body.addEventListener("click", handleBarbaLinks);
+
   // Nav click handler
   document.querySelectorAll("nav a").forEach((navLink) => {
-    navLink.addEventListener("click", function () {
+    navLink.addEventListener("click", function (e) {
       if (this.classList.contains("resume")) {
         return;
       } else if (!this.classList.contains("active")) {
@@ -27,29 +30,6 @@ export function setupEventHandlers() {
       }
     });
   });
-
-  // Logo click handler
-  const logoLinks = document.querySelectorAll(".logo a");
-  logoLinks.forEach((link) => {
-    link.addEventListener("click", function () {
-      document.querySelectorAll("nav a").forEach((navLink) => {
-        navLink.classList.remove("active");
-      });
-    });
-  });
-
-  // Check for projects in URL
-  if (window.location.href.indexOf("projects") > -1) {
-    const firstNavLink = document.querySelector("nav a:nth-of-type(1)");
-    if (firstNavLink) {
-      firstNavLink.classList.add("active");
-      document.querySelectorAll("nav a").forEach((sibling) => {
-        if (sibling !== firstNavLink) {
-          sibling.classList.remove("active");
-        }
-      });
-    }
-  }
 
   // Skills section mouseleave handler
   document.querySelectorAll(".skills-wrapper > div").forEach((skillTile) => {
@@ -64,23 +44,124 @@ export function setupEventHandlers() {
   // Email click handler
   document.querySelectorAll(".email").forEach((emailElement) => {
     emailElement.addEventListener("click", function () {
-      const copyText = document.getElementById("email-string");
-      copyText.select();
-      copyText.setSelectionRange(0, 99999);
-      navigator.clipboard.writeText(copyText.value);
-      document.execCommand("copy");
+      // Email address to copy
+      const emailAddress = "adrainwolfe@gmail.com";
 
-      const cursorElement = document.querySelector(".cursor-element");
-      if (cursorElement) {
-        cursorElement.classList.add("copied");
-        setTimeout(() => {
-          cursorElement.classList.remove("copied");
-        }, 2400);
-      }
+      // Copy directly to clipboard using the Clipboard API
+      navigator.clipboard
+        .writeText(emailAddress)
+        .then(() => {
+          console.log("Email copied to clipboard:", emailAddress);
+
+          // Show visual feedback with the cursor element
+          const cursorElement = document.querySelector(".cursor-element");
+          if (cursorElement) {
+            cursorElement.classList.add("copied");
+            setTimeout(() => {
+              cursorElement.classList.remove("copied");
+            }, 2400);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to copy email: ", err);
+        });
     });
   });
 
   setupMobileMenuHandlers();
+}
+
+/**
+ * Centralized handler for all links that should use Barba transitions
+ */
+function handleBarbaLinks(e) {
+  // Only handle left clicks
+  if (e.button !== 0) return;
+
+  const link = e.target.closest("a");
+  if (!link) return;
+
+  // Check for resume link specifically, ensuring it opens in a new tab
+  if (
+    link.id === "resume-nav-link" ||
+    link.classList.contains("resume") ||
+    (link.getAttribute("href") && link.getAttribute("href").includes("Resume"))
+  ) {
+    // Let the default browser behavior handle the resume - don't interfere
+    console.log("Resume link clicked - letting browser handle it");
+    return;
+  }
+
+  // Skip if it's an external link or has a target
+  if (
+    link.hasAttribute("target") ||
+    link.getAttribute("href").startsWith("http") ||
+    link.getAttribute("href").includes("mailto:") ||
+    link.getAttribute("href").includes("tel:") ||
+    link.hasAttribute("download")
+  ) {
+    return;
+  }
+
+  // Skip if it's an anchor link on the same page
+  if (link.getAttribute("href").startsWith("#")) {
+    return;
+  }
+
+  // Prevent default link behavior
+  e.preventDefault();
+
+  // Get the href to check if it's the homepage
+  const href = link.getAttribute("href");
+  const isHomepage = href === "/" || href === "/index.html" || href === "index.html";
+
+  // Handle navigation transition styling if it's a nav link
+  if (link.closest("nav")) {
+    document.querySelectorAll("nav a:not(.active)").forEach((inactiveLink) => {
+      inactiveLink.classList.add("on-change");
+    });
+
+    if (!link.classList.contains("active") && !isHomepage) {
+      link.classList.add("active");
+      document.querySelectorAll("nav a").forEach((sibling) => {
+        if (sibling !== link) {
+          sibling.classList.remove("active");
+        }
+      });
+    } else if (isHomepage) {
+      // If navigating to homepage, remove active class from all nav links
+      document.querySelectorAll("nav a").forEach((navLink) => {
+        navLink.classList.remove("active");
+      });
+    }
+
+    setTimeout(() => {
+      document.querySelectorAll("nav a.on-change").forEach((changingLink) => {
+        changingLink.classList.remove("on-change");
+      });
+    }, 240);
+  } else if (link.classList.contains("logo") || isHomepage) {
+    // If it's the logo or any link to the homepage, remove active class from all nav links
+    document.querySelectorAll("nav a").forEach((navLink) => {
+      navLink.classList.remove("active");
+    });
+  }
+
+  // Close mobile menu if open
+  document.body.classList.remove("menu-active");
+  document.querySelectorAll(".mobile-menu-toggle").forEach((toggle) => {
+    toggle.classList.remove("active");
+  });
+
+  // Use Barba for navigation
+  console.log(`Barba navigating to: ${href}`);
+
+  if (window.barba) {
+    window.barba.go(href);
+  } else {
+    console.warn("Barba not initialized yet, falling back to window.location");
+    window.location.href = href;
+  }
 }
 
 /**
@@ -92,32 +173,6 @@ export function setupMobileMenuHandlers() {
     toggle.addEventListener("click", function () {
       document.body.classList.toggle("menu-active");
       this.classList.toggle("active");
-    });
-  });
-
-  const navigationLinks = document.querySelectorAll("#navigation a");
-  navigationLinks.forEach((link) => {
-    ["click", "touchstart"].forEach((eventType) => {
-      link.addEventListener(eventType, function (e) {
-        e.preventDefault();
-
-        document.querySelectorAll("#navigation a:not(.active)").forEach((inactiveLink) => {
-          inactiveLink.classList.add("on-change");
-        });
-
-        setTimeout(() => {
-          document.querySelectorAll("#navigation a.on-change").forEach((changingLink) => {
-            changingLink.classList.remove("on-change");
-          });
-        }, 240);
-
-        document.body.classList.remove("menu-active");
-        document.querySelectorAll(".mobile-menu-toggle").forEach((toggle) => {
-          toggle.classList.remove("active");
-        });
-
-        window.location.href = this.getAttribute("href");
-      });
     });
   });
 }

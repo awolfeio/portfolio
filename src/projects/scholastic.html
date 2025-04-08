@@ -1,19 +1,15 @@
 <html>
   <head>
-    <title>Adrain Wolfe | Aave</title>
+    <title>Adrain Wolfe | Scholastic</title>
   </head>
   {{> meta }}
-  <body>
+  <body data-barba="wrapper">
     {{> loadingsplash }}
     <div id="stage">
       <div id="viewport">
         <header>{{> nav }}</header>
-        <main data-router-wrapper>
-          <div
-            class="page project"
-            id="scholastic"
-            data-router-view="scholastic"
-          >
+        <main data-barba="container" data-barba-namespace="scholastic">
+          <div class="page project" id="scholastic">
             <h1>Scholastic</h1>
             <div class="project-aspects fade-reveal">
               <div><span>2022-2023</span></div>
@@ -25,10 +21,7 @@
             </div>
             <div class="large-video fade-reveal clip-swipe">
               <video preload="auto" muted playsinline loop>
-                <source
-                  src="../assets/videos/MagsHomepageArticlePage.mp4"
-                  type="video/mp4"
-                />
+                <source src="../assets/videos/MagsHomepageArticlePage.mp4" type="video/mp4" />
               </video>
               <svg
                 class="pause"
@@ -51,22 +44,8 @@
                   stroke-width="4"
                 />
                 <g filter="url(#filter1_d_1255_7908)">
-                  <rect
-                    x="27"
-                    y="21"
-                    width="4"
-                    height="24"
-                    fill="black"
-                    fill-opacity="0.29"
-                  />
-                  <rect
-                    x="36"
-                    y="21"
-                    width="4"
-                    height="24"
-                    fill="black"
-                    fill-opacity="0.29"
-                  />
+                  <rect x="27" y="21" width="4" height="24" fill="black" fill-opacity="0.29" />
+                  <rect x="36" y="21" width="4" height="24" fill="black" fill-opacity="0.29" />
                 </g>
                 <rect x="27" y="21" width="4" height="24" fill="white" />
                 <rect x="36" y="21" width="4" height="24" fill="white" />
@@ -82,17 +61,8 @@
                   >
                     <feFlood flood-opacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-                    <feComposite
-                      in2="SourceAlpha"
-                      operator="in"
-                      result="effect1_backgroundBlur_1255_7908"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_backgroundBlur_1255_7908"
-                      result="shape"
-                    />
+                    <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_1255_7908" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_1255_7908" result="shape" />
                   </filter>
                   <filter
                     id="filter1_d_1255_7908"
@@ -113,21 +83,9 @@
                     <feOffset dy="1" />
                     <feGaussianBlur stdDeviation="2" />
                     <feComposite in2="hardAlpha" operator="out" />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in2="BackgroundImageFix"
-                      result="effect1_dropShadow_1255_7908"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_dropShadow_1255_7908"
-                      result="shape"
-                    />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1255_7908" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1255_7908" result="shape" />
                   </filter>
                 </defs>
               </svg>
@@ -158,10 +116,7 @@
                     fill-opacity="0.29"
                   />
                 </g>
-                <path
-                  d="M44 33.1249L25 44.8163L25 21.4336L44 33.1249Z"
-                  fill="white"
-                />
+                <path d="M44 33.1249L25 44.8163L25 21.4336L44 33.1249Z" fill="white" />
                 <defs>
                   <filter
                     id="filter0_b_1255_7898"
@@ -174,17 +129,8 @@
                   >
                     <feFlood flood-opacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-                    <feComposite
-                      in2="SourceAlpha"
-                      operator="in"
-                      result="effect1_backgroundBlur_1255_7898"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_backgroundBlur_1255_7898"
-                      result="shape"
-                    />
+                    <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_1255_7898" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_1255_7898" result="shape" />
                   </filter>
                   <filter
                     id="filter1_d_1255_7898"
@@ -204,50 +150,31 @@
                     />
                     <feOffset dy="1" />
                     <feGaussianBlur stdDeviation="2" />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in2="BackgroundImageFix"
-                      result="effect1_dropShadow_1255_7898"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_dropShadow_1255_7898"
-                      result="shape"
-                    />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1255_7898" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1255_7898" result="shape" />
                   </filter>
                 </defs>
               </svg>
             </div>
             <div class="project-description fade-reveal">
               <p>
-                Scholastic is one of the longest standing and most reputable
-                education companies in the United States. From digital learning
-                applications, to book fairs, to monthly magazines for
-                classrooms, they have so many endeavors that impact and support
-                K-12 education.
+                Scholastic is one of the longest standing and most reputable education companies in the United States.
+                From digital learning applications, to book fairs, to monthly magazines for classrooms, they have so
+                many endeavors that impact and support K-12 education.
               </p>
               <p>
-                One of my major projects at Scholastic was to refresh the entire
-                visual user experience of Magazines+, a collection of over 20
-                different companion sites for magazines made for Grades K-12.
-                This included creating a design system from the ground up,
-                suitable for over 20 thematic variations. Magazines+ is used by
-                over 250k teachers, over 13 million students, and has a roughly
-                50% presence in all U.S. elementary and middle schools.
+                One of my major projects at Scholastic was to refresh the entire visual user experience of Magazines+, a
+                collection of over 20 different companion sites for magazines made for Grades K-12. This included
+                creating a design system from the ground up, suitable for over 20 thematic variations. Magazines+ is
+                used by over 250k teachers, over 13 million students, and has a roughly 50% presence in all U.S.
+                elementary and middle schools.
               </p>
               <p>
-                This vast project included creating Foundations (Spacing, Color,
-                Typography, etc), as well as detailed Component pages with
-                Overviews, Guidelines and Property Specs. All Foundation and
-                Component properties were built out in Figma to be export-ready
-                with the newly released Variables feature. Detailed prototypes
-                with interaction design were also created for every magazine
-                category.
+                This vast project included creating Foundations (Spacing, Color, Typography, etc), as well as detailed
+                Component pages with Overviews, Guidelines and Property Specs. All Foundation and Component properties
+                were built out in Figma to be export-ready with the newly released Variables feature. Detailed
+                prototypes with interaction design were also created for every magazine category.
               </p>
               <!--
                         <a href="" onclick="window.open(this.href); return;" target="_blank"  class="view-button design fade-reveal">
@@ -269,10 +196,7 @@
                     -->
             <div class="large-video fade-reveal clip-swipe">
               <video preload="auto" muted playsinline loop>
-                <source
-                  src="../assets/videos/IssuePageCategoryPage2.mp4"
-                  type="video/mp4"
-                />
+                <source src="../assets/videos/IssuePageCategoryPage2.mp4" type="video/mp4" />
               </video>
               <svg
                 class="pause"
@@ -295,22 +219,8 @@
                   stroke-width="4"
                 />
                 <g filter="url(#filter1_d_1255_7908)">
-                  <rect
-                    x="27"
-                    y="21"
-                    width="4"
-                    height="24"
-                    fill="black"
-                    fill-opacity="0.29"
-                  />
-                  <rect
-                    x="36"
-                    y="21"
-                    width="4"
-                    height="24"
-                    fill="black"
-                    fill-opacity="0.29"
-                  />
+                  <rect x="27" y="21" width="4" height="24" fill="black" fill-opacity="0.29" />
+                  <rect x="36" y="21" width="4" height="24" fill="black" fill-opacity="0.29" />
                 </g>
                 <rect x="27" y="21" width="4" height="24" fill="white" />
                 <rect x="36" y="21" width="4" height="24" fill="white" />
@@ -326,17 +236,8 @@
                   >
                     <feFlood flood-opacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-                    <feComposite
-                      in2="SourceAlpha"
-                      operator="in"
-                      result="effect1_backgroundBlur_1255_7908"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_backgroundBlur_1255_7908"
-                      result="shape"
-                    />
+                    <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_1255_7908" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_1255_7908" result="shape" />
                   </filter>
                   <filter
                     id="filter1_d_1255_7908"
@@ -357,21 +258,9 @@
                     <feOffset dy="1" />
                     <feGaussianBlur stdDeviation="2" />
                     <feComposite in2="hardAlpha" operator="out" />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in2="BackgroundImageFix"
-                      result="effect1_dropShadow_1255_7908"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_dropShadow_1255_7908"
-                      result="shape"
-                    />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1255_7908" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1255_7908" result="shape" />
                   </filter>
                 </defs>
               </svg>
@@ -402,10 +291,7 @@
                     fill-opacity="0.29"
                   />
                 </g>
-                <path
-                  d="M44 33.1249L25 44.8163L25 21.4336L44 33.1249Z"
-                  fill="white"
-                />
+                <path d="M44 33.1249L25 44.8163L25 21.4336L44 33.1249Z" fill="white" />
                 <defs>
                   <filter
                     id="filter0_b_1255_7898"
@@ -418,17 +304,8 @@
                   >
                     <feFlood flood-opacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-                    <feComposite
-                      in2="SourceAlpha"
-                      operator="in"
-                      result="effect1_backgroundBlur_1255_7898"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_backgroundBlur_1255_7898"
-                      result="shape"
-                    />
+                    <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_1255_7898" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_1255_7898" result="shape" />
                   </filter>
                   <filter
                     id="filter1_d_1255_7898"
@@ -448,31 +325,16 @@
                     />
                     <feOffset dy="1" />
                     <feGaussianBlur stdDeviation="2" />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in2="BackgroundImageFix"
-                      result="effect1_dropShadow_1255_7898"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_dropShadow_1255_7898"
-                      result="shape"
-                    />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1255_7898" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1255_7898" result="shape" />
                   </filter>
                 </defs>
               </svg>
             </div>
             <div class="large-video fade-reveal clip-swipe">
               <video preload="auto" muted playsinline loop>
-                <source
-                  src="../assets/videos/MagsColorReel2.mp4"
-                  type="video/mp4"
-                />
+                <source src="../assets/videos/MagsColorReel2.mp4" type="video/mp4" />
               </video>
               <svg
                 class="pause"
@@ -495,22 +357,8 @@
                   stroke-width="4"
                 />
                 <g filter="url(#filter1_d_1255_7908)">
-                  <rect
-                    x="27"
-                    y="21"
-                    width="4"
-                    height="24"
-                    fill="black"
-                    fill-opacity="0.29"
-                  />
-                  <rect
-                    x="36"
-                    y="21"
-                    width="4"
-                    height="24"
-                    fill="black"
-                    fill-opacity="0.29"
-                  />
+                  <rect x="27" y="21" width="4" height="24" fill="black" fill-opacity="0.29" />
+                  <rect x="36" y="21" width="4" height="24" fill="black" fill-opacity="0.29" />
                 </g>
                 <rect x="27" y="21" width="4" height="24" fill="white" />
                 <rect x="36" y="21" width="4" height="24" fill="white" />
@@ -526,17 +374,8 @@
                   >
                     <feFlood flood-opacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-                    <feComposite
-                      in2="SourceAlpha"
-                      operator="in"
-                      result="effect1_backgroundBlur_1255_7908"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_backgroundBlur_1255_7908"
-                      result="shape"
-                    />
+                    <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_1255_7908" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_1255_7908" result="shape" />
                   </filter>
                   <filter
                     id="filter1_d_1255_7908"
@@ -557,21 +396,9 @@
                     <feOffset dy="1" />
                     <feGaussianBlur stdDeviation="2" />
                     <feComposite in2="hardAlpha" operator="out" />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in2="BackgroundImageFix"
-                      result="effect1_dropShadow_1255_7908"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_dropShadow_1255_7908"
-                      result="shape"
-                    />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1255_7908" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1255_7908" result="shape" />
                   </filter>
                 </defs>
               </svg>
@@ -602,10 +429,7 @@
                     fill-opacity="0.29"
                   />
                 </g>
-                <path
-                  d="M44 33.1249L25 44.8163L25 21.4336L44 33.1249Z"
-                  fill="white"
-                />
+                <path d="M44 33.1249L25 44.8163L25 21.4336L44 33.1249Z" fill="white" />
                 <defs>
                   <filter
                     id="filter0_b_1255_7898"
@@ -618,17 +442,8 @@
                   >
                     <feFlood flood-opacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-                    <feComposite
-                      in2="SourceAlpha"
-                      operator="in"
-                      result="effect1_backgroundBlur_1255_7898"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_backgroundBlur_1255_7898"
-                      result="shape"
-                    />
+                    <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_1255_7898" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_1255_7898" result="shape" />
                   </filter>
                   <filter
                     id="filter1_d_1255_7898"
@@ -648,21 +463,9 @@
                     />
                     <feOffset dy="1" />
                     <feGaussianBlur stdDeviation="2" />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in2="BackgroundImageFix"
-                      result="effect1_dropShadow_1255_7898"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_dropShadow_1255_7898"
-                      result="shape"
-                    />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1255_7898" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1255_7898" result="shape" />
                   </filter>
                 </defs>
               </svg>
@@ -671,10 +474,7 @@
             </div>
             <div class="large-video fade-reveal clip-swipe">
               <video preload="auto" muted playsinline loop>
-                <source
-                  src="../assets/videos/MagsTypographyReel.mp4"
-                  type="video/mp4"
-                />
+                <source src="../assets/videos/MagsTypographyReel.mp4" type="video/mp4" />
               </video>
               <svg
                 class="pause"
@@ -697,22 +497,8 @@
                   stroke-width="4"
                 />
                 <g filter="url(#filter1_d_1255_7908)">
-                  <rect
-                    x="27"
-                    y="21"
-                    width="4"
-                    height="24"
-                    fill="black"
-                    fill-opacity="0.29"
-                  />
-                  <rect
-                    x="36"
-                    y="21"
-                    width="4"
-                    height="24"
-                    fill="black"
-                    fill-opacity="0.29"
-                  />
+                  <rect x="27" y="21" width="4" height="24" fill="black" fill-opacity="0.29" />
+                  <rect x="36" y="21" width="4" height="24" fill="black" fill-opacity="0.29" />
                 </g>
                 <rect x="27" y="21" width="4" height="24" fill="white" />
                 <rect x="36" y="21" width="4" height="24" fill="white" />
@@ -728,17 +514,8 @@
                   >
                     <feFlood flood-opacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-                    <feComposite
-                      in2="SourceAlpha"
-                      operator="in"
-                      result="effect1_backgroundBlur_1255_7908"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_backgroundBlur_1255_7908"
-                      result="shape"
-                    />
+                    <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_1255_7908" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_1255_7908" result="shape" />
                   </filter>
                   <filter
                     id="filter1_d_1255_7908"
@@ -759,21 +536,9 @@
                     <feOffset dy="1" />
                     <feGaussianBlur stdDeviation="2" />
                     <feComposite in2="hardAlpha" operator="out" />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in2="BackgroundImageFix"
-                      result="effect1_dropShadow_1255_7908"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_dropShadow_1255_7908"
-                      result="shape"
-                    />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1255_7908" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1255_7908" result="shape" />
                   </filter>
                 </defs>
               </svg>
@@ -804,10 +569,7 @@
                     fill-opacity="0.29"
                   />
                 </g>
-                <path
-                  d="M44 33.1249L25 44.8163L25 21.4336L44 33.1249Z"
-                  fill="white"
-                />
+                <path d="M44 33.1249L25 44.8163L25 21.4336L44 33.1249Z" fill="white" />
                 <defs>
                   <filter
                     id="filter0_b_1255_7898"
@@ -820,17 +582,8 @@
                   >
                     <feFlood flood-opacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-                    <feComposite
-                      in2="SourceAlpha"
-                      operator="in"
-                      result="effect1_backgroundBlur_1255_7898"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_backgroundBlur_1255_7898"
-                      result="shape"
-                    />
+                    <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_1255_7898" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_1255_7898" result="shape" />
                   </filter>
                   <filter
                     id="filter1_d_1255_7898"
@@ -850,27 +603,15 @@
                     />
                     <feOffset dy="1" />
                     <feGaussianBlur stdDeviation="2" />
-                    <feColorMatrix
-                      type="matrix"
-                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in2="BackgroundImageFix"
-                      result="effect1_dropShadow_1255_7898"
-                    />
-                    <feBlend
-                      mode="normal"
-                      in="SourceGraphic"
-                      in2="effect1_dropShadow_1255_7898"
-                      result="shape"
-                    />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1255_7898" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1255_7898" result="shape" />
                   </filter>
                 </defs>
               </svg>
             </div>
             <div class="next-project-banner">
-              <a href="./jpplus.html">
+              <a href="/projects/jpplus.html">
                 <span>NEXT PROJECT</span>
               </a>
             </div>

@@ -23,6 +23,7 @@
             backface-visibility: hidden;
             transform-style: preserve-3d;
             width: 100%;
+            min-height: 100vh;
         }
     }
 }

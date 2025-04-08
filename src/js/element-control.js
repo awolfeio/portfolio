@@ -1,5 +1,4 @@
 function makeElementFixed() {
-  //var makeFixedElement = document.getElementById('fixed-element').value;
   var viewportOffset = document.querySelector("" + makeFixedElement + "").getBoundingClientRect();
   var x = viewportOffset.left;
   var y = viewportOffset.top;
@@ -12,11 +11,6 @@ function makeElementFixed() {
   var computedStyle = window.getComputedStyle(element);
   var topMargin = parseFloat(computedStyle.marginTop);
   var trueY = y - topMargin;
-
-  //console.log("topmargin = "+topMargin+"");
-  //console.log("trueY = "+trueY+"");
-  //console.log("X = "+x+"");
-  //console.log("Y = "+y+"");
 
   // Create dummy element and insert before target
   const dummyElement = document.createElement("div");

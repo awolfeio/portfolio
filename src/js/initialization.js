@@ -11,6 +11,9 @@ import { setupResizeHandlers } from "./resize-handlers.js";
  * Initialize the application on first load
  */
 export function initializeApp() {
+  // Override any Barba container styles for the first page load
+  removeInitialContainerStyles();
+
   setupEvents();
   setupVisuals();
   detectFirstPage();
@@ -18,6 +21,29 @@ export function initializeApp() {
   setupMobileMenuHandlers();
   setupRotatingTitles();
   setupResizeHandlers();
+}
+
+/**
+ * Remove any initial styling that might hide containers
+ * This is necessary because Barba transitions add styles that hide containers
+ */
+function removeInitialContainerStyles() {
+  // First, ensure any existing barba containers are visible
+  const barbaContainer = document.querySelector("[data-barba='container']");
+  if (barbaContainer) {
+    barbaContainer.style.opacity = "1";
+    barbaContainer.style.visibility = "visible";
+  }
+
+  // Also set the page and its direct children to visible
+  const pageContent = document.querySelector("main .page");
+  if (pageContent) {
+    pageContent.style.opacity = "1";
+    const directChildren = pageContent.children;
+    for (let i = 0; i < directChildren.length; i++) {
+      directChildren[i].style.opacity = "1";
+    }
+  }
 }
 
 /**
@@ -72,9 +98,8 @@ function detectFirstPage() {
  * Setup rotating titles on index page
  */
 function setupRotatingTitles() {
-  setTimeout(function () {
-    if (document.querySelector("main .page#index")) {
-      rotateTitles();
-    }
-  }, 2500);
+  // We don't need to set this up here as loading-screen.js
+  // will initialize the title rotation after the loading splash
+  // This prevents duplicate initialization
+  // The initialization is now handled in loading-screen.js with proper timing
 }

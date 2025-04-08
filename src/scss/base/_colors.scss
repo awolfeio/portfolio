@@ -1,17 +1,18 @@
-$primary:#000a87;
-$primary:#5300af;
+$primary: #000a87;
+$primary: #5300af;
 
-$primary-blue:#004387;
-$primary-green:#00876e;
-$neon-green:#46FF25;
+$primary-blue: #004387;
+$primary-green: #00876e;
+$neon-green: #46FF25;
 
 :root {
-    --primary-color:$primary;
-}
-body.blue {
-    --primary-color:#004387;
-}
-body.green {
-    --primary-color:#00876e;
+    --primary-color: $primary;
 }
 
+body.blue {
+    --primary-color: #004387;
+}
+
+body.green {
+    --primary-color: #00876e;
+}

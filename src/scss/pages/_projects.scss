@@ -15,11 +15,14 @@
     }
 
     >div {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         border-radius: 50px;
-        background: rgba(0, 0, 0, 0.04);
+        background: rgba(50, 100, 255, 0.04);
         padding: 8px 16px;
         margin-right: 16px;
-        box-shadow: inset 0px 1px 12px -8px rgba(2, 2, 2, 0.2);
+        box-shadow: inset 0px 1px 12px -8px rgba(50, 100, 255, 0.2);
 
         @media (max-width:768px) {
             margin-right: 10px;
@@ -35,7 +38,7 @@
             font-weight: 700;
             text-transform: uppercase;
             display: inline-block;
-            transform: translateY(-1px);
+            transform: translateY(1px);
             cursor: default;
             user-select: none;
             letter-spacing: 1px;

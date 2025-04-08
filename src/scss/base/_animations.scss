@@ -1,3 +1,8 @@
+$transition-fast: 0.18s;
+$transition-smooth: 0.24s;
+$transition-medium: 0.4s;
+$transition-slow: 1s;
+
 /* Animation for the :before pseudo-elements of .char elements */
 @keyframes revealChar {
     0% {

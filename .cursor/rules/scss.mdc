@@ -1,5 +1,10 @@
 ---
 description: 
+globs: 
+alwaysApply: true
+---
+---
+description: These are rules for scss files.
 globs: *.scss
 alwaysApply: false
 ---
@@ -12,5 +17,5 @@ const scssBestPractices = `
 4. Use @use and @forward instead of @import, and no namespacing for scss files and variables.
 5. For scss index files, use @forward to forward all partials to the main index file.
 6. If you make adjustments to variable names, double check the repo to make sure the old variables are not used elsewhere, and if so are also updated.
-7. Do not split class names with scss nesting. When using scss nesting, use entire class names.
+7. Do not split class names via scss nesting. When using scss nesting, use entire class names.
 `;

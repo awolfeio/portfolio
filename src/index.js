@@ -15,23 +15,24 @@ import video4 from "./assets/videos/MagsTypographyReel.mp4";
 // Initialize the application
 document.addEventListener("DOMContentLoaded", init);
 
-// On document ready
-document.addEventListener("DOMContentLoaded", function () {
-  initializeApp();
-  setupEventHandlers();
-});
-
 /**
  * Main initialization function
+ * This properly sequences the loading flow to ensure proper visibility
  */
 function init() {
-  // Preload videos
+  // Initialize application first (includes loading screen)
+  initializeApp();
+
+  // Initialize Barba.js for page transitions first
+  initializeBarba();
+
+  // Setup event handlers after Barba is initialized
+  setupEventHandlers();
+
+  // Preload videos in the background
   const videosToPreload = [video1, video2, video3, video4];
   preloadVideos(videosToPreload);
 
   // Setup video controls
   setupVideoControls();
-
-  // Initialize Barba.js for page transitions
-  initializeBarba();
 }

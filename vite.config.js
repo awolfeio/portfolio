@@ -30,6 +30,7 @@ export default defineConfig({
         rentaru: resolve(root, "projects/rentaru.html"),
         ipi: resolve(root, "projects/ipi.html"),
         jpplus: resolve(root, "projects/jpplus.html"),
+        wabash: resolve(root, "projects/wabash.html"),
       },
     },
     //commonjsOptions: {

@@ -42,77 +42,61 @@ var bgCheck = setInterval(function () {
   }
 }, 250);
 
-//const smokeBG = FOG({
-//  el: "#viewport",
-//  THREE: THREE, // use a custom THREE when initializing
-//  mouseControls: false,
-//  touchControls: false,
-//  gyroControls: false,
-//  minHeight: 1000.00,
-//  minWidth: 1000.00,
-//  highlightColor: 0xadfff5,
-//  midtoneColor: 0xdec1ff,
-//  lowlightColor: 0x9367ff,
-//  baseColor: 0xffffff,
-//  blurFactor: 0.35,
-//  speed: 0.6,
-//  zoom: 2.0
-//});
-
 function changeBG() {
-  const oldPage = document.querySelector("main > div").getAttribute("data-router-view");
+  console.log("Changing background...");
+
+  // Get the namespace from the NEXT container (which will be active after transition)
+  const newContainer = document.querySelector("[data-barba='container']:not(.barba-old-container)");
+  const newNamespace = newContainer ? newContainer.getAttribute("data-barba-namespace") : null;
+
+  // Get the current/old container's namespace
+  const oldContainer = document.querySelector(".barba-old-container");
+  const oldNamespace = oldContainer ? oldContainer.getAttribute("data-barba-namespace") : null;
+
+  console.log("Transition: ", oldNamespace, " -> ", newNamespace);
+
+  // If both old and new pages are NOT the about page, skip background changes
+  if (oldNamespace !== "about" && newNamespace !== "about" && oldNamespace !== null) {
+    console.log("Both pages are not 'about', skipping background change");
+    return;
+  }
+
+  const vantaCanvas = document.querySelector(".vanta-canvas");
+  const viewport = document.getElementById("viewport");
+
+  // First, make the background transition smoothly
+  if (vantaCanvas) vantaCanvas.style.opacity = "0";
+  if (viewport) viewport.style.background = "#E5F0FD";
+
+  // After a short delay, apply the appropriate Vanta settings
   setTimeout(function () {
-    const newPage = document.querySelector("main > div").getAttribute("data-router-view");
+    // Check again for the namespace to ensure we're looking at the right container
+    // that's now fully in the DOM
+    const finalContainer = document.querySelector("[data-barba='container']");
+    const finalNamespace = finalContainer ? finalContainer.getAttribute("data-barba-namespace") : null;
 
-    if (oldPage != "about" && newPage == "about") {
-      const vantaCanvas = document.querySelector(".vanta-canvas");
-      const viewport = document.getElementById("viewport");
+    console.log("Final page namespace confirmation:", finalNamespace);
 
-      if (vantaCanvas) vantaCanvas.style.opacity = "0";
-      if (viewport) viewport.style.background = "#E5F0FD";
-
-      setTimeout(function () {
-        fogBG.setOptions({
-          blurFactor: 0.35,
-          speed: 0.6,
-          zoom: 2.0,
-        });
-
-        if (vantaCanvas) vantaCanvas.style.opacity = "0.66";
-        if (viewport) viewport.style.background = "#fff";
-      }, 1000);
-    } else if (oldPage == "about" && newPage != "about") {
-      const vantaCanvas = document.querySelector(".vanta-canvas");
-      const viewport = document.getElementById("viewport");
-
-      if (vantaCanvas) vantaCanvas.style.opacity = "0";
-      if (viewport) viewport.style.background = "#E5F0FD";
-
-      setTimeout(function () {
-        fogBG.setOptions({
-          blurFactor: 0.48,
-          speed: 0.24,
-          zoom: 0.5,
-        });
-
-        if (vantaCanvas) vantaCanvas.style.opacity = "0.66";
-        if (viewport) viewport.style.background = "#fff";
-      }, 1000);
+    if (finalNamespace === "about") {
+      console.log("Applying about page Vanta settings");
+      fogBG.setOptions({
+        blurFactor: 0.35,
+        speed: 0.6,
+        zoom: 2.0,
+      });
+    } else {
+      console.log("Applying default Vanta settings");
+      fogBG.setOptions({
+        blurFactor: 0.48,
+        speed: 0.24,
+        zoom: 0.5,
+      });
     }
-  }, 420);
 
-  //var bgZoom = 0.5;
-  //var bgBlurFactor = 0.48;
-  //var bgSpeed = 0.1;
-
-  //var timer = 0;
-  //var framesPerSecond = 60;
-  //var transitionDuration = 1000;
-  //var animTick = 1000 / framesPerSecond;
-  //var totalTicks = transitionDuration / animTick;
-  //var aboutMeZoom = 2.0;
-  //var aboutMeBlur = 0.35;
-  //var aboutMeSpeed = 0.6;
+    // Fade the background back in
+    if (vantaCanvas) vantaCanvas.style.opacity = "0.66";
+    if (viewport) viewport.style.background = "#fff";
+  }, 1000);
 }
 
 export { fogBG, changeBG };

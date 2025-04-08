@@ -1,26 +1,17 @@
 import { gsap } from "gsap";
 import { CustomEase } from "gsap/CustomEase";
-import { rotateTitles, revealH1Characters, circleText } from "./type-anim.js";
+import { revealH1Characters } from "./type-anim.js";
 import splitText from "./text-splitting.js";
 
 gsap.registerPlugin(CustomEase);
 
 // Helper function to initialize homepage animations
 function initHomeAnimations() {
-  // Small delay to ensure DOM is ready
-  setTimeout(() => {
-    // Re-run the text splitting
-    splitText();
+  // Re-run the text splitting immediately
+  splitText();
 
-    // Initialize title rotations
-    rotateTitles();
-
-    // Reveal H1 characters
-    revealH1Characters();
-
-    // Initialize circular text if present
-    circleText();
-  }, 100);
+  // We no longer initialize animations here to avoid conflicts with barba-transitions.js
+  // All animation initialization is now centralized in barba-transitions.js
 }
 
 export const fadeTransition = {
@@ -48,27 +39,25 @@ export const fadeTransition = {
       // Check if we're entering the homepage
       const isHomepage = container.querySelector("#index") !== null;
 
-      gsap.fromTo(
-        container,
-        {
-          opacity: 0,
-          y: 40,
+      // Set the container to visible before animating
+      gsap.set(container, {
+        visibility: "visible",
+        opacity: 0,
+        y: 40,
+      });
+
+      // Animate the container
+      gsap.to(container, {
+        opacity: 1,
+        y: 0,
+        duration: 0.66,
+        delay: 0.2, // Reduce the delay a bit for a snappier transition
+        ease: CustomEase.create("cubic", "0.785, 0.135, 0.15, 0.86"),
+        onComplete: () => {
+          // We no longer call initHomeAnimations here - all animation setup is in barba-transitions.js
+          resolve();
         },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.66,
-          delay: 0.4,
-          ease: CustomEase.create("cubic", "0.785, 0.135, 0.15, 0.86"),
-          onComplete: () => {
-            // If transitioning to the homepage, reinitialize animations
-            if (isHomepage) {
-              initHomeAnimations();
-            }
-            resolve();
-          },
-        }
-      );
+      });
     });
   },
 };
@@ -113,10 +102,7 @@ export const blurFlipFadeTransition = {
           duration: 0.44,
           ease: CustomEase.create("cubic", "0.785, 0.135, 0.15, 0.86"),
           onComplete: () => {
-            // If transitioning to the homepage, reinitialize animations
-            if (isHomepage) {
-              initHomeAnimations();
-            }
+            // We no longer call initHomeAnimations here - all initialization is in barba-transitions.js
             resolve();
           },
         }

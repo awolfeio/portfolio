@@ -1,21 +1,18 @@
 <html>
-    <head>
-        <title>Adrain Wolfe | Healpool</title>
-        {{> meta }}
-    </head>
-<body>
-{{> loadingsplash }}
-<div id="stage">
-    <div id="viewport">
-        <header>
-            {{> nav }}
-        </header>
-        <main data-router-wrapper>
-            <div class="page project" id="healpool" data-router-view="healpool">
-            </div>
+  <head>
+    <title>Adrain Wolfe | Healpool</title>
+    {{> meta }}
+  </head>
+  <body data-barba="wrapper">
+    {{> loadingsplash }}
+    <div id="stage">
+      <div id="viewport">
+        <header>{{> nav }}</header>
+        <main data-barba="container" data-barba-namespace="healpool">
+          <div class="page project" id="healpool"></div>
         </main>
+      </div>
     </div>
-</div>
-<script type="module" src="../index.js"></script>
-</body>
+    <script type="module" src="../index.js"></script>
+  </body>
 </html>

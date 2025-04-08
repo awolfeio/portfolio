@@ -47,6 +47,9 @@ export default function splitText() {
         char.setAttribute("data-char", char.textContent);
         char.setAttribute("data-index", index);
 
+        // Apply transparent color to base text
+        char.style.color = "transparent";
+
         // Apply a unique ID to each character for targeting
         if (!char.id) {
           char.id = `char-${Math.random().toString(36).substring(2, 9)}`;
@@ -68,6 +71,9 @@ export default function splitText() {
       // Reset any existing splits
       resetSplitType(element);
 
+      // Remove reveal class if it exists to start fresh
+      element.classList.remove("reveal");
+
       const splitLines = new SplitType(element, {
         types: "lines",
         tagName: "span",
@@ -81,41 +87,19 @@ export default function splitText() {
       if (splitLines.lines) {
         splitLines.lines.forEach((line, index) => {
           line.setAttribute("data-line-index", index);
+
+          // Initially make each line have 0 opacity to prevent flash
+          line.style.opacity = "0";
+
+          // Ensure line is visible but transparent for smooth animation
+          setTimeout(() => {
+            line.style.opacity = "";
+          }, 50);
         });
       }
 
-      // Wait for first active title's character animations to complete
-      const activeTitle = document.querySelector("h2.titles-wrapper .title.active");
-
-      if (activeTitle) {
-        // Find the last character in the active title
-        const chars = activeTitle.querySelectorAll(".char");
-
-        if (chars.length > 0) {
-          const lastChar = chars[chars.length - 1];
-
-          // Listen for the last character's animation to complete
-          lastChar.addEventListener("animationend", function handleAnimEnd() {
-            // Add a small delay after characters finish animating
-            setTimeout(() => {
-              element.classList.add("reveal");
-            }, 100);
-
-            // Remove the event listener after it's triggered
-            lastChar.removeEventListener("animationend", handleAnimEnd);
-          });
-        } else {
-          // Fallback if no characters found
-          setTimeout(() => {
-            element.classList.add("reveal");
-          }, 100);
-        }
-      } else {
-        // Fallback if no active title found
-        setTimeout(() => {
-          element.classList.add("reveal");
-        }, 100);
-      }
+      // Do NOT add reveal class here - this will be handled by other functions
+      // at the right time during page load or transitions
     });
   }
 }

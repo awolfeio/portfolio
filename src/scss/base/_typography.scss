@@ -51,6 +51,7 @@ body {
     h1 {
         font-size: 140px;
         margin-bottom: 40px;
+        user-select: none;
 
         @media (max-width:1368px) {
             font-size: 70px;
@@ -85,6 +86,7 @@ body {
     h2 {
         font-size: 80px;
         margin-bottom: 32px;
+        user-select: none;
 
         @media (max-width:1368px) {
             font-size: 40px;
@@ -161,13 +163,48 @@ body {
         transform: translateZ(0) translate3d(0, 0, 0);
         -webkit-backface-visibility: hidden;
         -webkit-perspective: 1000;
+        overflow: hidden;
+        opacity: 1;
+        visibility: visible;
+        position: relative;
+        display: inline-block;
+        color: transparent !important;
+        padding: 4px 0;
+        user-select: none;
+
+        @media (max-width:1368px) {
+            padding: 2px 0;
+        }
+
+        @media (max-width:480px) {
+            padding: 0px 0 1px;
+        }
 
         &:before {
+            content: attr(data-char);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: translateY(102%);
+            visibility: visible !important;
+            animation-delay: calc(0.04s * var(--char-index)) !important;
             backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-            -webkit-perspective: 1000;
             will-change: transform;
-            transform: translateY(102%) translateZ(0) translate3d(0, 0, 0);
+            color: currentColor;
+            color: #000;
+        }
+
+        &[data-reset]:before {
+            transform: translateY(102%) !important;
+            animation: none !important;
+        }
+
+        &.reveal-char:before {
+            animation: revealChar 0.8s;
+            animation-fill-mode: forwards;
+            animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
         }
     }
 }
@@ -229,8 +266,11 @@ span {
     &.char {
         overflow: hidden;
         opacity: 1;
-        visibility: hidden;
+        visibility: visible;
+        position: relative;
+        display: inline-block;
         padding: 4px 0;
+        color: transparent;
 
         @media (max-width:1368px) {
             padding: 2px 0;
@@ -241,18 +281,32 @@ span {
         }
 
         &:before {
+            content: attr(data-char);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             transform: translateY(102%);
             visibility: visible !important;
             animation-delay: calc(0.04s * var(--char-index)) !important;
+            backface-visibility: hidden;
+            will-change: transform;
+            color: inherit;
+            color: #000;
         }
 
-        &.reveal-char {
-            animation: revealChar 1s;
+        &[data-reset]:before {
+            transform: translateY(102%) !important;
+            animation: none !important;
+        }
+
+        &.reveal-char:before {
+            animation: revealChar 0.8s;
             animation-fill-mode: forwards;
             animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
         }
     }
-
 }
 
 .splitting {
@@ -291,6 +345,14 @@ span {
 
     .line {
         opacity: 0;
+        display: block;
+        overflow: hidden;
+        line-height: 1.4;
+        margin-bottom: 0.2em;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
     }
 }
 
@@ -331,6 +393,7 @@ span {
             animation: rotateWrapper 1.6s;
             animation-fill-mode: forwards;
             animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
+            user-select: none;
 
             &:before {
                 animation: revealChar 0.44s, blurIn 0.6s;

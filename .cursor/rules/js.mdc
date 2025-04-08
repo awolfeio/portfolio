@@ -4,7 +4,7 @@ globs:
 alwaysApply: false
 ---
 ---
-description: 
+description: These are rules for js files.
 globs: *.js
 alwaysApply: false
 ---
