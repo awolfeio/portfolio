@@ -4,6 +4,11 @@
 @use "pages" as *;
 
 html {
+    .dg.ac {
+        z-index: 9999999999999;
+        display: none;
+    }
+
     background: #E5F0FD;
     height: 100%;
 

@@ -12,6 +12,7 @@ import { removeSpecificElements, checkLocationAndRemoveElements } from "./geogra
 import { gsap } from "gsap";
 import SplitType from "split-type";
 import { fogBG } from "./background.js";
+import { initExtrudedLogo } from "./3d-logo.js";
 
 export function loadingSplash() {
   // Initialize by ensuring containers are visible and properly styled
@@ -20,12 +21,18 @@ export function loadingSplash() {
   // Set initial Vanta background settings based on current page
   initializeVantaBackground();
 
+  // Initialize 3D extruded logo
+  let logoInstance = null;
+
   var checkLoadReady = setInterval(function () {
     const loadBar = document.querySelector(".load-bar-inner");
     if (loadBar) {
       clearInterval(checkLoadReady);
       const loadingSplash = document.querySelector("#loading-splash");
       loadBar.classList.add("loading");
+
+      // Initialize the 3D extruded logo
+      logoInstance = initExtrudedLogo();
 
       var loadingReadyCheck = setInterval(function () {
         if (loadBar.classList.contains("loading")) {
@@ -208,6 +215,12 @@ export function loadingSplash() {
           clearInterval(loadingFinishedCheck);
           loadingSplash.addEventListener("animationend", () => {
             setTimeout(function () {
+              // Clean up the 3D logo before removing the splash screen
+              if (logoInstance && typeof logoInstance.dispose === "function") {
+                logoInstance.dispose();
+                logoInstance = null;
+              }
+
               // Remove the loading splash
               loadingSplash.remove();
 

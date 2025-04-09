@@ -1,10 +1,3 @@
-<svg width="180" height="70" viewBox="0 0 180 70" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M65.7899 69.2848L41.2895 12.768L21.9625 57.181H42.168V69.2848H0L31.626 0.957031H50.953L82.579 69.2848H65.7899Z" fill="white"/>
-<mask id="mask0_416_4641" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="31" y="0" width="149" height="70">
-<path d="M114.21 0.95739L138.711 57.4742L158.038 13.0612H137.832V0.95739H180L148.374 69.2852H129.047L97.421 0.95739H114.21Z" fill="white"/>
-<path d="M97.4188 0.957388L72.9184 57.4742L53.5914 13.0612L48.3024 0.957388H31.6289L63.2549 69.2852H82.5819L114.208 0.957388H97.4188Z" fill="white"/>
-</mask>
-<g mask="url(#mask0_416_4641)">
-<rect x="72.918" y="0.957031" width="107.081" height="68.3279" fill="white"/>
-</g>
+<svg width="186" height="71" viewBox="0 0 186 71" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M32.5 0L0 70.5H44V57.5H23L42.5 12.5L67.5 70.5H85L108.5 19.5L132 70.5H152.5L186 0H141.5V12.5H162L142.5 56.5L117.5 0H100L76.5 54.5L52.5 0H32.5Z" fill="white"/>
 </svg>
