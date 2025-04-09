@@ -181,7 +181,7 @@ export function initExtrudedLogo() {
       oscillateY: true,
       oscillateYSpeed: 0.9,
       oscillateYMin: -0.15,
-      oscillateYMax: 0.15,
+      oscillateYMax: 0.45,
     },
     colors: {
       material: "#ffffff",
