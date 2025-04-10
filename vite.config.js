@@ -6,8 +6,14 @@ import handlebars from "vite-plugin-handlebars";
 const root = resolve(__dirname, "src");
 const outDir = resolve(__dirname, "dist");
 
+// Use environment variable or dynamically set base path
+// This ensures it works both on GitHub Pages with /portfolio/ path
+// and on a custom domain without the path
+const base = process.env.VITE_BASE_PATH || '/portfolio/';
+
 export default defineConfig({
   root,
+  base,
   plugins: [
     handlebars({
       partialDirectory: resolve(__dirname, "src/partials"),
