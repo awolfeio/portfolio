@@ -11,6 +11,8 @@ alwaysApply: false
 // SCSS Best Practices
 
 const scssBestPractices = `
+
+0. Every time you are about to engage in changes to the code, ask yourself if it is directly related to achieving the request that was made.
 1. Use elegant and modern design.
 2. On mobile, when necessary, have sibling cards be swipeable horizontally instead of stacked vertically.
 3. Use SCSS variables rather than CSS variables.

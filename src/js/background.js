@@ -42,50 +42,64 @@ var bgCheck = setInterval(function () {
   }
 }, 250);
 
-function changeBG() {
-  console.log("Changing background...");
+function changeBG(data) {
+  console.log("Applying background changes...");
 
-  // Get the namespace from the NEXT container (which will be active after transition)
-  const newContainer = document.querySelector("[data-barba='container']:not(.barba-old-container)");
-  const newNamespace = newContainer ? newContainer.getAttribute("data-barba-namespace") : null;
+  // Get target namespace from data directly if available
+  const newNamespace = data && data.next ? data.next.namespace : null;
+  const oldNamespace = data && data.current ? data.current.namespace : null;
 
-  // Get the current/old container's namespace
-  const oldContainer = document.querySelector(".barba-old-container");
-  const oldNamespace = oldContainer ? oldContainer.getAttribute("data-barba-namespace") : null;
+  // Fallback method if data parameters aren't available
+  if (!newNamespace) {
+    // Get the namespace from the NEXT container (which will be active after transition)
+    const newContainer = document.querySelector("[data-barba='container']:not(.barba-old-container)");
+    const containerNamespace = newContainer ? newContainer.getAttribute("data-barba-namespace") : null;
 
-  console.log("Transition: ", oldNamespace, " -> ", newNamespace);
+    if (containerNamespace) {
+      console.log("Using fallback namespace detection:", containerNamespace);
+    }
+  }
 
-  // If both old and new pages are NOT the about page, skip background changes
+  console.log("Background transition: ", oldNamespace, " -> ", newNamespace);
+
+  // If neither old nor new page is the about page, skip the heavy lifting
   if (oldNamespace !== "about" && newNamespace !== "about" && oldNamespace !== null) {
-    console.log("Both pages are not 'about', skipping background change");
+    console.log("Neither page is 'about', skipping background parameter changes");
+    // Still fade the background back in if it was faded out
+    fadeBackgroundIn();
     return;
   }
 
+  // Step 1: Fade out the background fully
   const vantaCanvas = document.querySelector(".vanta-canvas");
   const viewport = document.getElementById("viewport");
 
-  // First, make the background transition smoothly
-  if (vantaCanvas) vantaCanvas.style.opacity = "0";
-  if (viewport) viewport.style.background = "#E5F0FD";
+  console.log("Step 1: Fading background fully out");
 
-  // After a short delay, apply the appropriate Vanta settings
-  setTimeout(function () {
-    // Check again for the namespace to ensure we're looking at the right container
-    // that's now fully in the DOM
-    const finalContainer = document.querySelector("[data-barba='container']");
-    const finalNamespace = finalContainer ? finalContainer.getAttribute("data-barba-namespace") : null;
+  // Make sure we're starting from 0 opacity before changing parameters
+  if (vantaCanvas) {
+    vantaCanvas.style.transition = "opacity 0.4s ease";
+    vantaCanvas.style.opacity = "0";
+  }
+  if (viewport) {
+    viewport.style.transition = "background 0.4s ease";
+    viewport.style.background = "#E5F0FD";
+  }
 
-    console.log("Final page namespace confirmation:", finalNamespace);
+  // Step 2: Wait for fade-out to complete, then change parameters
+  setTimeout(() => {
+    console.log("Step 2: Changing Vanta parameters while invisible");
 
-    if (finalNamespace === "about") {
-      console.log("Applying about page Vanta settings");
+    // Apply the appropriate Vanta settings
+    if (newNamespace === "about") {
+      console.log("Setting about page Vanta parameters");
       fogBG.setOptions({
         blurFactor: 0.35,
         speed: 0.6,
         zoom: 2.0,
       });
     } else {
-      console.log("Applying default Vanta settings");
+      console.log("Setting default Vanta parameters");
       fogBG.setOptions({
         blurFactor: 0.48,
         speed: 0.24,
@@ -93,10 +107,31 @@ function changeBG() {
       });
     }
 
-    // Fade the background back in
-    if (vantaCanvas) vantaCanvas.style.opacity = "0.66";
-    if (viewport) viewport.style.background = "#fff";
-  }, 1000);
+    // Step 3: Wait for parameters to take effect, then fade back in
+    setTimeout(() => {
+      console.log("Step 3: Fading background back in with new parameters");
+      fadeBackgroundIn();
+    }, 300);
+  }, 400); // Wait for fade-out to complete
 }
 
-export { fogBG, changeBG };
+// Helper function to fade the background back in
+function fadeBackgroundIn() {
+  const vantaCanvas = document.querySelector(".vanta-canvas");
+  const viewport = document.getElementById("viewport");
+
+  console.log("Fading background back in");
+
+  // Apply transitions for smooth fade-in
+  if (vantaCanvas) {
+    vantaCanvas.style.transition = "opacity 0.6s ease";
+    vantaCanvas.style.opacity = "0.66";
+  }
+
+  if (viewport) {
+    viewport.style.transition = "background 0.6s ease";
+    viewport.style.background = "#fff";
+  }
+}
+
+export { fogBG, changeBG, fadeBackgroundIn };

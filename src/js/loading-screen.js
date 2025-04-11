@@ -1,13 +1,7 @@
-import {
-  revealSplitTexts,
-  fadeInReveal,
-  playVideosOnEnter,
-  autoScrollContainer,
-  revealSplittingRows,
-} from "./scroll-triggers.js";
+import { revealSplitTexts, fadeInReveal, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
 import initSmoothScroll from "./smooth-scroll.js";
 import splitText from "./text-splitting.js";
-import { circleText, revealH1Characters, rotateTitles, forceRevealAll } from "./type-anim.js";
+import { circleText, revealH1Characters, rotateTitles, animateDataSplittingChars } from "./type-anim.js";
 import { removeSpecificElements, checkLocationAndRemoveElements } from "./geographic.js";
 import { gsap } from "gsap";
 import SplitType from "split-type";
@@ -15,6 +9,34 @@ import { fogBG } from "./background.js";
 import { initExtrudedLogo } from "./3d-logo.js";
 
 export function loadingSplash() {
+  // Initialize animation controller if it doesn't exist
+  if (!window.animationController) {
+    console.log("Initializing animation controller for loading screen");
+    window.animationController = {
+      transitionComplete: true,
+      transitionCompletedAt: 0,
+      pendingAnimations: [],
+      initialPageLoad: true,
+
+      canRunAnimations() {
+        return true; // Always allow on initial page load
+      },
+
+      queueAnimation(animationFn, label = "unnamed") {
+        console.log(`Loading screen: running animation ${label} immediately`);
+        animationFn();
+      },
+
+      processPendingAnimations() {
+        // No-op for loading screen
+      },
+    };
+  } else {
+    // Make sure initial page load is set to true
+    window.animationController.initialPageLoad = true;
+    window.animationController.transitionComplete = true;
+  }
+
   // Initialize by ensuring containers are visible and properly styled
   ensureContainersAreVisible();
 
@@ -33,6 +55,33 @@ export function loadingSplash() {
 
       // Initialize the 3D extruded logo
       logoInstance = initExtrudedLogo();
+
+      // Add a logo ready listener
+      document.addEventListener("logo3d-ready", function logoReadyHandler() {
+        console.log("Logo3D ready event received");
+
+        // Remove the listener since we only need it once
+        document.removeEventListener("logo3d-ready", logoReadyHandler);
+
+        // Add class to show the logo with animation
+        const logoWrapper = document.querySelector("#loading-splash .logo-wrapper");
+        if (logoWrapper) {
+          logoWrapper.classList.add("logo-ready");
+        }
+      });
+
+      // Add CSS to control the logo visibility
+      const logoStyle = document.createElement("style");
+      logoStyle.textContent = `
+        #loading-splash .logo-wrapper {
+          opacity: 0;
+          transition: opacity 0.5s ease;
+        }
+        #loading-splash .logo-wrapper.logo-ready {
+          opacity: 1;
+        }
+      `;
+      document.head.appendChild(logoStyle);
 
       var loadingReadyCheck = setInterval(function () {
         if (loadBar.classList.contains("loading")) {
@@ -90,30 +139,9 @@ export function loadingSplash() {
                 });
               }
 
-              // Crucial: Run splitting and prepare H1 before any animations start
-              // This prevents the jitter because elements are fully prepared before visible animations
-              console.log("Loading screen: preparing H1 elements");
-
-              // Pre-split and prepare H1 elements before rendering
-              const h1Elements = document.querySelectorAll("h1");
-              h1Elements.forEach((h1) => {
-                // Make sure it's split before we animate
-                if (h1.querySelectorAll(".char").length === 0) {
-                  const splitInstance = new SplitType(h1, {
-                    types: "chars",
-                    tagName: "span",
-                  });
-
-                  // Hide all characters initially to prevent flash
-                  if (splitInstance.chars) {
-                    splitInstance.chars.forEach((char) => {
-                      char.style.visibility = "visible";
-                      char.style.color = "transparent";
-                      char.classList.remove("reveal-char");
-                    });
-                  }
-                }
-              });
+              // Crucial: Run splitting before any animations start
+              console.log("Loading screen: splitting text");
+              splitText();
 
               // Now start the actual animation sequence
 
@@ -141,46 +169,50 @@ export function loadingSplash() {
               // Run H1 character animations first
               tl.call(() => {
                 console.log("Loading screen: running H1 animations");
+
+                // Explicitly mark as initial page load before animations
+                if (window.animationController) {
+                  window.animationController.initialPageLoad = true;
+                  window.animationController.transitionComplete = true;
+                }
+
+                // Reset barbaTransitionActive flag if it exists
+                if (window.barbaTransitionActive !== undefined) {
+                  window.barbaTransitionActive = false;
+                }
+
                 revealH1Characters();
               });
 
-              // Then handle other animations
+              // Run animations for data-splitting elements
               tl.call(
                 () => {
-                  console.log("Loading screen: running other animations");
+                  console.log("Loading screen: running data-splitting animations");
 
-                  // Force reveal all other elements
-                  forceRevealAll();
+                  // Ensure flags are set correctly
+                  if (window.animationController) {
+                    window.animationController.initialPageLoad = true;
+                  }
 
-                  // Explicitly handle splitting rows
-                  revealSplittingRows();
-
-                  // Double-check for any missed splitting rows
-                  setTimeout(() => {
-                    document.querySelectorAll(".splitting-rows:not(.reveal)").forEach((el) => {
-                      console.log("Fixing missed splitting-rows element");
-                      el.classList.add("reveal");
-                    });
-                  }, 100);
-
-                  // Initialize scroll-based animations
-                  revealSplitTexts();
-                  fadeInReveal();
-                  playVideosOnEnter();
-                  autoScrollContainer();
-
-                  // Initialize smooth scrolling
-                  initSmoothScroll();
-
-                  // Run text circle animations
-                  circleText();
+                  animateDataSplittingChars();
                 },
                 null,
                 null,
                 "+=0.2"
               );
 
-              // Handle homepage title rotations
+              // Run circle text animations
+              tl.call(
+                () => {
+                  console.log("Loading screen: running circle text effect");
+                  circleText();
+                },
+                null,
+                null,
+                "+=0.1"
+              );
+
+              // Handle homepage title rotations if on index page
               const isHomepage = document.querySelector("main .page#index");
               if (isHomepage) {
                 tl.call(
@@ -191,15 +223,46 @@ export function loadingSplash() {
                       window.titleAnimationInterval = null;
                     }
 
+                    // Ensure flags are set correctly
+                    if (window.animationController) {
+                      window.animationController.initialPageLoad = true;
+                    }
+
                     // Initialize title rotation
                     console.log("Loading-screen: starting title rotation");
                     rotateTitles("loading-screen.js");
                   },
                   null,
                   null,
-                  "+=0.4"
+                  "+=0.3"
                 );
               }
+
+              // Set up all scroll-triggered animations
+              tl.call(
+                () => {
+                  console.log("Loading screen: setting up scroll animations");
+
+                  // Set up scroll-triggered text reveals
+                  // This now handles both .splitting and .splitting-rows elements
+                  revealSplitTexts();
+
+                  // Set up fade reveals
+                  fadeInReveal();
+
+                  // Enable video playback on scroll
+                  playVideosOnEnter();
+
+                  // Setup auto-scrolling containers
+                  autoScrollContainer();
+
+                  // Initialize smooth scrolling
+                  initSmoothScroll();
+                },
+                null,
+                null,
+                "+=0.2"
+              );
 
               // Remove loaded class after a brief delay
               setTimeout(function () {
@@ -236,6 +299,12 @@ export function loadingSplash() {
                 console.log("Final fix for missed splitting-rows element");
                 el.classList.add("reveal");
               });
+
+              // Clear initial page load flag now that we're done
+              if (window.animationController) {
+                console.log("Loading complete - setting initialPageLoad to false for future transitions");
+                window.animationController.initialPageLoad = false;
+              }
             }, 500);
           });
         }

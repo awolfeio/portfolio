@@ -6,10 +6,10 @@ import handlebars from "vite-plugin-handlebars";
 const root = resolve(__dirname, "src");
 const outDir = resolve(__dirname, "dist");
 
-// Use environment variable or dynamically set base path
-// This ensures it works both on GitHub Pages with /portfolio/ path
-// and on a custom domain without the path
-const base = process.env.VITE_BASE_PATH || '/portfolio/';
+// Determine the base path based on build mode
+// For GitHub Pages (build:gh): use '/portfolio/'
+// For custom domain or local dev: use '/'
+const base = process.env.GITHUB_PAGES === "true" ? "/portfolio/" : "/";
 
 export default defineConfig({
   root,

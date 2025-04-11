@@ -4,6 +4,7 @@ import initSmoothScroll from "./smooth-scroll.js";
 import { fogBG } from "./background.js";
 import { loadingSplash } from "./loading-screen.js";
 import { rotateTitles } from "./type-anim.js";
+import { gsap } from "gsap";
 import { setupEventHandlers, setupHeaderInitialization, setupMobileMenuHandlers } from "./event-handlers.js";
 import { setupResizeHandlers } from "./resize-handlers.js";
 
@@ -80,6 +81,48 @@ function detectFirstPage() {
 
   const firstPage = mainContainer.dataset.barbaNamespace;
 
+  // Apply initial animations for any page
+  const pageElement = mainContainer.querySelector(".page");
+  if (pageElement) {
+    // Prepare the animation
+    gsap.set(pageElement, { opacity: 0, y: 30 });
+
+    // Also set initial state for children
+    const contentElements = pageElement.children;
+    if (contentElements.length > 0) {
+      gsap.set(contentElements, { opacity: 0, y: 30 });
+    }
+
+    // Create timeline for animation
+    const tl = gsap.timeline({
+      delay: 0.2, // Give a little delay for page load
+    });
+
+    // Animate the page element
+    tl.to(pageElement, {
+      opacity: 1,
+      y: 0,
+      duration: 0.4,
+      ease: "power2.out",
+    });
+
+    // Animate children with stagger
+    if (contentElements.length > 0) {
+      tl.to(
+        contentElements,
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          stagger: 0.08,
+          ease: "power2.out",
+        },
+        "-=0.2"
+      );
+    }
+  }
+
+  // Set specific page settings
   if (firstPage === "about") {
     fogBG.setOptions({
       blurFactor: 0.35,

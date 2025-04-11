@@ -8,15 +8,20 @@ description: These are rules for js files.
 globs: *.js
 alwaysApply: false
 ---
-// JS Libraries Best Practices
+// JS Best Practices
 
-const jsLibrariesInstructions = `
+const jsInstructions = `
+
+0. Every time you are about to engage in changes to the code, ask yourself if it is directly related to achieving the request that was made.
 1. Use elegant and modern design, we want soft and smooth animations.
-2. Use GSAP for animations.
-3. Use split-type for text animations, not gsap SplitText.
-4. Use Lenis for smooth scrolling, not GSAP transition-smoothScroller.
-5. Use Three.js for GLSL shaders and 3D animations.
-6. Use Barba.js for seamless page transitions.
-7. Use KeenSlider for slider components.
-8. When we create new visual effects with three.js, also give us GUI controls to be able to adjust parameters of the shaders and other effects.
+2. Use GSAP for animations, especially GSAP ScrollTrigger for scroll-based animations.
+3. scroll-triggers.js is where we put all GSAP ScrollTrigger logic and triggering.
+4. text-splitting.js is where we put all split-type logic and triggering.
+5. type-anim.js is for all general typography animation logic and triggering.
+6. Use split-type for text animations, not gsap SplitText.
+7. Use Lenis for smooth scrolling, not GSAP transition-smoothScroller.
+8. Use Three.js for GLSL shaders and 3D animations.
+9. Use Barba.js for seamless page transitions.
+10. Use KeenSlider for slider components.
+11. When we create new visual effects with three.js, also give us GUI controls to be able to adjust parameters of the shaders and other effects.
 `;

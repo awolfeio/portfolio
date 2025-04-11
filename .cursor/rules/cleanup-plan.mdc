@@ -1,0 +1,97 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## Refactoring Plan: Text Splitting & Animation Logic
+
+### Goals
+- Improve code organization and separation of concerns between `text-splitting.js`, `type-anim.js`, and `scroll-triggers.js`.
+- Eliminate redundant logic, especially around text splitting and element reveal triggering.
+- Increase clarity and maintainability.
+- Ensure reliable animation sequencing on initial load (`loading-screen.js`) and page transitions (`barba-transitions.js`).
+
+### Analysis Summary
+
+**Splitting Logic**
+- Spread across `text-splitting.js`, `type-anim.js` (`revealH1Characters`, `animateElement`), and `loading-screen.js` (H1 pre-splitting).
+
+**Animation Logic** (`type-anim.js`)
+- H1 character reveal (includes splitting).
+- `[data-splitting]` character reveal (`animateElement`, includes splitting).
+- Homepage title rotation (`rotateTitles`).
+- Circular text effect (`circleText`).
+- `.splitting-rows` reveal (redundantly implemented).
+
+**Scroll Trigger Logic** (`scroll-triggers.js`)
+- `revealSplittingRows` for `.splitting-rows`.
+- `revealSplitTexts` also handles `.splitting-rows`.
+- Redundant logic for immediate viewport reveals.
+
+**Invocation**
+- Sequencing in `loading-screen.js` and `barba-transitions.js` mostly works but relies on mixed-responsibility functions.
+- Fallback in `loading-screen.js` suggests current logic is unreliable.
+
+---
+
+### Refactoring Steps
+
+#### 1. Centralize Text Splitting (`src/js/text-splitting.js`)
+**Responsibility**: Single source of truth for `SplitType`. Handles:
+- Characters: `[data-splitting]`, `h1`, `h2`
+- Lines: `.splitting-rows`
+
+**Actions**
+- Remove all `SplitType` logic from `type-anim.js` (`revealH1Characters`, `animateElement`)
+- Remove H1 pre-splitting from `loading-screen.js`
+- Enhance `splitText()` to reset existing `SplitType` instances before re-splitting
+
+---
+
+#### 2. Refocus `type-anim.js`
+**Responsibility**: Handle **non-scroll-triggered** animations:
+- Character-level reveals
+- Unique effects (e.g. title rotation)
+
+**Actions**
+- Modify `revealH1Characters`: only applies animation to `.char` in `h1`; **no splitting**
+- Add `animateDataSplittingChars`: animates `.char` inside `[data-splitting]`, excludes H1 and title wrappers
+- Remove `animateElement` helper
+- Remove `revealSplittingRows` entirely
+- Keep `rotateTitles` and `circleText`
+
+---
+
+#### 3. Streamline `scroll-triggers.js`
+**Responsibility**: Manage **all** GSAP `ScrollTrigger` interactions
+
+**Actions**
+- Remove `revealSplittingRows` (explicitly called version)
+- Modify `revealSplitTexts`:
+  - Becomes the sole function for scroll-triggered text reveals
+  - Handles `.splitting-rows`, optionally `.splitting` or `[data-splitting]` if needed
+  - For each target:
+    - Use `isInViewport` to check visibility
+    - If visible: immediately add `.reveal`
+    - If not: create GSAP `ScrollTrigger` with:
+      - `toggleClass: 'reveal'`
+      - `once: true`
+      - appropriate `start`/`end`
+
+**Retain**
+- `fadeInReveal`
+- `playVideosOnEnter`
+- `autoScrollContainer`
+- `isInViewport`
+- `applyFadeReveal`
+
+---
+
+#### 4. Update Invocation Order (`src/js/loading-screen.js`, `src/js/barba-transitions.js`)
+**Actions**
+- Modify `loadingSplash()` and `handleAfterEnter()` to use new structure
+- Ideal function call sequence:
+  1. `splitText()` from `text-splitting.js`
+  2. `revealH1Characters()` from `type-anim.js`
+  3. `animateDataSplittingChars()` from `type-anim.js`
+  4. `revealSplitTexts()` from `scroll-triggers.js`

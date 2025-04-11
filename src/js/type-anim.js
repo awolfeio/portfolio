@@ -1,58 +1,6 @@
 import CircleType from "circletype";
-import SplitType from "split-type";
 import gsap from "gsap";
-
-// Helper function to animate a single element's characters
-// Moved outside of other functions so it can be reused
-function animateElement(element) {
-  // Get character spans
-  let chars = element.querySelectorAll(".char");
-
-  // If no chars found, the text might not be split yet
-  if (chars.length === 0) {
-    // Try to split the element
-    try {
-      // Split the text
-      const splitInstance = new SplitType(element, {
-        types: "chars",
-        tagName: "span",
-      });
-
-      // Add data attributes to each character
-      if (splitInstance.chars) {
-        splitInstance.chars.forEach((char, index) => {
-          char.setAttribute("data-char", char.textContent);
-          char.setAttribute("data-index", index);
-          // Ensure text is transparent
-          char.style.color = "transparent";
-        });
-      }
-
-      // Get the newly created character elements
-      chars = element.querySelectorAll(".char");
-    } catch (error) {
-      console.warn("Failed to split text:", error);
-    }
-  }
-
-  if (chars.length > 0) {
-    // Reset and animate each character
-    chars.forEach((char, index) => {
-      // Reset first
-      char.classList.remove("reveal-char");
-      char.style.visibility = "visible";
-      char.style.color = "transparent";
-
-      // Force reflow
-      void char.offsetWidth;
-
-      // Animate with delay
-      setTimeout(() => {
-        char.classList.add("reveal-char");
-      }, index * 25);
-    });
-  }
-}
+import { applyFadeReveal } from "./scroll-triggers";
 
 // Helper function to animate characters with staggered timing
 function animateChars(chars) {
@@ -73,8 +21,41 @@ function animateChars(chars) {
   });
 }
 
+/**
+ * Rotates through title elements in the homepage
+ * @param {string} caller - Identifier for debugging purposes
+ */
 export function rotateTitles(caller = "unknown") {
   console.log(`rotateTitles called from ${caller} at ${new Date().toISOString()}`);
+
+  // Check if we're in loading-screen initial page load
+  const isInitialLoad = document.querySelector("#loading-splash") !== null;
+
+  // Skip transition checks if initial load from loading screen
+  if (!isInitialLoad) {
+    // Check if Barba transition is still active or if animation controller says no
+    if (
+      window.barbaTransitionActive ||
+      (window.animationController && !window.animationController.canRunAnimations())
+    ) {
+      // Limit retry count to prevent infinite recursion
+      const retryCount = (caller.match(/-retry/g) || []).length;
+      if (retryCount > 5) {
+        console.log("GIVING UP on title rotation after multiple retries");
+        return;
+      }
+
+      console.log("SKIPPING TITLE ROTATION - Transition still active, will retry later");
+
+      // Try again in a bit
+      setTimeout(() => rotateTitles(caller + "-retry"), 100);
+      return;
+    }
+  } else {
+    console.log("Initial page load - running title rotation immediately");
+  }
+
+  console.log("RUNNING TITLE ROTATION - transition completed or initial load");
 
   // Clear any existing animation loops
   if (window.titleAnimationInterval) {
@@ -249,9 +230,33 @@ export function rotateTitles(caller = "unknown") {
   }
 }
 
-// Function to handle H1 character reveal
+/**
+ * Animates H1 character reveals (assumes text has already been split by text-splitting.js)
+ */
 export function revealH1Characters() {
   console.log("revealH1Characters called");
+
+  // Check if we're in loading-screen initial page load
+  const isInitialLoad = document.querySelector("#loading-splash") !== null;
+
+  // Skip transition checks if initial load from loading screen
+  if (!isInitialLoad) {
+    // Check if Barba transition is still active or if animation controller says no
+    if (
+      window.barbaTransitionActive ||
+      (window.animationController && !window.animationController.canRunAnimations())
+    ) {
+      console.log("SKIPPING H1 ANIMATION - Transition still active, will retry later");
+
+      // Try again in a bit
+      setTimeout(revealH1Characters, 100);
+      return;
+    }
+  } else {
+    console.log("Initial page load - running H1 animations immediately");
+  }
+
+  console.log("RUNNING H1 ANIMATIONS - transition completed or initial load");
 
   // Get all H1 elements
   const h1Elements = document.querySelectorAll("h1");
@@ -263,78 +268,154 @@ export function revealH1Characters() {
 
   console.log(`Found ${h1Elements.length} H1 elements to animate`);
 
-  // Process each H1 element
+  // Check if we're on the homepage
+  const isHomepage = document.querySelector("#index") !== null;
+
+  // Process each H1 element - assuming text has already been split
   h1Elements.forEach((h1) => {
-    // If no chars, we need to split the text
-    if (h1.querySelectorAll(".char").length === 0) {
-      try {
-        // Split the text
-        const splitInstance = new SplitType(h1, {
-          types: "chars",
-          tagName: "span",
-        });
-
-        // Add data attributes to each character
-        if (splitInstance.chars) {
-          splitInstance.chars.forEach((char, index) => {
-            char.setAttribute("data-char", char.textContent);
-            char.setAttribute("data-index", index);
-            // Ensure text is transparent
-            char.style.color = "transparent";
-          });
-        }
-      } catch (error) {
-        console.warn("Failed to split H1 text:", error);
-      }
-    }
-
-    // Get characters after splitting
+    // Reset any existing animations first to ensure clean starting point
     const chars = h1.querySelectorAll(".char");
-
     if (chars.length > 0) {
       console.log(`Animating ${chars.length} characters in H1`);
 
       // Reset any existing animations
       chars.forEach((char) => {
+        // Remove animation class
         char.classList.remove("reveal-char");
+
         // Make sure visibility is set correctly
         char.style.visibility = "visible";
+
         // Ensure text content is transparent for pseudo-element reveal
         char.style.color = "transparent";
+
         // Force reflow
         void char.offsetWidth;
       });
 
-      // Simple staggered animation
+      // Use more pronounced staggered animation for homepage
+      if (isHomepage) {
+        // Log to ensure we know this section is running
+        console.log("Running homepage-specific H1 character animations");
+
+        // More noticeable stagger for homepage H1s
+        chars.forEach((char, index) => {
+          // Remove any previous animation
+          gsap.killTweensOf(char);
+
+          // Ensure char is initially hidden
+          char.classList.remove("reveal-char");
+
+          // Use a longer delay for first few characters to make it more noticeable
+          const staggerDelay = index < 3 ? 45 * (index + 1) : 45 + index * 35;
+
+          // Add reveal class with staggered delay
+          setTimeout(() => {
+            char.classList.add("reveal-char");
+
+            // Force a repaint to ensure animation runs smoothly
+            void char.offsetWidth;
+          }, staggerDelay); // Longer delay between chars for homepage
+        });
+
+        // For homepage, add special focus to ensure H1 animation is noticed
+        const h1Parent = h1.parentElement;
+        if (h1Parent) {
+          // Add a subtle highlight to emphasize H1
+          gsap.fromTo(
+            h1Parent,
+            { backgroundColor: "rgba(255,255,255,0)" },
+            {
+              backgroundColor: "rgba(255,255,255,0.03)",
+              duration: 0.5,
+              yoyo: true,
+              repeat: 1,
+            }
+          );
+        }
+      } else {
+        // Standard staggered animation for other pages
+        chars.forEach((char, index) => {
+          setTimeout(() => {
+            char.classList.add("reveal-char");
+          }, 50 + index * 25); // Start after a small delay and stagger
+        });
+      }
+    } else {
+      console.warn(`H1 element doesn't have .char elements. Make sure splitText() was called first.`);
+    }
+  });
+}
+
+/**
+ * Animates data-splitting elements (excluding H1s and title wrappers)
+ */
+export function animateDataSplittingChars() {
+  console.log("animateDataSplittingChars called");
+
+  // Check if we're in loading-screen initial page load
+  const isInitialLoad = document.querySelector("#loading-splash") !== null;
+
+  // Skip transition checks if initial load from loading screen
+  if (!isInitialLoad) {
+    // Check if Barba transition is still active or if animation controller says no
+    if (
+      window.barbaTransitionActive ||
+      (window.animationController && !window.animationController.canRunAnimations())
+    ) {
+      console.log("SKIPPING DATA-SPLITTING ANIMATION - Transition still active, will retry later");
+
+      // Try again in a bit
+      setTimeout(animateDataSplittingChars, 100);
+      return;
+    }
+  } else {
+    console.log("Initial page load - running data-splitting animations immediately");
+  }
+
+  console.log("RUNNING DATA-SPLITTING ANIMATIONS - transition completed or initial load");
+
+  // Process elements with data-splitting attribute, excluding H1s and titles
+  const dataSplittingElements = document.querySelectorAll(
+    "[data-splitting]:not(.titles-wrapper):not(.titles-wrapper *):not(h1):not(.splitting-rows)"
+  );
+
+  if (dataSplittingElements.length === 0) {
+    console.log("No data-splitting elements found to animate");
+    return;
+  }
+
+  console.log(`Found ${dataSplittingElements.length} data-splitting elements to animate`);
+
+  dataSplittingElements.forEach((element) => {
+    // Get character elements
+    const chars = element.querySelectorAll(".char");
+
+    if (chars.length > 0) {
+      // Reset and animate each character
       chars.forEach((char, index) => {
+        // Reset first
+        char.classList.remove("reveal-char");
+        char.style.visibility = "visible";
+        char.style.color = "transparent";
+
+        // Force reflow
+        void char.offsetWidth;
+
+        // Animate with delay
         setTimeout(() => {
           char.classList.add("reveal-char");
-        }, 50 + index * 25); // Start after a small delay and stagger
+        }, index * 25);
       });
-    }
-  });
-
-  // Process other elements with data-splitting attribute
-  const dataSplittingElements = document.querySelectorAll("[data-splitting]:not(h1)");
-  dataSplittingElements.forEach((element) => {
-    if (element.tagName !== "H1" && !element.closest(".titles-wrapper")) {
-      animateElement(element);
+    } else {
+      console.warn(`Element with data-splitting doesn't have .char elements. Make sure splitText() was called first.`);
     }
   });
 }
 
-// Helper function to reset an element's animation state
-function resetElement(element) {
-  const chars = element.querySelectorAll(".char");
-  if (chars.length > 0) {
-    chars.forEach((char) => {
-      char.classList.remove("reveal-char");
-      char.setAttribute("data-reset", "true");
-      void char.offsetWidth; // Force reflow
-    });
-  }
-}
-
+/**
+ * Creates a circular text effect
+ */
 export function circleText() {
   setTimeout(() => {
     const circleTextEl = document.querySelector(".circular-text");
@@ -350,81 +431,20 @@ export function circleText() {
   }, 1000);
 }
 
-// Function to manually force reveal all animated elements
+/**
+ * Manually force reveal all animated elements
+ * This function is for special cases like manually triggering animations
+ */
 export function forceRevealAll() {
   console.log("Running forceRevealAll");
 
-  // Skip H1 elements as they should be handled separately by revealH1Characters
-  // to avoid animation conflicts
+  // Process H1 elements
+  revealH1Characters();
 
-  // Process any element with data-splitting attribute, except titles-wrapper elements
-  const dataSplittingElements = document.querySelectorAll(
-    "[data-splitting]:not(.titles-wrapper):not(.titles-wrapper *):not(h1):not(.splitting-rows)"
-  );
-  console.log(`Found ${dataSplittingElements.length} data-splitting elements to reveal`);
+  // Process data-splitting elements
+  animateDataSplittingChars();
 
-  dataSplittingElements.forEach((element) => {
-    animateElement(element);
-  });
-
-  // Handle .splitting-rows elements with dedicated function for proper sequencing
-  revealSplittingRows();
-
-  // Force reveal all fade elements
-  document.querySelectorAll(".fade-reveal").forEach((el) => {
-    el.classList.add("active");
-  });
-}
-
-// Function to specially handle the reveal of .splitting-rows elements
-export function revealSplittingRows() {
-  console.log("Running revealSplittingRows");
-
-  const splittingRows = document.querySelectorAll(".splitting-rows");
-  if (!splittingRows || splittingRows.length === 0) {
-    console.log("No .splitting-rows elements found");
-    return;
-  }
-
-  console.log(`Found ${splittingRows.length} .splitting-rows elements`);
-
-  // Process each splitting-rows element
-  splittingRows.forEach((element, index) => {
-    // First ensure the element is properly split by lines
-    if (!element.splitType || !element.splitType.lines || element.splitType.lines.length === 0) {
-      console.log(`Element ${index} doesn't have lines split properly, trying to re-split`);
-
-      // Try to re-split using SplitType
-      try {
-        if (element.splitType) {
-          element.splitType.revert();
-        }
-
-        element.splitType = new SplitType(element, {
-          types: "lines",
-          tagName: "span",
-          linesClass: "line",
-        });
-
-        // Add data attributes to lines
-        if (element.splitType.lines) {
-          element.splitType.lines.forEach((line, lineIndex) => {
-            line.setAttribute("data-line-index", lineIndex);
-          });
-        }
-      } catch (error) {
-        console.warn("Failed to split text into lines:", error);
-      }
-    }
-
-    // Remove the reveal class first to ensure a fresh animation
-    element.classList.remove("reveal");
-
-    // Force a reflow to ensure proper animation sequencing
-    void element.offsetWidth;
-
-    // Add the reveal class directly - this will trigger the CSS animation
-    console.log(`Adding .reveal to splitting-rows[${index}]`);
-    element.classList.add("reveal");
-  });
+  // Force reveal all fade elements using the applyFadeReveal function
+  const fadeRevealElements = document.querySelectorAll(".fade-reveal");
+  applyFadeReveal(fadeRevealElements, true); // Pass true to force reveal
 }

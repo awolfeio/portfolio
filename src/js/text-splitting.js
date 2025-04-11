@@ -1,7 +1,10 @@
 import { gsap } from "gsap";
 import SplitType from "split-type";
 
+// Main function to handle all text splitting operations
 export default function splitText() {
+  console.log("Running splitText: centralizing all text splitting");
+
   // Helper function to reset any existing SplitType instances
   function resetSplitType(element) {
     // Check if element already has SplitType instance
@@ -18,9 +21,12 @@ export default function splitText() {
     });
   }
 
-  // Split text into chars
-  const textElements = document.querySelectorAll("[data-splitting], h1, h2");
-  textElements.forEach((element) => {
+  // 1. Split text into chars for all relevant elements
+  // Target all elements that need character splitting
+  const charSplitElements = document.querySelectorAll("[data-splitting], h1, h2");
+  console.log(`Found ${charSplitElements.length} elements for character splitting`);
+
+  charSplitElements.forEach((element) => {
     // Reset any existing splits
     resetSplitType(element);
 
@@ -33,6 +39,7 @@ export default function splitText() {
       element.setAttribute("data-display", element.style.display || "");
     }
 
+    // Create new split instance
     const splitInstance = new SplitType(element, {
       types: "chars",
       tagName: "span",
@@ -41,7 +48,7 @@ export default function splitText() {
     // Store reference to the split instance
     element.splitType = splitInstance;
 
-    // Add data-char attributes to each character for pseudo-elements
+    // Add data attributes to each character for pseudo-elements
     if (splitInstance.chars) {
       splitInstance.chars.forEach((char, index) => {
         char.setAttribute("data-char", char.textContent);
@@ -49,6 +56,8 @@ export default function splitText() {
 
         // Apply transparent color to base text
         char.style.color = "transparent";
+        // Ensure visibility
+        char.style.visibility = "visible";
 
         // Apply a unique ID to each character for targeting
         if (!char.id) {
@@ -64,9 +73,11 @@ export default function splitText() {
     }
   });
 
-  // Split text into lines
+  // 2. Split text into lines for .splitting-rows elements
   if (document.querySelector(".splitting-rows")) {
     const rowElements = document.querySelectorAll(".splitting-rows");
+    console.log(`Found ${rowElements.length} elements for line splitting`);
+
     rowElements.forEach((element) => {
       // Reset any existing splits
       resetSplitType(element);
@@ -74,6 +85,7 @@ export default function splitText() {
       // Remove reveal class if it exists to start fresh
       element.classList.remove("reveal");
 
+      // Create new split instance
       const splitLines = new SplitType(element, {
         types: "lines",
         tagName: "span",
@@ -98,8 +110,7 @@ export default function splitText() {
         });
       }
 
-      // Do NOT add reveal class here - this will be handled by other functions
-      // at the right time during page load or transitions
+      // Do NOT add reveal class here - this will be handled by scroll-triggers.js
     });
   }
 }

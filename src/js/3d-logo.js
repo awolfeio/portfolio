@@ -688,17 +688,54 @@ export function initExtrudedLogo() {
   // Ensure material has the correct environment map intensity before loading
   material.envMapIntensity = settings.glass.envMapIntensity;
 
-  tryLoadingSVG(possiblePaths);
+  // Try loading SVG with a short consistent delay
+  setTimeout(() => {
+    tryLoadingSVG(possiblePaths);
+  }, 100); // Consistent delay before starting
+
+  // We'll set this when animation actually starts
+  let animationStartTime = null;
+
+  // Add an initialization function to set consistent starting positions
+  function initializeAnimationState() {
+    if (!group || group.children.length === 0) return;
+
+    // Set fixed starting positions
+    animationStartTime = Date.now() * 0.001;
+
+    // Start at specific angles for consistency
+    const startY = (settings.logo.oscillateYMin + settings.logo.oscillateYMax) / 2;
+    const startX = (settings.logo.oscillateXMin + settings.logo.oscillateXMax) / 2;
+
+    group.rotation.y = startY;
+    group.rotation.x = startX;
+    group.position.y = settings.logo.positionY;
+
+    // Position the light at a consistent starting point
+    pointLight.position.x = 0;
+    pointLight.position.z = 80;
+  }
 
   // Animation loop
   function animate() {
     requestAnimationFrame(animate);
 
     if (group && group.children.length > 0) {
+      // Initialize animation state if it's the first frame
+      if (animationStartTime === null) {
+        initializeAnimationState();
+      }
+
+      // Get normalized time that resets at a specific interval to ensure consistent animation cycles
+      const cycleTime = 10; // seconds per full cycle
+      const now = Date.now() * 0.001;
+      const elapsedTime = now - animationStartTime;
+      const normalizedTime = (elapsedTime % cycleTime) / cycleTime; // Value between 0 and 1 that repeats every cycleTime seconds
+
       // Y rotation is handled separately to allow continuous animation
       if (settings.logo.oscillateY) {
-        const timeY = Date.now() * 0.001 * settings.logo.oscillateYSpeed;
-        const oscillationFactorY = (Math.sin(timeY) + 1) / 2; // Value between 0 and 1
+        // Use the normalized time for consistent oscillation
+        const oscillationFactorY = (Math.sin(normalizedTime * Math.PI * 2 * settings.logo.oscillateYSpeed) + 1) / 2; // Value between 0 and 1
         const rotationRangeY = settings.logo.oscillateYMax - settings.logo.oscillateYMin;
         group.rotation.y = settings.logo.oscillateYMin + oscillationFactorY * rotationRangeY;
       } else {
@@ -707,8 +744,8 @@ export function initExtrudedLogo() {
 
       // Handle X rotation oscillation
       if (settings.logo.oscillateX) {
-        const time = Date.now() * 0.001 * settings.logo.oscillateXSpeed;
-        const oscillationFactor = (Math.sin(time) + 1) / 2; // Value between 0 and 1
+        // Use the normalized time for consistent oscillation
+        const oscillationFactor = (Math.sin(normalizedTime * Math.PI * 2 * settings.logo.oscillateXSpeed) + 1) / 2; // Value between 0 and 1
         const rotationRange = settings.logo.oscillateXMax - settings.logo.oscillateXMin;
         group.rotation.x = settings.logo.oscillateXMin + oscillationFactor * rotationRange;
       } else {
@@ -717,14 +754,14 @@ export function initExtrudedLogo() {
 
       // Add a gentle bobbing motion if enabled
       if (settings.logo.bobbing) {
-        const time = Date.now() * 0.001 * settings.logo.bobbingSpeed;
-        group.position.y = Math.sin(time) * settings.logo.bobbingAmount + settings.logo.positionY;
+        // Use the normalized time for consistent bobbing
+        const bobbingValue = Math.sin(normalizedTime * Math.PI * 2 * settings.logo.bobbingSpeed);
+        group.position.y = bobbingValue * settings.logo.bobbingAmount + settings.logo.positionY;
       }
 
-      // Move the point light in a circular pattern
-      const time = Date.now() * 0.001;
-      pointLight.position.x = Math.sin(time) * 80;
-      pointLight.position.z = Math.cos(time) * 80;
+      // Move the point light in a circular pattern - also use normalized time
+      pointLight.position.x = Math.sin(normalizedTime * Math.PI * 2) * 80;
+      pointLight.position.z = Math.cos(normalizedTime * Math.PI * 2) * 80;
 
       // Update the environment map for glass refraction
       // Only update every few frames for performance
@@ -742,10 +779,25 @@ export function initExtrudedLogo() {
         material.needsUpdate = true;
         animate.firstFrame = false;
         console.log("First animation frame - applied envMapIntensity:", settings.glass.envMapIntensity);
+
+        // Signal that the logo is ready for display
+        signalLogoReady();
       }
     }
 
     renderer.render(scene, camera);
+  }
+
+  // Function to signal the logo is ready
+  function signalLogoReady() {
+    console.log("3D logo ready for display");
+    // Add a class to the renderer element to indicate it's ready
+    if (rendererElement) {
+      rendererElement.classList.add("logo-animation-ready");
+    }
+    // Dispatch an event that loading-screen.js can listen for
+    const readyEvent = new CustomEvent("logo3d-ready");
+    document.dispatchEvent(readyEvent);
   }
 
   // Flag for first frame initialization
