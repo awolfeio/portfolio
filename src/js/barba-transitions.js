@@ -4,7 +4,7 @@ import { lenis, stopScroll, startScroll } from "./smooth-scroll.js";
 import initSmoothScroll from "./smooth-scroll.js";
 import { changeBG, fogBG, fadeBackgroundIn } from "./background.js";
 import splitText from "./text-splitting.js";
-import { revealSplitTexts, fadeInReveal, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
+import { setupUnifiedReveals, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
 import { rotateTitles, circleText, revealH1Characters, animateDataSplittingChars } from "./type-anim.js";
 import { cursorCheck } from "./cursor-element.js";
 import { setupEventHandlers } from "./event-handlers.js";
@@ -533,11 +533,8 @@ function handleAfterEnter(data) {
   window.animationController.queueAnimation(() => {
     console.log("Setting up scroll-based reveals");
 
-    // This handles both .splitting and .splitting-rows elements
-    revealSplitTexts();
-
-    // Set up fade reveals
-    fadeInReveal();
+    // Set up unified reveal system for all elements
+    setupUnifiedReveals();
 
     // Enable video autoplay on scroll
     playVideosOnEnter();
@@ -551,9 +548,78 @@ function handleAfterEnter(data) {
     console.log("Setting up page-specific event handlers");
     setupEventHandlers(namespace);
 
+    // Initialize smooth scroll first
+    initSmoothScroll();
+
     // Allow scrolling again when animations are complete
     startScroll();
     console.log("Scroll re-enabled after animations");
+
+    // Force recalculation of page dimensions after a short delay
+    setTimeout(() => {
+      // Refresh ScrollTrigger to recalculate all positions
+      if (window.ScrollTrigger) {
+        window.ScrollTrigger.refresh();
+        console.log("ScrollTrigger refreshed after transition");
+      }
+
+      // Also update Lenis if it exists
+      if (window.lenis) {
+        window.lenis.resize();
+        console.log("Lenis resized after transition");
+      }
+    }, 100);
+
+    // Additional recalculation after images might have loaded
+    // Wait for all images in the new container to load
+    const images = data.next.container.querySelectorAll("img");
+    const imagePromises = Array.from(images).map((img) => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        img.addEventListener("load", resolve, { once: true });
+        img.addEventListener("error", resolve, { once: true }); // Resolve even on error
+      });
+    });
+
+    // After all images load, do a final recalculation
+    Promise.all(imagePromises).then(() => {
+      console.log("All images loaded, final scroll recalculation");
+
+      // Final refresh of ScrollTrigger
+      if (window.ScrollTrigger) {
+        window.ScrollTrigger.refresh();
+      }
+
+      // Final resize of Lenis
+      if (window.lenis) {
+        window.lenis.resize();
+      }
+    });
+
+    // Set up a ResizeObserver to watch for content changes
+    const pageContent = data.next.container.querySelector(".page");
+    if (pageContent && window.ResizeObserver) {
+      let resizeTimeout;
+      const resizeObserver = new ResizeObserver((entries) => {
+        // Debounce the resize calculations
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          console.log("Content size changed, updating scroll calculations");
+          if (window.ScrollTrigger) {
+            window.ScrollTrigger.refresh();
+          }
+          if (window.lenis) {
+            window.lenis.resize();
+          }
+        }, 150);
+      });
+
+      // Observe the main content container
+      resizeObserver.observe(pageContent);
+
+      // Store observer reference for cleanup if needed
+      data.next.container._resizeObserver = resizeObserver;
+    }
 
     // Check for cursor-based interaction elements
     cursorCheck();

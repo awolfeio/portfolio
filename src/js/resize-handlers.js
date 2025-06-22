@@ -1,6 +1,6 @@
 import { viewportType, viewportSize } from "./viewport.js";
 import { cursorCheck } from "./cursor-element.js";
-import { fadeInReveal, revealSplitTexts } from "./scroll-triggers.js";
+import { setupUnifiedReveals } from "./scroll-triggers.js";
 import initSmoothScroll from "./smooth-scroll.js";
 import { fogBG } from "./background.js";
 
@@ -36,8 +36,9 @@ function handleResize() {
     viewportSize();
     viewportType();
     cursorCheck();
-    fadeInReveal();
-    revealSplitTexts();
+
+    // Run animations using the unified reveal system
+    setupUnifiedReveals();
 
     if (window.matchMedia("(pointer: coarse)").matches && window.matchMedia("(hover: none)").matches) {
       document.querySelector(".cursor-element")?.classList.add("hidden");

@@ -89,12 +89,14 @@
                 backface-visibility: hidden;
                 width: calc(100% - 28px);
                 opacity: 0;
-                transition: 0.42s;
+                transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
                 font-size: 14px;
                 font-weight: 300;
                 line-height: 1.4;
                 font-family: 'Evolve', 'Arial', sans-serif;
                 cursor: default;
+                will-change: opacity, transform;
 
                 @media (max-width:1200px) {
                     font-size: 12px;
@@ -138,8 +140,8 @@
 
                 .hover-message {
                     opacity: 1;
-                    transition: 0.72s;
-                    transition-delay: 0.28s;
+                    transform: translateX(-50%) translateY(-50%) translateY(-5px) translateZ(0) translate3d(0, 0, 0);
+                    transition-delay: 0.15s;
                 }
             }
 

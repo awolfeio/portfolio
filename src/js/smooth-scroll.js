@@ -9,6 +9,9 @@ export default function initSmoothScroll() {
   // Register GSAP ScrollTrigger
   gsap.registerPlugin(ScrollTrigger);
 
+  // Make ScrollTrigger globally accessible for recalculation
+  window.ScrollTrigger = ScrollTrigger;
+
   // Check if it's a touch device and adjust smooth scrolling accordingly
   const isTouchDevice =
     (window.matchMedia("(pointer: coarse)").matches && window.matchMedia("(hover: none)").matches) ||
@@ -35,6 +38,9 @@ export default function initSmoothScroll() {
     smoothTouch: false, // Usually better UX to disable smooth scrolling on touch devices
     infinite: false,
   });
+
+  // Make lenis globally accessible for resize operations
+  window.lenis = lenis;
 
   // Connect Lenis to ScrollTrigger
   lenis.on("scroll", ScrollTrigger.update);

@@ -9,118 +9,258 @@ export function isInViewport(element) {
   return rect.top <= (window.innerHeight || document.documentElement.clientHeight) && rect.bottom >= 0;
 }
 
-// Function to manually handle fade-reveal elements
-export function applyFadeReveal(elements, force = false) {
-  if (!elements || elements.length === 0) return;
+// Helper function to check if element has passed the reveal threshold (80% of viewport)
+export function hasPassedRevealThreshold(element) {
+  const rect = element.getBoundingClientRect();
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+  const revealThreshold = viewportHeight * 0.8; // 80% of viewport height
+  return rect.top <= revealThreshold;
+}
 
-  elements.forEach((element) => {
-    // Only add active class if element is in viewport or force is true
-    if (force || isInViewport(element)) {
-      element.classList.add("active");
-    } else {
-      element.classList.remove("active");
+// Store active reveal chains to manage sequential reveals
+const revealChains = new Map();
+
+/**
+ * Unified reveal system that handles all element reveals sequentially
+ * All elements use .fade-reveal class and reveal in DOM order
+ */
+export function setupUnifiedReveals() {
+  console.log("Setting up unified sequential reveal system");
+
+  // First, convert all reveal-type elements to use fade-reveal
+  convertToFadeReveal();
+
+  // Get all fade-reveal elements and group them by their viewport sections
+  const allRevealElements = gsap.utils.toArray(".fade-reveal").filter((element) => {
+    // Explicitly exclude nav element to prevent mobile menu issues
+    return element.tagName.toLowerCase() !== "nav";
+  });
+
+  if (allRevealElements.length === 0) {
+    console.log("No fade-reveal elements found");
+    return;
+  }
+
+  console.log(`Found ${allRevealElements.length} fade-reveal elements`);
+
+  // Group elements by their scroll trigger zones
+  const elementGroups = groupElementsByViewport(allRevealElements);
+
+  // Set up scroll triggers for each group
+  elementGroups.forEach((group, index) => {
+    setupSequentialReveal(group, index);
+  });
+}
+
+/**
+ * Convert splitting-rows and other reveal elements to use fade-reveal
+ */
+function convertToFadeReveal() {
+  // Convert .splitting-rows elements
+  const splittingRows = document.querySelectorAll(".splitting-rows");
+  splittingRows.forEach((element) => {
+    element.classList.add("fade-reveal");
+    element.setAttribute("data-reveal-type", "splitting-rows");
+  });
+
+  // Convert .splitting elements that need reveals
+  const splittingElements = document.querySelectorAll(".splitting, [data-splitting].scroll-reveal");
+  splittingElements.forEach((element) => {
+    if (!element.classList.contains("splitting-rows")) {
+      element.classList.add("fade-reveal");
+      element.setAttribute("data-reveal-type", "splitting");
+    }
+  });
+
+  // Convert any h1, h2, h3 elements that don't already have fade-reveal
+  const headings = document.querySelectorAll("h1, h2, h3");
+  headings.forEach((element) => {
+    if (!element.classList.contains("fade-reveal") && !element.closest("nav")) {
+      element.classList.add("fade-reveal");
+      element.setAttribute("data-reveal-type", "heading");
     }
   });
 }
 
 /**
- * Main function to handle all scroll-based text reveals
- * Handles both .splitting and .splitting-rows elements
+ * Group elements that are close together in the viewport
  */
-export function revealSplitTexts() {
-  console.log("Setting up scroll-based text reveals");
+function groupElementsByViewport(elements) {
+  const groups = [];
+  let currentGroup = [];
+  let lastBottom = -Infinity;
+  const groupThreshold = 200; // Elements within 200px are considered same group
 
-  // 1. Handle .splitting-rows elements
-  const splittingRows = document.querySelectorAll(".splitting-rows");
-  if (splittingRows.length > 0) {
-    console.log(`Setting up reveal for ${splittingRows.length} .splitting-rows elements`);
+  elements.forEach((element) => {
+    const rect = element.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const elementTop = rect.top + scrollTop;
 
-    splittingRows.forEach((element, index) => {
-      // Check if element is already in the viewport
-      if (isInViewport(element)) {
-        // Immediately add reveal class if in viewport
-        console.log(`Adding immediate reveal to visible splitting-rows[${index}]`);
-        element.classList.add("reveal");
-      } else {
-        // Create scroll trigger for elements outside viewport
-        gsap.from(element, {
-          scrollTrigger: {
-            trigger: element,
-            start: "top 90%",
-            end: "bottom 10%",
-            toggleClass: "reveal",
-            once: true,
-            onEnter: () => console.log(`ScrollTrigger revealed splitting-rows[${index}]`),
-            markers: false,
-          },
-        });
-      }
-    });
+    if (elementTop - lastBottom > groupThreshold && currentGroup.length > 0) {
+      // Start a new group
+      groups.push(currentGroup);
+      currentGroup = [element];
+    } else {
+      // Add to current group
+      currentGroup.push(element);
+    }
+
+    lastBottom = elementTop + rect.height;
+  });
+
+  // Don't forget the last group
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
   }
 
-  // 2. Handle regular .splitting elements (or any elements with [data-splitting] that need scroll reveals)
-  const splittingElements = gsap.utils.toArray(".splitting, [data-splitting].scroll-reveal");
-  if (splittingElements.length > 0) {
-    console.log(`Setting up reveal for ${splittingElements.length} .splitting elements`);
+  return groups;
+}
 
-    splittingElements.forEach((element, index) => {
-      // Skip if it's also a splitting-rows (already handled above)
-      if (element.classList.contains("splitting-rows")) return;
+/**
+ * Set up sequential reveal for a group of elements
+ */
+function setupSequentialReveal(elements, groupIndex) {
+  const groupKey = `group-${groupIndex}`;
 
-      // Check if element is already in the viewport
-      if (isInViewport(element)) {
-        // Immediately add reveal class if in viewport
-        console.log(`Adding immediate reveal to visible splitting[${index}]`);
-        element.classList.add("reveal");
-      } else {
-        // Create scroll trigger for elements outside viewport
-        gsap.from(element, {
-          scrollTrigger: {
-            trigger: element,
-            start: "top 90%",
-            end: "bottom 10%",
-            toggleClass: "reveal",
-            once: true,
-            markers: false,
-          },
-        });
-      }
-    });
+  // Create a ScrollTrigger that monitors when this group enters the viewport
+  ScrollTrigger.create({
+    trigger: elements[0], // Use first element as trigger
+    start: "top 80%",
+    end: "bottom 15%",
+    onEnter: () => startSequentialReveal(elements, groupKey),
+    onLeaveBack: () => hideSequentialReveal(elements, groupKey),
+    markers: false,
+  });
+
+  // Check if elements have already passed the reveal threshold on load
+  // This prevents elements from revealing too early
+  if (hasPassedRevealThreshold(elements[0])) {
+    startSequentialReveal(elements, groupKey);
   }
 }
 
 /**
- * Handle fade-reveal elements that should appear/disappear based on scroll position
+ * Start revealing elements sequentially
  */
-export function fadeInReveal() {
-  console.log("Setting up fade-reveal elements");
-  const fadeRevealElements = gsap.utils.toArray(".fade-reveal");
-
-  if (fadeRevealElements.length === 0) {
-    console.log("No fade-reveal elements found");
-    return;
+function startSequentialReveal(elements, groupKey) {
+  // Cancel any existing reveal for this group
+  if (revealChains.has(groupKey)) {
+    revealChains.get(groupKey).kill();
   }
 
-  console.log(`Found ${fadeRevealElements.length} fade-reveal elements`);
+  console.log(`Starting sequential reveal for ${groupKey} with ${elements.length} elements`);
 
-  // First, handle any elements that are already in the viewport
-  applyFadeReveal(fadeRevealElements);
+  // Create a timeline for sequential reveals
+  const tl = gsap.timeline();
 
-  fadeRevealElements.forEach((element, index) => {
-    // Only add ScrollTrigger for elements not already active
-    if (!element.classList.contains("active")) {
-      ScrollTrigger.create({
-        trigger: element,
-        start: "top 80%",
-        end: "bottom 10%",
-        onEnter: () => {
-          console.log(`ScrollTrigger activated fade-reveal[${index}]`);
+  elements.forEach((element, index) => {
+    const revealType = element.getAttribute("data-reveal-type") || "default";
+    const delay = getRevealDelay(revealType, index);
+
+    // Add custom reveal based on type
+    if (revealType === "splitting-rows") {
+      tl.call(
+        () => {
+          element.classList.add("reveal");
           element.classList.add("active");
         },
-        onLeaveBack: () => element.classList.remove("active"),
-        markers: false,
-        once: false,
-      });
+        null,
+        delay
+      );
+    } else if (revealType === "splitting") {
+      tl.call(
+        () => {
+          element.classList.add("reveal");
+          element.classList.add("active");
+        },
+        null,
+        delay
+      );
+    } else {
+      // Default fade-reveal behavior
+      tl.call(
+        () => {
+          element.classList.add("active");
+        },
+        null,
+        delay
+      );
+    }
+
+    // Add a small overlap for smoother sequential reveals
+    if (index < elements.length - 1) {
+      tl.set({}, {}, "-=0.1");
+    }
+  });
+
+  // Store the timeline
+  revealChains.set(groupKey, tl);
+}
+
+/**
+ * Hide elements when scrolling back up
+ */
+function hideSequentialReveal(elements, groupKey) {
+  // Cancel any existing reveal for this group
+  if (revealChains.has(groupKey)) {
+    revealChains.get(groupKey).kill();
+    revealChains.delete(groupKey);
+  }
+
+  // Hide all elements in reverse order
+  elements.forEach((element) => {
+    element.classList.remove("active", "reveal");
+  });
+}
+
+/**
+ * Get appropriate delay based on element type
+ */
+function getRevealDelay(revealType, index) {
+  const baseDelay = index * 0.15; // 150ms between elements
+
+  switch (revealType) {
+    case "heading":
+      return baseDelay * 0.8; // Headings reveal slightly faster
+    case "splitting-rows":
+      return baseDelay * 1.2; // Text blocks take slightly longer
+    default:
+      return baseDelay;
+  }
+}
+
+// Legacy function names for compatibility
+export function revealSplitTexts() {
+  console.log("Legacy revealSplitTexts called - redirecting to unified system");
+  setupUnifiedReveals();
+}
+
+export function fadeInReveal() {
+  console.log("Legacy fadeInReveal called - already handled by unified system");
+  // On mobile, explicitly do not run this for nav to avoid menu issues
+  if (window.innerWidth < 768) {
+    const nav = document.querySelector("nav");
+    if (nav) {
+      nav.classList.remove("fade-reveal", "active");
+    }
+  }
+}
+
+// Function to manually handle fade-reveal elements (kept for compatibility)
+export function applyFadeReveal(elements, force = false) {
+  if (!elements || elements.length === 0) return;
+
+  elements.forEach((element) => {
+    // Skip nav elements to prevent mobile menu issues
+    if (element.tagName.toLowerCase() === "nav") {
+      return;
+    }
+
+    // Only add active class if element is in viewport or force is true
+    if (force || isInViewport(element)) {
+      element.classList.add("active");
+    } else {
+      element.classList.remove("active");
     }
   });
 }

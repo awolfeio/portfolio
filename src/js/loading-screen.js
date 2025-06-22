@@ -1,12 +1,123 @@
-import { revealSplitTexts, fadeInReveal, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
+import { setupUnifiedReveals, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
 import initSmoothScroll from "./smooth-scroll.js";
 import splitText from "./text-splitting.js";
 import { circleText, revealH1Characters, rotateTitles, animateDataSplittingChars } from "./type-anim.js";
 import { removeSpecificElements, checkLocationAndRemoveElements } from "./geographic.js";
+import { preventAnimationRefire } from "./animation-helpers.js";
 import { gsap } from "gsap";
 import SplitType from "split-type";
 import { fogBG } from "./background.js";
 import { initExtrudedLogo } from "./3d-logo.js";
+
+/**
+ * Preload important pages to speed up Barba transitions
+ */
+async function preloadPages() {
+  console.log("Starting page preloading...");
+
+  // Define the pages to preload
+  const pagesToPreload = [
+    "/index.html", // Homepage (also try with index.html)
+    "/works.html",
+    "/about.html",
+    "/contact.html",
+  ];
+
+  // Get the current page to avoid preloading it
+  const currentPath = window.location.pathname;
+  const baseUrl = window.location.origin;
+
+  // Create an array of fetch promises
+  const preloadPromises = pagesToPreload
+    .filter((path) => {
+      // Don't preload current page
+      const normalizedPath = path.replace("/index.html", "/").replace(".html", "");
+      const normalizedCurrent = currentPath.replace("/index.html", "/").replace(".html", "");
+      return normalizedPath !== normalizedCurrent;
+    })
+    .map(async (path) => {
+      try {
+        // Handle both root and subdirectory deployments
+        const url = new URL(path, baseUrl).href;
+        console.log(`Preloading: ${url}`);
+
+        const response = await fetch(url);
+
+        if (response.ok) {
+          // Get the HTML text to cache it
+          const html = await response.text();
+
+          // Parse the HTML to extract critical assets
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = html;
+
+          // Find the barba container in the fetched HTML
+          const container = tempDiv.querySelector('[data-barba="container"]');
+
+          if (container && window.barba && window.barba.cache) {
+            // Add to Barba's cache
+            window.barba.cache.set(url, {
+              html: html,
+              container: container,
+            });
+
+            // Also try to cache the URL without .html for cleaner URLs
+            const cleanUrl = url.replace(".html", "");
+            if (cleanUrl !== url) {
+              window.barba.cache.set(cleanUrl, {
+                html: html,
+                container: container,
+              });
+            }
+
+            console.log(`Successfully cached: ${path}`);
+
+            // Preload hero images from the page
+            const heroImages = container.querySelectorAll(".hero img, .hero-image img, [data-hero-image]");
+            heroImages.forEach((img) => {
+              if (img.src || img.dataset.src) {
+                const imgSrc = img.src || img.dataset.src;
+                const image = new Image();
+                image.src = imgSrc;
+                console.log(`Preloading hero image: ${imgSrc}`);
+              }
+            });
+          }
+
+          return { path, status: "success" };
+        } else if (response.status === 404 && path === "/index.html") {
+          // Try loading just '/' if index.html fails
+          console.log("Trying to load homepage at root path");
+          const rootResponse = await fetch("/");
+          if (rootResponse.ok) {
+            const html = await rootResponse.text();
+            if (window.barba && window.barba.cache) {
+              window.barba.cache.set(new URL("/", baseUrl).href, {
+                html: html,
+                container: container,
+              });
+            }
+            return { path: "/", status: "success" };
+          }
+        } else {
+          console.warn(`Failed to preload ${path}: ${response.status}`);
+          return { path, status: "failed" };
+        }
+      } catch (error) {
+        console.warn(`Error preloading ${path}:`, error);
+        return { path, status: "error", error };
+      }
+    });
+
+  // Wait for all preloads to complete
+  const results = await Promise.all(preloadPromises);
+
+  // Log summary
+  const successful = results.filter((r) => r.status === "success").length;
+  console.log(`Preloading complete: ${successful}/${results.length} pages cached`);
+
+  return results;
+}
 
 export function loadingSplash() {
   // Initialize animation controller if it doesn't exist
@@ -56,6 +167,9 @@ export function loadingSplash() {
       // Initialize the 3D extruded logo
       logoInstance = initExtrudedLogo();
 
+      // Start preloading pages while showing the loading screen
+      const preloadingPromise = preloadPages();
+
       // Add a logo ready listener
       document.addEventListener("logo3d-ready", function logoReadyHandler() {
         console.log("Logo3D ready event received");
@@ -99,176 +213,194 @@ export function loadingSplash() {
 
             window.scrollTo(0, 0);
 
-            setTimeout(function () {
-              // Add loaded class to body
-              document.body.classList.add("loaded");
+            // Wait for preloading to complete before proceeding
+            preloadingPromise.then(() => {
+              console.log("Page preloading finished, continuing with initialization");
 
-              // Get container and content elements
-              const mainContainer = document.querySelector("[data-barba='container']");
-              const mainContent = document.querySelector("main .page");
-              const contentElements = mainContent ? mainContent.children : [];
+              setTimeout(function () {
+                // Add loaded class to body
+                document.body.classList.add("loaded");
 
-              // Check location restrictions
-              checkLocationAndRemoveElements();
+                // Get container and content elements
+                const mainContainer = document.querySelector("[data-barba='container']");
+                const mainContent = document.querySelector("main .page");
+                const contentElements = mainContent ? mainContent.children : [];
 
-              // Make sure container and content are visible
-              ensureContainersAreVisible();
+                // Check location restrictions
+                checkLocationAndRemoveElements();
 
-              // Create a timeline for content reveal with better sequencing
-              const tl = gsap.timeline();
+                // Make sure container and content are visible
+                ensureContainersAreVisible();
 
-              // First, make sure all elements are already in the right state before animation starts
-              // Pre-position the container elements for smooth animation
-              tl.set(mainContainer, {
-                visibility: "visible",
-                opacity: 1,
-                immediateRender: true,
-              });
+                // Create a timeline for content reveal with better sequencing
+                const tl = gsap.timeline();
 
-              // Pre-position main content
-              tl.set(mainContent, {
-                opacity: 0,
-                immediateRender: true,
-              });
+                // First, make sure all elements are already in the right state before animation starts
+                // Pre-position the container elements for smooth animation
+                tl.set(mainContainer, {
+                  visibility: "visible",
+                  opacity: 1,
+                  immediateRender: true,
+                });
 
-              // Pre-position content elements
-              if (contentElements.length > 0) {
-                tl.set(contentElements, {
+                // Pre-position main content
+                tl.set(mainContent, {
                   opacity: 0,
                   immediateRender: true,
                 });
-              }
 
-              // Crucial: Run splitting before any animations start
-              console.log("Loading screen: splitting text");
-              splitText();
-
-              // Now start the actual animation sequence
-
-              // Fade in the main content
-              tl.to(mainContent, {
-                opacity: 1,
-                duration: 0.5,
-                ease: "power2.out",
-              });
-
-              // Fade in child elements with stagger
-              if (contentElements.length > 0) {
-                tl.to(
-                  contentElements,
-                  {
-                    opacity: 1,
-                    stagger: 0.1,
-                    duration: 0.4,
-                    ease: "power2.out",
-                  },
-                  "-=0.3"
-                );
-              }
-
-              // Run H1 character animations first
-              tl.call(() => {
-                console.log("Loading screen: running H1 animations");
-
-                // Explicitly mark as initial page load before animations
-                if (window.animationController) {
-                  window.animationController.initialPageLoad = true;
-                  window.animationController.transitionComplete = true;
+                // Pre-position content elements
+                if (contentElements.length > 0) {
+                  tl.set(contentElements, {
+                    opacity: 0,
+                    immediateRender: true,
+                  });
                 }
 
-                // Reset barbaTransitionActive flag if it exists
-                if (window.barbaTransitionActive !== undefined) {
-                  window.barbaTransitionActive = false;
+                // Set up the listener to prevent animation refires
+                tl.call(() => {
+                  preventAnimationRefire();
+                });
+
+                // Crucial: Run splitting before any animations start
+                console.log("Loading screen: splitting text");
+                splitText();
+
+                // Now start the actual animation sequence
+
+                // Fade in the main content
+                tl.to(mainContent, {
+                  opacity: 1,
+                  duration: 0.5,
+                  ease: "power2.out",
+                });
+
+                // Fade in child elements with stagger
+                if (contentElements.length > 0) {
+                  tl.to(
+                    contentElements,
+                    {
+                      opacity: 1,
+                      stagger: 0.1,
+                      duration: 0.4,
+                      ease: "power2.out",
+                    },
+                    "-=0.3"
+                  );
                 }
 
-                revealH1Characters();
-              });
+                // Run H1 character animations first
+                tl.call(() => {
+                  console.log("Loading screen: running H1 animations");
 
-              // Run animations for data-splitting elements
-              tl.call(
-                () => {
-                  console.log("Loading screen: running data-splitting animations");
-
-                  // Ensure flags are set correctly
+                  // Explicitly mark as initial page load before animations
                   if (window.animationController) {
                     window.animationController.initialPageLoad = true;
+                    window.animationController.transitionComplete = true;
                   }
 
-                  animateDataSplittingChars();
-                },
-                null,
-                null,
-                "+=0.2"
-              );
+                  // Reset barbaTransitionActive flag if it exists
+                  if (window.barbaTransitionActive !== undefined) {
+                    window.barbaTransitionActive = false;
+                  }
 
-              // Run circle text animations
-              tl.call(
-                () => {
-                  console.log("Loading screen: running circle text effect");
-                  circleText();
-                },
-                null,
-                null,
-                "+=0.1"
-              );
+                  revealH1Characters();
+                });
 
-              // Handle homepage title rotations if on index page
-              const isHomepage = document.querySelector("main .page#index");
-              if (isHomepage) {
+                // Run animations for data-splitting elements
                 tl.call(
                   () => {
-                    // Clear any existing title rotation
-                    if (window.titleAnimationInterval) {
-                      clearInterval(window.titleAnimationInterval);
-                      window.titleAnimationInterval = null;
-                    }
+                    console.log("Loading screen: running data-splitting animations");
 
                     // Ensure flags are set correctly
                     if (window.animationController) {
                       window.animationController.initialPageLoad = true;
                     }
 
-                    // Initialize title rotation
-                    console.log("Loading-screen: starting title rotation");
-                    rotateTitles("loading-screen.js");
+                    animateDataSplittingChars();
                   },
                   null,
                   null,
-                  "+=0.3"
+                  "+=0.2"
                 );
-              }
 
-              // Set up all scroll-triggered animations
-              tl.call(
-                () => {
-                  console.log("Loading screen: setting up scroll animations");
+                // Run circle text animations
+                tl.call(
+                  () => {
+                    console.log("Loading screen: running circle text effect");
+                    circleText();
+                  },
+                  null,
+                  null,
+                  "+=0.1"
+                );
 
-                  // Set up scroll-triggered text reveals
-                  // This now handles both .splitting and .splitting-rows elements
-                  revealSplitTexts();
+                // Handle homepage title rotations if on index page
+                const isHomepage = document.querySelector("main .page#index");
+                if (isHomepage) {
+                  tl.call(
+                    () => {
+                      // Clear any existing title rotation
+                      if (window.titleAnimationInterval) {
+                        clearInterval(window.titleAnimationInterval);
+                        window.titleAnimationInterval = null;
+                      }
 
-                  // Set up fade reveals
-                  fadeInReveal();
+                      // Ensure flags are set correctly
+                      if (window.animationController) {
+                        window.animationController.initialPageLoad = true;
+                      }
 
-                  // Enable video playback on scroll
-                  playVideosOnEnter();
+                      // Initialize title rotation
+                      console.log("Loading-screen: starting title rotation");
+                      rotateTitles("loading-screen.js");
+                    },
+                    null,
+                    null,
+                    "+=0.3"
+                  );
+                }
 
-                  // Setup auto-scrolling containers
-                  autoScrollContainer();
+                // Set up all scroll-triggered animations
+                tl.call(
+                  () => {
+                    console.log("Loading screen: setting up scroll animations");
 
-                  // Initialize smooth scrolling
-                  initSmoothScroll();
-                },
-                null,
-                null,
-                "+=0.2"
-              );
+                    // Set up unified reveal system for all elements
+                    setupUnifiedReveals();
 
-              // Remove loaded class after a brief delay
-              setTimeout(function () {
-                document.body.classList.remove("loaded");
+                    // Enable video playback on scroll
+                    playVideosOnEnter();
+
+                    // Setup auto-scrolling containers
+                    autoScrollContainer();
+
+                    // Initialize smooth scrolling
+                    initSmoothScroll();
+
+                    // Force initial scroll height calculation after a delay
+                    setTimeout(() => {
+                      if (window.ScrollTrigger) {
+                        window.ScrollTrigger.refresh();
+                        console.log("Initial ScrollTrigger refresh after page load");
+                      }
+                      if (window.lenis) {
+                        window.lenis.resize();
+                        console.log("Initial Lenis resize after page load");
+                      }
+                    }, 200);
+                  },
+                  null,
+                  null,
+                  "+=0.2"
+                );
+
+                // Remove loaded class after a brief delay
+                setTimeout(function () {
+                  document.body.classList.remove("loaded");
+                }, 400);
               }, 400);
-            }, 400);
+            });
           });
         }
       }, 50);

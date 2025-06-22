@@ -47,6 +47,12 @@ export function viewportSize() {
 
     if (stage && nav) stage.insertBefore(nav, stage.firstChild);
     if (stage && mobileMenuToggle) stage.insertBefore(mobileMenuToggle, stage.firstChild);
+
+    // Ensure mobile menu is closed when resizing to mobile
+    document.body.classList.remove("menu-active");
+    if (mobileMenuToggle) {
+      mobileMenuToggle.classList.remove("active");
+    }
   } else {
     const header = document.querySelector("header");
     const nav = document.querySelector("nav");
@@ -54,6 +60,12 @@ export function viewportSize() {
 
     if (header && nav) header.appendChild(nav);
     if (header && mobileMenuToggle) header.appendChild(mobileMenuToggle);
+
+    // Ensure mobile menu state is cleared when resizing to desktop
+    document.body.classList.remove("menu-active");
+    if (mobileMenuToggle) {
+      mobileMenuToggle.classList.remove("active");
+    }
   }
 
   //const appHeight = () => document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`)

@@ -9,7 +9,7 @@ const fogBG = FOG({
   touchControls: false,
   gyroControls: false,
   minHeight: 250.0,
-  minWidth: 250.0,
+  minWidth: 500.0,
   highlightColor: 0xadfff5,
   midtoneColor: 0xdec1ff,
   lowlightColor: 0x9367ff,
