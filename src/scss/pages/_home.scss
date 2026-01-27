@@ -14,7 +14,7 @@
             font-size: 70px;
         }
 
-        @media (max-width:768px) {
+        @media (max-width: $desktop-viewport) {
             font-size: 10vw;
         }
 
@@ -67,7 +67,7 @@
             font-size: 40px;
         }
 
-        @media (max-width:768px) {
+        @media (max-width: $desktop-viewport) {
             font-size: 24px;
         }
 
@@ -83,7 +83,7 @@
                 min-height: 40px;
             }
 
-            @media (max-width:768px) {
+            @media (max-width: $desktop-viewport) {
                 min-height: 24px;
             }
 
@@ -189,11 +189,11 @@
             width: 774px;
         }
 
-        @media (max-width:991px) {
+        @media (max-width: $desktop-viewport) {
             width: 560px;
         }
 
-        @media (max-width:768px) {
+        @media (max-width: $desktop-viewport) {
             font-size: 18px;
         }
 

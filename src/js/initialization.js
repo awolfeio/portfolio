@@ -1,7 +1,7 @@
 import { viewportSize, viewportType } from "./viewport.js";
 import { cursorCheck } from "./cursor-element.js";
 import initSmoothScroll from "./smooth-scroll.js";
-import { fogBG } from "./background.js";
+import backgroundManager from "./background/index.js";
 import { loadingSplash } from "./loading-screen.js";
 import { rotateTitles } from "./type-anim.js";
 import { gsap } from "gsap";
@@ -14,6 +14,9 @@ import { setupResizeHandlers } from "./resize-handlers.js";
 export function initializeApp() {
   // Override any Barba container styles for the first page load
   removeInitialContainerStyles();
+
+  // Initialize custom shader background
+  backgroundManager.init("viewport");
 
   setupEvents();
   setupVisuals();
@@ -80,6 +83,16 @@ function detectFirstPage() {
   if (!mainContainer) return;
 
   const firstPage = mainContainer.dataset.barbaNamespace;
+  
+  // Apply initial background configuration for first page
+  if (firstPage) {
+    const configManager = backgroundManager.getConfigManager();
+    if (configManager) {
+      console.log(`Setting initial background configuration for "${firstPage}" page`);
+      // Apply config without transition (instant)
+      configManager.transitionToPage(firstPage, 0);
+    }
+  }
 
   // Apply initial animations for any page
   const pageElement = mainContainer.querySelector(".page");
@@ -124,11 +137,8 @@ function detectFirstPage() {
 
   // Set specific page settings
   if (firstPage === "about") {
-    fogBG.setOptions({
-      blurFactor: 0.35,
-      speed: 0.6,
-      zoom: 2.0,
-    });
+    // Note: Page-specific background config will be handled by ConfigManager in Phase 6
+    // For now, the default shader config will be used
     document.querySelector("nav a.about")?.classList.add("active");
   } else if (firstPage === "works") {
     document.querySelector("nav a.works")?.classList.add("active");

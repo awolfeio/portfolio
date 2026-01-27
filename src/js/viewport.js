@@ -1,3 +1,5 @@
+import { setupMobileMenuHandlers } from "./event-handlers.js";
+
 let viewportWidth = window.innerWidth;
 let viewportHeight = window.innerHeight;
 let screenType = "error: undetected";
@@ -40,7 +42,7 @@ export function viewportSize() {
   //var oldviewportWidth = viewportWidth;
   //var oldviewportHeight = viewportHeight;
 
-  if (viewportWidth < 768) {
+  if (viewportWidth <= 1024) {
     const stage = document.getElementById("stage");
     const nav = document.querySelector("nav");
     const mobileMenuToggle = document.querySelector(".mobile-menu-toggle");
@@ -53,6 +55,9 @@ export function viewportSize() {
     if (mobileMenuToggle) {
       mobileMenuToggle.classList.remove("active");
     }
+
+    // Re-setup mobile menu handlers after moving elements
+    setupMobileMenuHandlers();
   } else {
     const header = document.querySelector("header");
     const nav = document.querySelector("nav");
@@ -66,6 +71,9 @@ export function viewportSize() {
     if (mobileMenuToggle) {
       mobileMenuToggle.classList.remove("active");
     }
+
+    // Re-setup mobile menu handlers after moving elements
+    setupMobileMenuHandlers();
   }
 
   //const appHeight = () => document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`)

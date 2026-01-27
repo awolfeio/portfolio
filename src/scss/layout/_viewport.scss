@@ -21,7 +21,8 @@
             display: flex;
             justify-content: center;
             backface-visibility: hidden;
-            transform-style: preserve-3d;
+            //transform-style: preserve-3d;
+            //testing removal: allows for blur effects to work
             width: 100%;
             min-height: 100vh;
         }

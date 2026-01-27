@@ -23,25 +23,25 @@ header {
     transform-style: preserve-3d;
 
     &.initialized {
-        @media (min-width:769px) {
+        @media (min-width: #{$desktop-viewport + 1px}) {
             mix-blend-mode: difference;
 
             .logo {
                 svg path {
-                    fill: #fff;
+                    fill: #5e9bff;
                 }
             }
 
             nav {
                 a {
-                    color: #fff !important;
-                    background: #fff !important;
+                    color: #5e9bff !important;
+                    background: #5e9bff !important;
                     -webkit-background-clip: text !important;
                     -webkit-text-fill-color: transparent !important;
 
                     &.active {
-                        color: #b525cb !important;
-                        background: #b525cb !important;
+                        color: #5e9bff !important;
+                        background: #5e9bff !important;
                         -webkit-background-clip: text !important;
                         -webkit-text-fill-color: transparent !important;
                     }
@@ -52,7 +52,7 @@ header {
 
     &:not(.initialized) {
         nav a.active {
-            @media (min-width:769px) {
+            @media (min-width: #{$desktop-viewport + 1px}) {
                 filter: none;
                 color: #5925CB !important;
                 background: #5925CB !important;
@@ -98,7 +98,7 @@ header {
             left: 4vw;
         }
 
-        @media (max-width:768px) {
+        @media (max-width: $desktop-viewport) {
             top: 6vw;
             left: 4vw;
         }
@@ -173,13 +173,13 @@ nav {
         right: 4vw;
     }
 
-    @media (max-width:991px) {
+    @media (max-width: $desktop-viewport) {
         top: calc(4vw - 6px);
         right: calc(4vw + 6px);
     }
 
-    @media (max-width:768px) {
-        background: #222;
+    @media (max-width: $desktop-viewport) {
+        background: transparent;
         top: 0;
         left: 0;
         right: 0;
@@ -191,7 +191,7 @@ nav {
         opacity: 0;
         pointer-events: none;
         z-index: 500;
-        transition: opacity 0.6s ease;
+        transition: opacity 0.6s ease, background 0.6s ease;
 
         &.fade-in {
             animation: none;
@@ -200,6 +200,7 @@ nav {
 
     a {
         font-size: 16px;
+        font-weight:700;
         margin-right: 74px;
         position: relative;
         user-select: none;
@@ -212,23 +213,48 @@ nav {
             margin-right: 64px;
         }
 
-        @media (max-width:991px) {
+        @media (max-width: $desktop-viewport) {
             margin-right: 32px;
         }
 
-        @media (max-width:768px) {
+        @media (max-width: $desktop-viewport) {
             font-size: 12vw;
             align-self: flex-start;
             margin-bottom: 5.6vw;
             pointer-events: none;
             opacity: 0 !important;
-            @include transition-fast;
             color: #fff !important;
+            transition: opacity 0.4s ease, pointer-events 0.1s ease;
+            transition-delay: 0s;
         }
 
         @media (max-width:480px) {
             margin-bottom: 8vw;
             font-size: 14vw;
+        }
+
+        &:nth-of-type(1) {
+            @media (max-width: $desktop-viewport) {
+                transition-delay: 0.35s;
+            }
+        }
+
+        &:nth-of-type(2) {
+            @media (max-width: $desktop-viewport) {
+                transition-delay: 0.45s;
+            }
+        }
+
+        &:nth-of-type(3) {
+            @media (max-width: $desktop-viewport) {
+                transition-delay: 0.55s;
+            }
+        }
+
+        &:nth-of-type(4) {
+            @media (max-width: $desktop-viewport) {
+                transition-delay: 0.65s;
+            }
         }
 
         &:last-of-type {
@@ -255,38 +281,38 @@ nav {
             left: -2px;
             right: -2px;
             bottom: 0px;
-            background: rgba(0, 10, 135, 0.11);
+            background: rgba(114, 255, 0, 0.16);
             opacity: 0;
             z-index: -1;
             border-radius: 4px;
             transition: opacity 0.24s ease;
             pointer-events: none;
 
-            @media (max-width:768px) {
+            @media (max-width: $desktop-viewport) {
                 background: rgba(117, 135, 221, 0.07);
             }
         }
 
         &:hover,
         .hover {
-            @media (min-width:769px) {
+            @media (min-width: #{$desktop-viewport + 1px}) {
                 color: $primary !important;
-                filter: hue-rotate(170deg) brightness(18) contrast(0.6) !important;
+                //filter: hue-rotate(170deg) brightness(18) contrast(0.6) !important;
             }
 
         }
 
         &.active {
-            color: $primary !important;
-            background: $primary !important;
+            color: #5e9bff!important;
+            background: #5e9bff!important;
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
             opacity: 1;
             cursor: default;
-            filter: hue-rotate(170deg) brightness(18) contrast(0.6);
+            //filter: hue-rotate(170deg) brightness(18) contrast(0.6);
             @include transition-medium;
 
-            @media (max-width:768px) {
+            @media (max-width: $desktop-viewport) {
                 color: #fff !important;
                 background: linear-gradient(0deg, #a675dd, #b3d4fc) !important;
                 filter: none !important;
@@ -353,57 +379,35 @@ nav {
         }
     }
 
-    @media (min-width:769px) {
+    @media (min-width: #{$desktop-viewport + 1px}) {
         display: none;
     }
 }
 
 
+body:not(.menu-active) {
+    nav {
+        a {
+            @media (max-width: $desktop-viewport) {
+                transition: none !important;
+                transition-delay: 0s !important;
+            }
+        }
+    }
+}
+
 body.menu-active {
     nav {
-        @media (max-width:768px) {
+        @media (max-width: $desktop-viewport) {
+            background: #222;
             opacity: 1;
             pointer-events: auto;
         }
 
         a {
-            @media (max-width:768px) {
+            @media (max-width: $desktop-viewport) {
                 pointer-events: auto;
                 opacity: 1 !important;
-
-                &:nth-of-type(1) {
-                    transition: all 0.18s ease;
-                    transition-timing-function: none;
-                    transition-delay: 0.4s;
-                }
-
-                &:nth-of-type(2) {
-                    transition: all 0.18s ease;
-                    transition-timing-function: none;
-                    transition-delay: 0.5s;
-                }
-
-                &:nth-of-type(3) {
-                    transition: all 0.18s ease;
-                    transition-timing-function: none;
-                    transition-delay: 0.6s;
-                }
-
-                &:nth-of-type(4) {
-                    transition: all 0.18s ease;
-                    transition-timing-function: none;
-                    transition-delay: 0.7s;
-                }
-
-                &:not(.active) {
-                    //transition:0.18s ease;
-                    //transition-timing-function: none;
-                }
-            }
-
-            &.on-change {
-                transition: all 0.18s ease;
-                transition-timing-function: none;
             }
         }
     }

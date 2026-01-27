@@ -2,7 +2,6 @@ import { viewportType, viewportSize } from "./viewport.js";
 import { cursorCheck } from "./cursor-element.js";
 import { setupUnifiedReveals } from "./scroll-triggers.js";
 import initSmoothScroll from "./smooth-scroll.js";
-import { fogBG } from "./background.js";
 
 // Store viewport measurements
 let viewportWidth = window.innerWidth;
@@ -27,7 +26,7 @@ function handleResize() {
   const newViewportWidth = window.innerWidth;
 
   if (newViewportWidth === viewportWidth) {
-    fogBG.resize();
+    // Background resize is handled automatically by BackgroundRenderer
     return;
   } else {
     document.body.classList.add("resizing");
@@ -46,7 +45,7 @@ function handleResize() {
     }
 
     setTimeout(function () {
-      fogBG.resize();
+      // Background resize is handled automatically by BackgroundRenderer
       initSmoothScroll();
       document.body.classList.remove("resizing");
     }, 1000);

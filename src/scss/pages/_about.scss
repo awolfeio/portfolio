@@ -12,7 +12,7 @@
         max-width: calc(100% - 48px);
         justify-content: center;
 
-        @media (max-width:768px) {
+        @media (max-width: $desktop-viewport) {
             max-width: calc(100% - 32px);
             //transition-delay:2s;
         }
@@ -23,8 +23,9 @@
 
         >div {
             margin: 20px;
-            background: $primary;
-            background: desaturate($primary, 25%);
+            //background: $primary;
+            background: rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(16px);
             padding: 24px;
             aspect-ratio: 1/1;
             min-width: calc(25% - 40px);
@@ -43,12 +44,12 @@
                 margin: 8px;
             }
 
-            @media (max-width:991px) {
+            @media (max-width: $desktop-viewport) {
                 margin: 8px;
                 min-width: calc(33.333% - 16px);
             }
 
-            @media (max-width:768px) {
+            @media (max-width: $desktop-viewport) {
                 min-width: calc(50% - 22px);
             }
 
@@ -123,11 +124,12 @@
                 transition: 1s ease;
                 transition-delay: 0.14s !important;
                 transform: scale(1.2);
-                filter: saturate(1.5);
+                filter: saturate(1.25) hue-rotate(108deg);
+                background: rgba(0, 0, 0, 0.2);
                 box-shadow: 0px 4px 32px rgba(0, 0, 0, 0.24);
                 z-index: 3;
 
-                @media (max-width:768px) {
+                @media (max-width: $desktop-viewport) {
                     transform: scale(1.1);
                 }
 

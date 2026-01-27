@@ -12,7 +12,7 @@ main {
       padding-top: 12vh;
       padding-bottom: 0;
 
-      @media (min-width:991px) {
+      @media (min-width: #{$desktop-viewport + 1px}) {
         padding-top: 25vh;
       }
     }

@@ -6,7 +6,7 @@ import { removeSpecificElements, checkLocationAndRemoveElements } from "./geogra
 import { preventAnimationRefire } from "./animation-helpers.js";
 import { gsap } from "gsap";
 import SplitType from "split-type";
-import { fogBG } from "./background.js";
+import backgroundManager from "./background/index.js";
 import { initExtrudedLogo } from "./3d-logo.js";
 
 /**
@@ -151,8 +151,9 @@ export function loadingSplash() {
   // Initialize by ensuring containers are visible and properly styled
   ensureContainersAreVisible();
 
-  // Set initial Vanta background settings based on current page
-  initializeVantaBackground();
+  // Set initial background settings based on current page
+  // Note: Full page-specific configs will be implemented in Phase 6
+  initializeBackground();
 
   // Initialize 3D extruded logo
   let logoInstance = null;
@@ -268,25 +269,20 @@ export function loadingSplash() {
 
                 // Now start the actual animation sequence
 
-                // Fade in the main content
-                tl.to(mainContent, {
-                  opacity: 1,
-                  duration: 0.5,
-                  ease: "power2.out",
-                });
-
-                // Fade in child elements with stagger
+                if (mainContent) {
+                  gsap.set(mainContent, { opacity: 0, pointerEvents: "none" });
+                }
+                const revealManagedSelectors = "h1, h2, [data-splitting], .splitting-rows, .titles-wrapper, .fade-reveal";
+                const nonRevealElements = [];
                 if (contentElements.length > 0) {
-                  tl.to(
-                    contentElements,
-                    {
-                      opacity: 1,
-                      stagger: 0.1,
-                      duration: 0.4,
-                      ease: "power2.out",
-                    },
-                    "-=0.3"
-                  );
+                  Array.from(contentElements).forEach((el) => {
+                    if (el.matches(revealManagedSelectors)) {
+                      gsap.set(el, { opacity: 0, pointerEvents: "auto", visibility: "visible" });
+                    } else {
+                      gsap.set(el, { opacity: 0, pointerEvents: "auto", visibility: "visible" });
+                      nonRevealElements.push(el);
+                    }
+                  });
                 }
 
                 // Run H1 character animations first
@@ -302,6 +298,10 @@ export function loadingSplash() {
                   // Reset barbaTransitionActive flag if it exists
                   if (window.barbaTransitionActive !== undefined) {
                     window.barbaTransitionActive = false;
+                  }
+
+                  if (mainContent) {
+                    gsap.set(mainContent, { opacity: 1, pointerEvents: "auto" });
                   }
 
                   revealH1Characters();
@@ -323,6 +323,28 @@ export function loadingSplash() {
                   null,
                   "+=0.2"
                 );
+
+                if (contentElements.length > 0) {
+                  tl.call(
+                    () => {
+                      const baseElements = Array.from(contentElements).filter(
+                        (el) =>
+                          !el.matches("h1, h2, [data-splitting], .splitting-rows, .titles-wrapper, .fade-reveal")
+                      );
+                      if (baseElements.length > 0) {
+                        gsap.to(baseElements, {
+                          opacity: 1,
+                          duration: 0.35,
+                          ease: "power2.out",
+                          stagger: 0.06,
+                        });
+                      }
+                    },
+                    null,
+                    null,
+                    "+=0.1"
+                  );
+                }
 
                 // Run circle text animations
                 tl.call(
@@ -459,53 +481,22 @@ function ensureContainersAreVisible() {
       opacity: 1,
     });
   }
-
-  // Also set the page and its direct children to visible
-  const pageContent = document.querySelector("main .page");
-  if (pageContent) {
-    gsap.set(pageContent, {
-      opacity: 1,
-    });
-
-    // Make all direct children visible
-    const directChildren = pageContent.children;
-    if (directChildren.length > 0) {
-      gsap.set(directChildren, {
-        opacity: 1,
-      });
-    }
-  }
 }
 
 /**
- * Initialize Vanta background settings based on the current page namespace
+ * Initialize background settings based on the current page namespace
  */
-function initializeVantaBackground() {
+function initializeBackground() {
   // Get the current page namespace
   const container = document.querySelector("[data-barba='container']");
   const namespace = container ? container.getAttribute("data-barba-namespace") : null;
 
-  console.log("Loading-screen: initializing Vanta background for namespace:", namespace);
+  console.log("Loading-screen: initializing background for namespace:", namespace);
 
-  if (namespace === "about") {
-    console.log("Setting about page Vanta settings");
-    fogBG.setOptions({
-      blurFactor: 0.35,
-      speed: 0.6,
-      zoom: 2.0,
-    });
-  } else {
-    console.log("Setting default Vanta settings");
-    fogBG.setOptions({
-      blurFactor: 0.48,
-      speed: 0.24,
-      zoom: 0.5,
-    });
-  }
-
-  // Ensure the Vanta canvas is visible with proper opacity
-  const vantaCanvas = document.querySelector(".vanta-canvas");
-  if (vantaCanvas) {
-    vantaCanvas.style.opacity = "0.66";
+  // Note: Page-specific background configs will be implemented in Phase 6
+  // For now, just ensure the canvas is at the right opacity
+  const canvas = backgroundManager.getRenderer()?.getCanvas();
+  if (canvas) {
+    canvas.style.opacity = "0.66";
   }
 }

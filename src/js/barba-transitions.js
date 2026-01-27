@@ -2,7 +2,7 @@ import barba from "@barba/core";
 import { fadeTransition } from "./transitions.js";
 import { lenis, stopScroll, startScroll } from "./smooth-scroll.js";
 import initSmoothScroll from "./smooth-scroll.js";
-import { changeBG, fogBG, fadeBackgroundIn } from "./background.js";
+import backgroundManager from "./background/index.js";
 import splitText from "./text-splitting.js";
 import { setupUnifiedReveals, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
 import { rotateTitles, circleText, revealH1Characters, animateDataSplittingChars } from "./type-anim.js";
@@ -18,6 +18,8 @@ import SplitType from "split-type";
 export function initializeBarba() {
   // Make barba accessible globally for programmatic navigation in event handlers
   window.barba = barba;
+
+  setupLinkPrefetch();
 
   // Initialize the transition state flag
   window.barbaTransitionActive = false;
@@ -102,46 +104,11 @@ export function initializeBarba() {
     },
   };
 
-  // Add CSS for Barba transitions
+  // Minimal CSS adjustments for smoother transition
   const styleElement = document.createElement("style");
   styleElement.textContent = `
-    /* Better transition handling to prevent flicker */
     body.barba-transition {
-      overflow: hidden !important; /* Prevent scroll during transition */
-    }
-  
-    /* Only apply to containers during transitions, not on initial page load */
-    .barba-transition [data-barba="container"] {
-      opacity: 0 !important;
-      visibility: hidden !important;
-      transition: opacity 0.4s ease, visibility 0.4s ease;
-      pointer-events: none !important; /* Prevent interaction during transition */
-    }
-    
-    /* Hide old container during transition */
-    .barba-transition .barba-old-container {
-      opacity: 0 !important;
-      visibility: hidden !important;
-      display: none !important;
-      pointer-events: none !important;
-    }
-    
-    .barba-transition [data-barba="container"] .page,
-    .barba-transition [data-barba="container"] .page > * {
-      opacity: 0 !important;
-      transition: opacity 0.4s ease;
-    }
-    
-    /* Ensure new container is hidden before animation starts */
-    .barba-container-next {
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
-
-    /* Override any conflicting styles */
-    [data-barba="container"] {
-      transition: opacity 0.4s ease, visibility 0.4s ease;
+      overflow: hidden !important;
     }
   `;
   document.head.appendChild(styleElement);
@@ -155,10 +122,9 @@ export function initializeBarba() {
 
     // Before any transition starts, ensure the next container starts invisible
     if (data.next.container) {
-      // Make the entire container and all its content invisible
       gsap.set(data.next.container, {
         opacity: 0,
-        visibility: "hidden", // Add visibility hidden to prevent flash
+        visibility: "hidden",
       });
     }
   });
@@ -177,43 +143,29 @@ export function initializeBarba() {
   barba.hooks.nextAdded((data) => {
     console.log("Barba nextAdded: preparing next container");
 
-    // Add a class to identify the next container
-    data.next.container.classList.add("barba-container-next");
-
-    // Pre-hide all content
     gsap.set(data.next.container, {
       opacity: 0,
       visibility: "hidden",
-      display: "block",
-      position: "fixed", // Position off-screen until enter animation
-      top: "-9999px",
-      left: "-9999px",
-    });
-
-    // Also hide all page content
-    const pageElements = data.next.container.querySelectorAll(".page, .page > *");
-    if (pageElements.length) {
-      gsap.set(pageElements, {
-        opacity: 0,
       });
-    }
   });
 
   // Add a hook after Barba adds the next container to the DOM
   barba.hooks.beforeEnter((data) => {
     console.log("Barba beforeEnter: container added to DOM");
 
-    // Remove the temporary positioning - will be restored by the transition
-    gsap.set(data.next.container, {
-      position: "relative",
-      top: "auto",
-      left: "auto",
-    });
-
     // Ensure all content within the container is also initially invisible
+    const pageElement = data.next.container.querySelector(".page");
+    if (pageElement) {
+      gsap.set(pageElement, {
+        opacity: 0,
+        visibility: "visible",
+        immediateRender: true,
+      });
+    }
     const allContentElements = data.next.container.querySelectorAll(".page, .page > *");
     gsap.set(allContentElements, {
       opacity: 0,
+      pointerEvents: "none",
       immediateRender: true,
     });
 
@@ -373,27 +325,6 @@ function handleLeave(data) {
       }, 240);
     }
 
-    // Start fading out the background for smoother transitions
-    const isToAboutPage = data.next.namespace === "about";
-    const isFromAboutPage = data.current.namespace === "about";
-
-    // Only trigger background fade if we're moving to or from the about page
-    if (isToAboutPage || isFromAboutPage) {
-      console.log("Starting background fade out before leave animation");
-      const vantaCanvas = document.querySelector(".vanta-canvas");
-      const viewport = document.getElementById("viewport");
-
-      if (vantaCanvas) {
-        // Apply transition to make the fade smooth
-        vantaCanvas.style.transition = "opacity 0.4s ease";
-        vantaCanvas.style.opacity = "0";
-      }
-      if (viewport) {
-        viewport.style.transition = "background 0.4s ease";
-        viewport.style.background = "#E5F0FD";
-      }
-    }
-
     // Let fadeTransition.leave handle all animation logic - don't set any GSAp props here
     stopScroll();
 
@@ -408,11 +339,17 @@ function handleLeave(data) {
 function handleEnter(data) {
   return new Promise((resolve) => {
     // Force scroll to top again when entering
+    const scrollToTop = () => {
     if (lenis) {
-      lenis.scrollTo(0, { immediate: true });
-    } else {
-      window.scrollTo(0, 0);
-    }
+        lenis.stop();
+        lenis.scrollTo(0, { immediate: true, force: true });
+        requestAnimationFrame(() => lenis.scrollTo(0, { immediate: true, force: true }));
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    scrollToTop();
 
     // Make sure old container stays invisible
     const oldContainer = document.querySelector(".barba-old-container");
@@ -431,27 +368,18 @@ function handleEnter(data) {
     fadeTransition.enter(data.next.container).then(() => {
       console.log("BARBA PAGE TRANSITION COMPLETE - Now safe to run animations");
 
-      // Apply background changes now that the new page is visible
-      const isToAboutPage = data.next.namespace === "about";
-      const isFromAboutPage = data.current && data.current.namespace === "about";
-
-      // Only update the background if we're moving to or from about page
-      if (isToAboutPage || isFromAboutPage) {
-        console.log("Applying background changes after page transition");
-        changeBG(data);
-      }
+      // Apply background configuration for the new page
+      const newNamespace = data.next.namespace;
+      
+      console.log(`Applying background configuration for "${newNamespace}" page`);
+      backgroundManager.transitionToPage(newNamespace, 2.0);
 
       // Mark transition as complete in the controller
       window.animationController.completeTransition();
 
-      // Add a delay before resolving to ensure complete separation
-      setTimeout(() => {
-        // Clear the transition flag
+      // Clear the transition flag and resolve immediately
         window.barbaTransitionActive = false;
-
-        // Resolve the promise to continue with afterEnter
         resolve();
-      }, 100);
     });
   });
 }
@@ -483,11 +411,39 @@ function handleAfterEnter(data) {
   const mainContent = mainContainer.querySelector(".page");
   const contentElements = mainContent ? Array.from(mainContent.children) : [];
 
+  if (mainContent) {
+    gsap.set(mainContent, { opacity: 1, pointerEvents: "auto" });
+  }
+  const revealManagedSelectors = "h1, h2, [data-splitting], .splitting-rows, .titles-wrapper, .fade-reveal";
+  const nonRevealElements = [];
+  if (contentElements.length > 0) {
+    contentElements.forEach((el) => {
+      if (el.matches(revealManagedSelectors)) {
+        gsap.set(el, { opacity: 0, pointerEvents: "auto", visibility: "visible" });
+      } else {
+        gsap.set(el, { opacity: 0, pointerEvents: "auto", visibility: "visible" });
+        nonRevealElements.push(el);
+      }
+    });
+  }
+
   // Run splitText immediately to prepare text - this doesn't animate anything yet
   window.animationController.queueAnimation(() => {
     console.log("Preparing text splitting");
     splitText();
   }, "splitText-preparation");
+
+  // Fade in non-reveal elements after base prep
+  if (nonRevealElements.length > 0) {
+    window.animationController.queueAnimation(() => {
+      gsap.to(nonRevealElements, {
+        opacity: 1,
+        duration: 0.35,
+        ease: "power2.out",
+        stagger: 0.06,
+      });
+    }, "base-content-fade");
+  }
 
   // HOMEPAGE SPECIFIC ANIMATIONS
   if (isHomepage) {
@@ -641,6 +597,43 @@ function handleAfterEnter(data) {
   return Promise.resolve();
 }
 
+function setupLinkPrefetch() {
+  const prefetched = new Set();
+
+  const shouldPrefetch = (link) => {
+    if (!link || !link.href) return false;
+    if (link.origin !== window.location.origin) return false;
+    if (link.href === window.location.href) return false;
+    if (link.hash && link.href.replace(link.hash, "") === window.location.href.replace(window.location.hash, "")) {
+      return false;
+    }
+    if (prefetched.has(link.href)) return false;
+    return true;
+  };
+
+  const prefetch = (url) => {
+    prefetched.add(url);
+    fetch(url, { credentials: "include" }).catch(() => {
+      // Allow retry if fetch fails
+      prefetched.delete(url);
+    });
+  };
+
+  const hoverHandler = (event) => {
+    const link = event.target.closest("a[href]");
+    if (!shouldPrefetch(link)) return;
+
+    // Prefetch on next frame to avoid blocking hover
+    requestIdleCallback
+      ? requestIdleCallback(() => prefetch(link.href), { timeout: 200 })
+      : setTimeout(() => prefetch(link.href), 32);
+  };
+
+  ["mouseover", "focusin", "touchstart"].forEach((eventName) => {
+    document.addEventListener(eventName, hoverHandler, { passive: true });
+  });
+}
+
 /**
  * Ensures all container elements are properly visible
  * This function is needed to prevent CSS or style conflicts that might keep elements hidden
@@ -655,21 +648,5 @@ function ensureContainersAreVisible() {
       visibility: "visible",
       opacity: 1,
     });
-  }
-
-  // Also set the page and its direct children to visible
-  const pageContent = document.querySelector("main .page");
-  if (pageContent) {
-    gsap.set(pageContent, {
-      opacity: 1,
-    });
-
-    // Make all direct children visible
-    const directChildren = pageContent.children;
-    if (directChildren.length > 0) {
-      gsap.set(directChildren, {
-        opacity: 1,
-      });
-    }
   }
 }

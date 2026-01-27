@@ -9,6 +9,7 @@
     a {
         color: #000;
         font-size: 120px;
+        font-weight:900;
         margin: 32px auto;
         align-self: flex-start;
         opacity: 0.6;
@@ -20,7 +21,7 @@
             letter-spacing: -2px;
         }
 
-        @media (max-width:991px) {
+        @media (max-width: $desktop-viewport) {
             font-size: 12vw;
             margin: 2vh auto;
             letter-spacing: -0.5vw;

@@ -10,7 +10,7 @@
     justify-content: center;
     flex-wrap: wrap;
 
-    @media (max-width:768px) {
+    @media (max-width: $desktop-viewport) {
         transform: translateX(5px) scale(0.9);
     }
 
@@ -19,12 +19,12 @@
         align-items: center;
         justify-content: center;
         border-radius: 50px;
-        background: rgba(50, 100, 255, 0.04);
-        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.0);
+        padding: 8px 16px 9px;
         margin-right: 16px;
         box-shadow: inset 0px 1px 12px -8px rgba(50, 100, 255, 0.2);
-
-        @media (max-width:768px) {
+        border:1px solid black;
+        @media (max-width: $desktop-viewport) {
             margin-right: 10px;
             margin-bottom: 10px;
         }
@@ -64,11 +64,11 @@
     border-radius: 24px;
     overflow: hidden;
 
-    @media (max-width:991px) {
+    @media (max-width: $desktop-viewport) {
         border-radius: 16px;
     }
 
-    @media (max-width:768px) {
+    @media (max-width: $desktop-viewport) {
         width: calc(100vw - 32px);
     }
 
@@ -175,7 +175,7 @@
     height: 50vh;
     width: 100vw;
     position: relative;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(83, 4, 174, 0.18);
     backdrop-filter: blur(40px);
 
     a {
@@ -190,17 +190,18 @@
         transition-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
 
         &:hover {
-            background: $primary;
+            background: rgba(56, 0, 175, 0.6);
 
             span {
-                color: $neon-green;
-                transform: translateX(-50%) translateY(-50%) translateZ(0);
+                color: rgba(37, 255, 160, 0.9);
+                transform: translateX(-50%) translateY(-50%) translateZ(200px);
             }
         }
     }
 
     span {
         font-size: 100px;
+        font-weight:900;
         text-transform: uppercase;
         position: absolute;
         top: 50%;
@@ -219,7 +220,7 @@
             font-size: 48px;
         }
 
-        @media (max-width:991px) {
+        @media (max-width: $desktop-viewport) {
             font-size: 8vw;
         }
     }

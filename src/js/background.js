@@ -15,7 +15,7 @@ const fogBG = FOG({
   lowlightColor: 0x9367ff,
   baseColor: 0xffffff,
   blurFactor: 0.48,
-  speed: 0.24,
+  speed: 0.08,
   zoom: 0.5,
 });
 
@@ -95,14 +95,14 @@ function changeBG(data) {
       console.log("Setting about page Vanta parameters");
       fogBG.setOptions({
         blurFactor: 0.35,
-        speed: 0.6,
+        speed: 0.04,
         zoom: 2.0,
       });
     } else {
       console.log("Setting default Vanta parameters");
       fogBG.setOptions({
         blurFactor: 0.48,
-        speed: 0.24,
+        speed: 0.08,
         zoom: 0.5,
       });
     }

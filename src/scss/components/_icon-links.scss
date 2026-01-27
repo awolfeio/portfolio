@@ -6,7 +6,7 @@
     position: relative;
     padding-bottom: 14vh;
 
-    @media (max-width:991px) {
+    @media (max-width: $desktop-viewport) {
         padding-bottom: 15vw;
     }
 
@@ -22,7 +22,7 @@
             height: 116px;
         }
 
-        @media (max-width:991px) {
+        @media (max-width: $desktop-viewport) {
             width: 72px;
             height: 72px;
         }

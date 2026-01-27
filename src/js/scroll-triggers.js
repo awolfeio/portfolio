@@ -163,6 +163,8 @@ function startSequentialReveal(elements, groupKey) {
         () => {
           element.classList.add("reveal");
           element.classList.add("active");
+          element.style.removeProperty("opacity");
+          element.style.pointerEvents = "auto";
         },
         null,
         delay
@@ -172,6 +174,8 @@ function startSequentialReveal(elements, groupKey) {
         () => {
           element.classList.add("reveal");
           element.classList.add("active");
+          element.style.removeProperty("opacity");
+          element.style.pointerEvents = "auto";
         },
         null,
         delay
@@ -181,6 +185,8 @@ function startSequentialReveal(elements, groupKey) {
       tl.call(
         () => {
           element.classList.add("active");
+          element.style.removeProperty("opacity");
+          element.style.pointerEvents = "auto";
         },
         null,
         delay
@@ -238,7 +244,7 @@ export function revealSplitTexts() {
 export function fadeInReveal() {
   console.log("Legacy fadeInReveal called - already handled by unified system");
   // On mobile, explicitly do not run this for nav to avoid menu issues
-  if (window.innerWidth < 768) {
+  if (window.innerWidth <= 1024) {
     const nav = document.querySelector("nav");
     if (nav) {
       nav.classList.remove("fade-reveal", "active");
@@ -259,8 +265,13 @@ export function applyFadeReveal(elements, force = false) {
     // Only add active class if element is in viewport or force is true
     if (force || isInViewport(element)) {
       element.classList.add("active");
+      element.style.removeProperty("opacity");
+      element.style.pointerEvents = "auto";
     } else {
       element.classList.remove("active");
+      element.style.removeProperty("pointer-events");
+      // Reset inline opacity so base CSS can reapply the hidden state
+      element.style.removeProperty("opacity");
     }
   });
 }

@@ -170,11 +170,19 @@ function handleBarbaLinks(e) {
 export function setupMobileMenuHandlers() {
   const mobileMenuToggles = document.querySelectorAll(".mobile-menu-toggle");
   mobileMenuToggles.forEach((toggle) => {
-    toggle.addEventListener("click", function () {
+    // Remove existing listener to prevent duplicates
+    toggle.removeEventListener("click", handleMobileMenuClick);
+    // Add the listener
+    toggle.addEventListener("click", handleMobileMenuClick);
+  });
+}
+
+/**
+ * Handle mobile menu toggle click
+ */
+function handleMobileMenuClick() {
       document.body.classList.toggle("menu-active");
       this.classList.toggle("active");
-    });
-  });
 }
 
 /**

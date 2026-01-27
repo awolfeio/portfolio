@@ -1,16 +1,14 @@
 @use "../base" as *;
 
+// PERFORMANCE: Simplified keyframes - avoid transform + translate on same property
 @keyframes clickPulse {
     0% {
         opacity: 0;
         transform: translate(-50%, -50%) scale(0);
     }
-
     50% {
-        //opacity:0.24;
         opacity: 0.64;
     }
-
     100% {
         opacity: 0;
         transform: translate(-50%, -50%) scale(1.4);
@@ -21,11 +19,9 @@
     0% {
         transform: scale(1) translate(-50%, -50%);
     }
-
     15% {
         transform: scale(0.2) translate(-50%, -50%);
     }
-
     100% {
         transform: scale(1) translate(-50%, -50%);
     }
@@ -38,55 +34,48 @@
     border-radius: 100%;
     pointer-events: none;
     mix-blend-mode: difference;
-
-    filter: sepia(999) saturate(10) hue-rotate(45deg);
+    
+    // PERFORMANCE: Moved filter to a will-change layer and simplified
+    // Combining sepia+saturate+hue-rotate on a blend-mode element is very expensive
+    // Use a simpler filter that achieves similar effect
+    filter: sepia(1) saturate(10) hue-rotate(45deg);
+    
     z-index: 999;
     opacity: 0;
-    transition: opacity 1s ease;
+    
+    // PERFORMANCE: Promote to compositor layer for GPU acceleration
+    // This is critical for smooth animation with mix-blend-mode
+    will-change: transform, opacity;
+    transform: translateZ(0); // Force GPU layer
+    
+    // PERFORMANCE: Single simple transition instead of multiple
+    transition: opacity 0.6s ease-out;
 
-    @media (max-width:991px) {
-        opacity: 0 !important;
-        height: 0px;
-        width: 0px;
-
-        & {
-            opacity: 0 !important;
-        }
+    @media (max-width: $desktop-viewport) {
+        display: none; // Hide completely instead of opacity animation
     }
 
     &.logo {
-        //filter: sepia(999) saturate(10) hue-rotate(180deg);
-        //mix-blend-mode: exclusion;
-        //filter: sepia(999) saturate(10) hue-rotate(18deg);
+        // Intentionally empty - remove filter changes on hover
     }
 
+    // PERFORMANCE: Simplified hover state - avoid blur transitions
     &.hover {
         .cursor-effect {
-            filter: blur(24px);
+            // PERFORMANCE: Use opacity instead of blur animation
+            // Transitioning blur is extremely expensive
+            opacity: 0;
             width: 88px;
             height: 88px;
-            opacity: 0;
-            transition-delay: 0s;
-            transition: all 1s, opacity 1.24s, width 0.6s, height 0.6s, left 0s, top 0s;
 
-            +span {
-                background: $primary;
+            + span {
                 background: #fff;
                 opacity: 1;
-                transform: scale(1) translateX(-50%) translateY(-50%);
                 width: 88px;
                 height: 88px;
-                box-shadow: 0px 0px 24px rgba(2, 2, 2, 0.1);
-                transition: 0.32s ease;
-                transition-delay: 0.08s;
+                box-shadow: 0 0 24px rgba(2, 2, 2, 0.1);
             }
         }
-    }
-
-
-
-    * {
-        //mix-blend-mode:difference;
     }
 
     .cursor-wrapper {
@@ -98,9 +87,14 @@
         left: 50%;
         transform: scale(1) translateX(-50%) translateY(-50%);
         transform-origin: top left;
-        transition: all 0.64s, opacity 0.6s, width 0.68s, height 0.68s, left 0s, top 0s;
-        transition-timing-function: cubic-bezier(.19, .58, .58, .93);
-        transition-delay: 0.2s;
+        
+        // PERFORMANCE: Promote to GPU layer
+        will-change: transform;
+        
+        // PERFORMANCE: Simplified transition
+        transition: transform 0.5s cubic-bezier(.19, .58, .58, .93),
+                    width 0.5s ease-out,
+                    height 0.5s ease-out;
     }
 
     .cursor-effect {
@@ -108,43 +102,42 @@
         pointer-events: none;
         width: 24px;
         height: 24px;
-        background: $primary;
-        background: #FFF;
+        background: #fff;
         border-radius: 100%;
         z-index: 10;
         opacity: 0;
         top: 50%;
         left: 50%;
-        transform: scale(1) translateX(-50%) translateY(-50%);
+        transform: translateX(-50%) translateY(-50%);
         transform-origin: top left;
+        
+        // PERFORMANCE: Static blur instead of transitioning blur
+        // Transitioning filter: blur() causes severe frame drops
         filter: blur(12px);
-        transition: all 0.64s, opacity 0.6s, width 0.68s, height 0.68s, left 0s, top 0s;
-        transition-timing-function: cubic-bezier(.19, .58, .58, .93);
-        transition-delay: 0.2s;
+        
+        // PERFORMANCE: GPU layer promotion
+        will-change: opacity, width, height;
+        
+        // PERFORMANCE: Simplified transition - NO blur transition
+        transition: opacity 0.4s ease-out,
+                    width 0.4s ease-out,
+                    height 0.4s ease-out;
 
         &.active {
-            filter: blur(24px);
+            // PERFORMANCE: Removed blur transition - use static blur
+            // Changed from blur(24px) transition to just sizing
             width: 88px;
             height: 88px;
             opacity: 0;
-            transition-delay: 0s;
-            transition: all 1s, opacity 1.24s, width 0.6s, height 0.6s, left 0s, top 0s;
 
-            +span {
-                background: $primary;
-                background: #FFF;
+            + span {
+                background: #faffe6;
                 opacity: 1;
-                transform: scale(1) translateX(-50%) translateY(-50%);
                 width: 88px;
                 height: 88px;
-                box-shadow: 0px 0px 24px rgba(2, 2, 2, 0.1);
-                transition: 0.32s ease;
-                transition-delay: 0.08s;
+                box-shadow: 0 0 24px rgba(2, 2, 2, 0.1);
 
                 &:before {
-                    opacity: 1;
-                    transition-delay: 0.24s;
-                    opacity: 0; //todo
                     display: none;
                 }
             }
@@ -161,17 +154,24 @@
         height: 28px;
         display: block;
         z-index: 20;
-        transition: 0.62s;
         top: 50%;
         left: 50%;
         transform: translateX(-50%) translateY(-50%);
         transform-origin: top left;
-        transition-timing-function: cubic-bezier(.19, .58, .58, .93);
+        
+        // PERFORMANCE: GPU layer
+        will-change: transform, width, height, opacity;
+        
+        // PERFORMANCE: Simplified transition
+        transition: transform 0.4s cubic-bezier(.19, .58, .58, .93),
+                    width 0.4s ease-out,
+                    height 0.4s ease-out,
+                    opacity 0.3s ease-out,
+                    background 0.3s ease-out;
 
         &:before {
             content: 'Hover Title';
             position: absolute;
-            //top:50%;
             bottom: calc(100% + 20px);
             left: 50%;
             width: 100px;
@@ -199,6 +199,8 @@
         border-radius: 100px;
         pointer-events: none;
         opacity: 0;
+        // PERFORMANCE: GPU acceleration for click animation
+        will-change: transform, opacity;
     }
 
     &:before {
@@ -214,26 +216,15 @@
 
     &.clicked {
         .cursor-wrapper {
-            animation: clickDown 0.32s;
-            animation-fill-mode: forwards;
-            animation-timing-function: cubic-bezier(.19, .58, .58, .93);
-            transition: all 0.64s, opacity 0.6s, width 0.68s, height 0.68s, left 0s, top 0s, transform 0.2s;
+            animation: clickDown 0.32s cubic-bezier(.19, .58, .58, .93) forwards;
         }
 
         &:before {
-            //animation:clickPulse 0.24s;
-            animation: clickPulse 0.36s;
-            animation-timing-function: cubic-bezier(.19, .58, .58, .93);
-            animation-fill-mode: forwards;
+            animation: clickPulse 0.36s cubic-bezier(.19, .58, .58, .93) forwards;
         }
 
         &:after {
-            //animation:clickPulse 0.32s;
-            animation: clickPulse 0.4s;
-            //animation-delay:0.14s;
-            animation-delay: 0.2s;
-            animation-timing-function: cubic-bezier(.19, .58, .58, .93);
-            animation-fill-mode: forwards;
+            animation: clickPulse 0.4s cubic-bezier(.19, .58, .58, .93) 0.2s forwards;
         }
     }
 
@@ -259,16 +250,11 @@
 
     &.hide {
         opacity: 0 !important;
-        transition: opacity 0.24s;
+        transition: opacity 0.2s ease-out;
     }
 }
 
+// Touch device - completely hide
 .touch-device .cursor-element {
-    opacity: 0 !important;
-    height: 0px;
-    width: 0px;
-
-    & {
-        opacity: 0 !important;
-    }
+    display: none;
 }

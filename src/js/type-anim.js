@@ -293,6 +293,10 @@ export function revealH1Characters() {
         void char.offsetWidth;
       });
 
+      // Ensure parent element is visible before animating characters
+      h1.style.opacity = "1";
+      h1.style.pointerEvents = "auto";
+
       // Use more pronounced staggered animation for homepage
       if (isHomepage) {
         // Log to ensure we know this section is running
@@ -321,15 +325,17 @@ export function revealH1Characters() {
         // For homepage, add special focus to ensure H1 animation is noticed
         const h1Parent = h1.parentElement;
         if (h1Parent) {
-          // Add a subtle highlight to emphasize H1
+          // Add a subtle highlight to emphasize H1 without affecting blend modes
           gsap.fromTo(
             h1Parent,
-            { backgroundColor: "rgba(255,255,255,0)" },
+            { filter: "brightness(1.08)" },
             {
-              backgroundColor: "rgba(255,255,255,0.03)",
-              duration: 0.5,
+              filter: "brightness(1)",
+              duration: 0.6,
               yoyo: true,
               repeat: 1,
+              ease: "sine.inOut",
+              onComplete: () => gsap.set(h1Parent, { clearProps: "filter" }),
             }
           );
         }
@@ -392,6 +398,8 @@ export function animateDataSplittingChars() {
     const chars = element.querySelectorAll(".char");
 
     if (chars.length > 0) {
+      element.style.opacity = "1";
+      element.style.pointerEvents = "auto";
       // Reset and animate each character
       chars.forEach((char, index) => {
         // Reset first
