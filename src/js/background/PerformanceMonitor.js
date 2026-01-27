@@ -36,6 +36,9 @@ export class PerformanceMonitor {
    * OPTIMIZED: Uses cached DOM references instead of innerHTML rebuilding
    */
   createStatsDisplay() {
+    // Only render stats in development mode
+    if (!import.meta.env.DEV) return;
+
     this.statsElement = document.createElement('div');
     this.statsElement.id = 'bg-performance-stats';
     this.statsElement.style.cssText = `
@@ -55,7 +58,7 @@ export class PerformanceMonitor {
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       border: 1px solid rgba(0, 255, 0, 0.3);
     `;
-    
+
     // PERFORMANCE: Pre-build DOM structure once, cache references for updates
     this.statsElement.innerHTML = `
       <div style="font-weight: bold; margin-bottom: 6px; font-size: 12px; color: #0ff;">
@@ -90,9 +93,9 @@ export class PerformanceMonitor {
         <div id="stats-adaptive" style="font-size: 10px;">▲ Upgrade | ▼ Downgrade</div>
       </div>
     `;
-    
+
     document.body.appendChild(this.statsElement);
-    
+
     // Cache DOM references for efficient updates
     this._statsDom = {
       fpsMain: this.statsElement.querySelector('#stats-fps-main'),
@@ -155,11 +158,11 @@ export class PerformanceMonitor {
     let actualFps = this.fps;
     let frameTime = actualFps > 0 ? (1000 / actualFps) : 0;
     let jitter = 0;
-    
+
     // Calculate jitter from FPS history variance
     if (this.fpsHistory.length > 1) {
       const avgFpsCalc = this.fpsHistory.reduce((a, b) => a + b, 0) / this.fpsHistory.length;
-      const variance = this.fpsHistory.reduce((sum, val) => 
+      const variance = this.fpsHistory.reduce((sum, val) =>
         sum + Math.pow(val - avgFpsCalc, 2), 0
       ) / this.fpsHistory.length;
       const fpsStdDev = Math.sqrt(variance);
@@ -171,7 +174,7 @@ export class PerformanceMonitor {
     let currentQuality = 'high';
     let canUpgrade = false;
     let canDowngrade = false;
-    
+
     if (this.adaptiveQualityManager) {
       const status = this.adaptiveQualityManager.getStatus();
       detectedHz = status.detectedRefreshRate;
@@ -184,7 +187,7 @@ export class PerformanceMonitor {
     // Get renderer info
     let pixelRatio = 1.0;
     let grainHold = 1.0;
-    
+
     if (this.renderer) {
       pixelRatio = window.devicePixelRatio || 1.0;
       const material = this.renderer.getMaterial();
@@ -196,21 +199,21 @@ export class PerformanceMonitor {
     // Calculate performance metrics
     const fpsPercentage = ((actualFps / targetFps) * 100).toFixed(0);
     const performanceColor = actualFps >= targetFps * 0.95 ? '#0f0' : actualFps >= targetFps * 0.85 ? '#ff0' : '#f00';
-    
+
     // PERFORMANCE: Update only textContent of cached elements (no DOM parsing!)
     dom.fpsMain.textContent = `FPS: ${actualFps} / ${targetFps} (${fpsPercentage}%)`;
     dom.fpsMain.style.color = performanceColor;
     dom.fpsDetail.textContent = `Avg: ${avgFps} | Min: ${minFps} | Dropped: 0`;
-    
+
     dom.timing.textContent = `Frame: ${frameTime.toFixed(2)}ms ±${jitter.toFixed(2)}ms`;
     dom.timingTarget.textContent = `Target: ${(1000 / targetFps).toFixed(2)}ms`;
-    
+
     dom.refresh.textContent = `Refresh: ${detectedHz}Hz`;
     dom.pixelRatio.textContent = `Pixel Ratio: ${pixelRatio.toFixed(2)}`;
-    
+
     dom.quality.textContent = `Tier: ${currentQuality.toUpperCase()}`;
     dom.grain.textContent = `Grain Hold: ${grainHold.toFixed(1)}x`;
-    
+
     // Use innerHTML only for the small adaptive section with icons
     const upgradeColor = canUpgrade ? '#0f0' : '#555';
     const downgradeColor = canDowngrade ? '#f90' : '#555';
