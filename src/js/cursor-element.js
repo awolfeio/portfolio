@@ -120,7 +120,7 @@ export function cursorCheck() {
     // Check for logo
     if (target.closest(".logo")) {
       cursorEl.classList.add("logo");
-      return;
+      // Don't return, allow active state to apply if it's a link
     }
     
     // Check for skills wrapper
@@ -142,23 +142,33 @@ export function cursorCheck() {
   // Single mouseleave handler using event delegation
   document.body.addEventListener("mouseleave", (e) => {
     const target = e.target;
+    const related = e.relatedTarget;
     
-    // Check for logo
+    // Check for logo - only remove if leaving the logo container
     if (target.closest(".logo")) {
-      cursorEl.classList.remove("logo");
-      return;
+      if (!related || !related.closest(".logo")) {
+        cursorEl.classList.remove("logo");
+      }
     }
     
     // Check for skills wrapper
     if (target.closest(skillsSelector)) {
-      cursorEl.classList.remove("hide");
+      if (!related || !related.closest(skillsSelector)) {
+        cursorEl.classList.remove("hide");
+      }
       return;
     }
     
     // Check for interactive elements
-    if (target.closest(interactiveSelector)) {
-      cursorEl.classList.remove("active", "hover");
-      cursorEffect?.classList.remove("active", "hover");
+    const interactiveEl = target.closest(interactiveSelector);
+    if (interactiveEl) {
+      // Only remove if we are not moving to a descendant or the same element
+      // (e.g. moving from child to parent, or parent to external)
+      const relatedInteractive = related ? related.closest(interactiveSelector) : null;
+      if (relatedInteractive !== interactiveEl) {
+        cursorEl.classList.remove("active", "hover");
+        cursorEffect?.classList.remove("active", "hover");
+      }
     }
   }, true);
 
@@ -174,33 +184,37 @@ export function cursorCheck() {
   // Click handler for animations
   document.body.addEventListener("click", (e) => {
     const target = e.target;
+    
+    // Check if clicking an interactive element
     const clickable = target.closest("a:not(.active), button, input, select, textarea, span.email, svg.play, svg.pause");
     
+    // Only trigger ripple on interactive elements
     if (!clickable) return;
     
-    // Prevent default on active elements
+    // Prevent default on active elements (navigation)
     if (clickable.classList.contains("active")) {
       e.preventDefault();
       return;
     }
     
+    // Trigger click animation for interactive elements
     cursorEffect?.classList.remove("active");
     cursorEl.classList.add("clicked");
     
     // Use single timeout for cleanup
-    const isNavLink = clickable.closest("nav a");
     setTimeout(() => {
       cursorEl.classList.remove("clicked");
       
-      // Re-check hover state after click animation
-      if (!isNavLink) {
-        const hoveredInteractive = document.querySelector(
-          `${interactiveSelector.split(", ").map(s => s + ":hover").join(", ")}`
-        );
-        if (hoveredInteractive) {
-          cursorEl.classList.add("active", "hover");
-          cursorEffect?.classList.add("active", "hover");
-        }
+      // Re-check hover state after click animation is done
+      // Only check if we are still hovering an interactive element
+      // This restores the hover state if the user didn't move the mouse
+      const hoveredInteractive = document.querySelector(
+        `${interactiveSelector.split(", ").map(s => s + ":hover").join(", ")}`
+      );
+      
+      if (hoveredInteractive && !hoveredInteractive.classList.contains("active")) {
+        cursorEl.classList.add("active", "hover");
+        cursorEffect?.classList.add("active", "hover");
       }
     }, 800);
   });

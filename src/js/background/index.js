@@ -46,11 +46,9 @@ class BackgroundManager {
       
       // Apply initial page configuration immediately (before rendering starts)
       // This ensures the correct parameters are used from the start
+      // Use transitionToPage with duration=0 to ensure same parameter set as transitions
       if (initialNamespace && this.configManager) {
-        const config = this.configManager.getConfig(initialNamespace);
-        // Apply config directly to uniforms without transition
-        this.shaderController.updateUniforms(config);
-        this.configManager.currentPage = initialNamespace;
+        this.configManager.transitionToPage(initialNamespace, 0);
         console.log(`Applied initial background configuration for "${initialNamespace}" page`);
       }
       

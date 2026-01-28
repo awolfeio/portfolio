@@ -4,14 +4,14 @@
 @keyframes clickPulse {
     0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0);
+        transform: translate(-50%, -50%) scale(0.5);
     }
-    50% {
-        opacity: 0.64;
+    30% {
+        opacity: 0.8;
     }
     100% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(1.4);
+        transform: translate(-50%, -50%) scale(2.5);
     }
 }
 
@@ -199,6 +199,7 @@
         border-radius: 100px;
         pointer-events: none;
         opacity: 0;
+        z-index: -1;
         // PERFORMANCE: GPU acceleration for click animation
         will-change: transform, opacity;
     }

@@ -35,6 +35,11 @@ header {
                 svg path {
                     fill: #6165ff;
                 }
+                a:hover {
+                    svg path {
+                        fill: #a4a6ff;
+                    }
+                }
             }
 
             nav {

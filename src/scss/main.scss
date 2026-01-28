@@ -16,15 +16,10 @@ html {
         scroll-behavior: auto;
     }
 
-    &.touch-device {
-        .vanta-canvas {
-            height: 100vh !important;
-            position: fixed !important;
-            top: 50% !important;
-            left: 0;
-            right: 0;
-            bottom: auto !important;
-            transform: translateY(-50%) !important;
+    main + canvas {
+        filter:brightness(1.2);
+        @media (min-width: $desktop-viewport) {
+            height:calc(100vh + 40px)!important;
         }
     }
 }
@@ -115,16 +110,6 @@ body {
         max-width: 100%;
     }
 
-    .vanta-canvas {
-        width: 100% !important;
-        height: 100vh !important;
-        position: fixed !important;
-        z-index: 99999;
-        opacity: 0.66;
-        pointer-events: none;
-        transition: opacity 1s ease-in-out;
-        display: none;
-    }
 }
 
 #height-detect {
