@@ -1,6 +1,11 @@
 @use "../base" as *;
 @use "../components" as *;
 
+@mixin text-clip {
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
 @keyframes logoPathAnimation {
     0% {
         transform: translateY(0);
@@ -28,22 +33,50 @@ header {
 
             .logo {
                 svg path {
-                    fill: #5e9bff;
+                    fill: #6165ff;
                 }
             }
 
             nav {
                 a {
-                    color: #5e9bff !important;
-                    background: #5e9bff !important;
-                    -webkit-background-clip: text !important;
-                    -webkit-text-fill-color: transparent !important;
+                    span {
+                    color: #6165ff;
+                    background: #6165ff;
+                    @include text-clip;
+                    }
+
+                    &:hover,
+                    .hover {
+                        @media (min-width: #{$desktop-viewport + 1px}) {
+                            span {
+                                color: #a4a6ff;
+                                background: #a4a6ff;
+                                @include text-clip;
+                            }
+                        }
+                    }
 
                     &.active {
-                        color: #5e9bff !important;
-                        background: #5e9bff !important;
-                        -webkit-background-clip: text !important;
-                        -webkit-text-fill-color: transparent !important;
+                        opacity: 1;
+                        cursor: default;
+                        @include transition-medium;
+
+                        @media (max-width: $desktop-viewport) {
+                            color: #fff !important;
+                            background: linear-gradient(0deg, #a675dd, #b3d4fc) !important;
+                            @include text-clip;
+                        }
+
+                        span {
+                            color: #000;
+                            background: #000;
+                            @include text-clip;
+                        }
+
+                        &:before,
+                        &:after {
+                            opacity: 1;
+                        }
                     }
                 }
             }
@@ -53,11 +86,9 @@ header {
     &:not(.initialized) {
         nav a.active {
             @media (min-width: #{$desktop-viewport + 1px}) {
-                filter: none;
-                color: #5925CB !important;
-                background: #5925CB !important;
-                -webkit-background-clip: text !important;
-                -webkit-text-fill-color: transparent !important;
+                color: #000;
+                background: #000;
+                @include text-clip;
 
                 &:after {
                     //background:rgba(213,220,248,0.85);
@@ -281,49 +312,19 @@ nav {
             left: -2px;
             right: -2px;
             bottom: 0px;
-            background: rgba(114, 255, 0, 0.16);
+            background: rgba(68, 160, 255,0.72);
             opacity: 0;
             z-index: -1;
-            border-radius: 4px;
+            border-radius: 12px;
             transition: opacity 0.24s ease;
             pointer-events: none;
+            backdrop-filter: blur(4px);
 
             @media (max-width: $desktop-viewport) {
                 background: rgba(117, 135, 221, 0.07);
             }
         }
 
-        &:hover,
-        .hover {
-            @media (min-width: #{$desktop-viewport + 1px}) {
-                color: $primary !important;
-                //filter: hue-rotate(170deg) brightness(18) contrast(0.6) !important;
-            }
-
-        }
-
-        &.active {
-            color: #5e9bff !important;
-            background: #5e9bff !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            opacity: 1;
-            cursor: default;
-            //filter: hue-rotate(170deg) brightness(18) contrast(0.6);
-            @include transition-medium;
-
-            @media (max-width: $desktop-viewport) {
-                color: #fff !important;
-                background: linear-gradient(0deg, #a675dd, #b3d4fc) !important;
-                filter: none !important;
-                -webkit-background-clip: text !important;
-            }
-
-            &:before,
-            &:after {
-                opacity: 1;
-            }
-        }
     }
 }
 
@@ -416,4 +417,4 @@ body.menu-active {
             background: #fff;
         }
     }
-}
+}   

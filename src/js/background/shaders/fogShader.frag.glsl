@@ -178,6 +178,7 @@ vec3 applyGrain(vec3 base, float grain, float intensity, int mode) {
 
 // Time and resolution
 uniform float u_time;
+uniform float u_timeAbsolute;
 uniform vec2 u_resolution;
 
 // Color uniforms
@@ -279,14 +280,14 @@ void main() {
     
     // ARTISTIC CONTROL 2: Sine Ripple Distortion (Liquid/Glass effect)
     if (u_rippleStrength > 0.001) {
-        float rippleSpeed = u_time * u_speed * 2.0;
+        float rippleSpeed = u_time * 2.0;
         st.x += sin(st.y * u_rippleFrequency + rippleSpeed) * u_rippleStrength;
         st.y += cos(st.x * u_rippleFrequency + rippleSpeed * 0.8) * u_rippleStrength;
     }
     
     // VFX TECHNIQUE 1: Organic circular motion - NOW MODULATABLE
     // Creates natural swirling fog movement
-    float timeFlow = u_time * u_speed;
+    float timeFlow = u_time;
     vec2 circularMotion = vec2(
         sin(timeFlow * 0.3) * 0.5,
         cos(timeFlow * 0.23) * 0.5
@@ -325,8 +326,9 @@ void main() {
     }
     
     // Optional detail layer
+    // Optional detail layer
     if(u_detailAmount > 0.01) {
-        float detail = detailNoise(st, u_time, u_detailScale, u_speed);
+        float detail = detailNoise(st, u_time, u_detailScale, 1.0);
         noise += detail * u_detailAmount;
     }
     
@@ -442,7 +444,7 @@ void main() {
     // Apply optimized film grain
     if(u_grainIntensity > 0.01) {
         float grainAspectRatio = mix(1.0, u_resolution.x / u_resolution.y, clamp(u_grainAspect, 0.0, 1.0));
-        float grain = filmGrain(vUv, u_time, u_grainSize, u_grainSpeed, grainAspectRatio, u_grainComplexity, u_grainFrameHold);
+        float grain = filmGrain(vUv, u_timeAbsolute, u_grainSize, u_grainSpeed, grainAspectRatio, u_grainComplexity, u_grainFrameHold);
         finalColor = applyGrain(finalColor, grain, u_grainIntensity, u_grainBlendMode);
     }
     

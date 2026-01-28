@@ -154,7 +154,7 @@ class BackgroundManager {
    * @param {string} namespace - Page namespace (e.g., 'about', 'default')
    * @param {number} duration - Transition duration in seconds
    */
-  transitionToPage(namespace, duration = 4.0) {
+  transitionToPage(namespace, duration = 7.0) {
     if (!this.configManager) {
       console.warn("ConfigManager not initialized");
       this.fadeIn(duration);

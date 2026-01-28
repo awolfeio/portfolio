@@ -71,6 +71,11 @@ export class BackgroundRenderer {
     // PERFORMANCE: Track last update to throttle modulation calculations
     this._lastModulationUpdate = 0;
     this._modulationUpdateInterval = 16; // Update modulation every ~60fps worth of time
+    
+    // ACCUMULATION: Track time integration on CPU to prevent shader derivative jumps
+    this.accumulatedTime = 0;
+    this.accumulatedModulationTime = 0;
+    this.accumulatedRotation = 0;
 
     this.init();
   }
@@ -149,6 +154,7 @@ export class BackgroundRenderer {
       uniforms: {
         // Time and resolution
         u_time: { value: 0.0 },
+        u_timeAbsolute: { value: 0.0 }, // Absolute time for independent animations (grain)
         // Use drawing buffer size to avoid startup artifacts from DPI/resolution mismatch
         u_resolution: { value: new THREE.Vector2(this.renderer.domElement.width, this.renderer.domElement.height) },
 
@@ -245,6 +251,7 @@ export class BackgroundRenderer {
 
     // Apply initial quality tuning and precompute modulation outputs
     this.applyQualitySettings(this.qualityLevel);
+    // Initialize accumulation with 0 delta
     this.updateModulationUniforms(0);
 
     // Create fullscreen quad geometry
@@ -323,18 +330,28 @@ export class BackgroundRenderer {
   updateUniforms() {
     if (!this.material) return;
 
-    const elapsed = this.clock.getElapsedTime();
-    this.updateModulationUniforms(elapsed);
+    // Use getDelta() for time integration
+    const dt = this.clock.getDelta();
+    
+    // Accumulate total time based on current speed
+    // This integration prevents "velocity scrub" artifacts when u_speed changes via transition
+    const speed = this.material.uniforms.u_speed.value;
+    this.accumulatedTime += dt * speed;
+    
+    // Update modulation dynamics with delta time
+    this.updateModulationUniforms(dt);
 
-    // Update time uniform
-    this.material.uniforms.u_time.value = elapsed;
+    // Update time uniform with accumulated value
+    this.material.uniforms.u_time.value = this.accumulatedTime;
+    this.material.uniforms.u_timeAbsolute.value = this.clock.getElapsedTime();
   }
 
   /**
    * Precompute modulation outputs - DECOUPLED INTENSITY CONTROL
    * OPTIMIZED: Throttled to ~60fps and uses cached values to avoid GC pressure
+   * @param {number} dt - Delta time since last frame
    */
-  updateModulationUniforms(time) {
+  updateModulationUniforms(dt) {
     if (!this.material) return;
 
     const uniforms = this.material.uniforms;
@@ -348,6 +365,10 @@ export class BackgroundRenderer {
     // Global modulation control
     const modulationSpeed = uniforms.u_modulationSpeed.value;
     const masterIntensity = uniforms.u_modulationIntensity.value;
+    
+    // Integrator: Accumulate modulation time
+    // Same fix as main time: avoid derivative jumps when modulationSpeed changes
+    this.accumulatedModulationTime += dt * modulationSpeed;
 
     // If modulation is effectively disabled, apply base values directly
     if (modulationSpeed < 0.00001) {
@@ -379,7 +400,8 @@ export class BackgroundRenderer {
       const baseColorSpread = uniforms.u_colorSpread.value;
 
       // Use lower frequency time for slower, more organic feel
-      cache.modTime = time * modulationSpeed * 0.2; 
+      // Use ACCUMULATED modulation time instead of time * modulationSpeed
+      cache.modTime = this.accumulatedModulationTime * 0.2; 
 
       // 1. Turbulence Modulation
       cache.modTurbulence = baseTurbulence;
@@ -404,9 +426,15 @@ export class BackgroundRenderer {
       cache.modDirX = baseDirX;
       cache.modDirY = baseDirY;
       const rotMod = uniforms.u_rotationModulation.value;
+      
       if (rotMod > 0.01) {
         const amount = rotMod * 1.5 * masterIntensity;
-        cache.angle = cache.modTime * amount * 0.5;
+        // Accumulate rotation incrementally to prevent jumping when intensity changes
+        // Use the same time scale as modTime (0.2 * modulationSpeed)
+        const dtMod = dt * modulationSpeed * 0.2;
+        this.accumulatedRotation += dtMod * amount * 0.5;
+        
+        cache.angle = this.accumulatedRotation;
         cache.cosA = Math.cos(cache.angle);
         cache.sinA = Math.sin(cache.angle);
         cache.modDirX = baseDirX * cache.cosA - baseDirY * cache.sinA;

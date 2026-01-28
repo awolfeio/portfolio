@@ -137,7 +137,24 @@ export class DevGUI {
     // Add keyboard shortcut to toggle GUI
     this.addKeyboardShortcut();
     
+    // Start live sync loop
+    this.startLiveSync();
+    
     console.log('🎨 DevGUI initialized - Press "G" to toggle');
+  }
+
+  /**
+   * Start live synchronization of GUI with uniforms
+   */
+  startLiveSync() {
+    const syncLoop = () => {
+      // Only update if GUI exists and is visible (performance)
+      if (this.gui && !this.gui._hidden) {
+        this.updateGUIFromUniforms();
+      }
+      requestAnimationFrame(syncLoop);
+    };
+    syncLoop();
   }
 
   /**
@@ -801,6 +818,12 @@ export class DevGUI {
   updateGUIFromUniforms() {
     const uniforms = this.material.uniforms;
     
+    // Update colors
+    this.params.highlightColor = '#' + uniforms.u_color1.value.getHexString();
+    this.params.midtoneColor = '#' + uniforms.u_color2.value.getHexString();
+    this.params.lowlightColor = '#' + uniforms.u_color3.value.getHexString();
+    this.params.baseColor = '#' + uniforms.u_baseColor.value.getHexString();
+
     // Update params object
     this.params.zoom = uniforms.u_zoom.value;
     this.params.noiseScale = uniforms.u_noiseScale.value;

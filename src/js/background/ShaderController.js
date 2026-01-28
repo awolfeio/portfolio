@@ -52,7 +52,7 @@ export class ShaderController {
    * @param {Object} targetUniforms - Target values for uniforms
    * @param {number} duration - Transition duration in seconds
    */
-  transitionTo(targetUniforms, duration = 4.0) {
+  transitionTo(targetUniforms, duration = 7.0) {
     if (!this.material) return;
 
     // Use a smoother easing curve for longer transitions

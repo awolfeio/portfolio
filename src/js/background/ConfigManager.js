@@ -150,7 +150,7 @@ export class ConfigManager {
   /**
    * Transition to a page configuration
    */
-  transitionToPage(namespace, duration = 4.0) {
+  transitionToPage(namespace, duration = 7.0) {
     console.log(`ConfigManager: Transitioning to "${namespace}" page`);
     
     // Get the configuration for this page

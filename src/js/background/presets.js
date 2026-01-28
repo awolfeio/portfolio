@@ -395,7 +395,7 @@ export const backgroundPresets = {
       u_speed: 0.0248,
       u_directionX: 0.5,
       u_directionY: 0.3,
-      u_modulationSpeed: 0.28,
+      u_modulationSpeed: 0.086,
       u_modulationIntensity: 5.32,
       u_turbulenceModulation: 0.32,
       u_zoomModulation: 0.0,
