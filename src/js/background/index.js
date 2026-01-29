@@ -139,7 +139,7 @@ class BackgroundManager {
    * @param {number} duration - Fade duration in seconds
    * @param {number} targetOpacity - Target opacity (0-1)
    */
-  fadeIn(duration = 0.6, targetOpacity = 0.66) {
+  fadeIn(duration = 0.6, targetOpacity = 1) {
     const canvas = this.renderer?.getCanvas();
     if (canvas) {
       canvas.style.transition = `opacity ${duration}s ease`;
@@ -149,6 +149,7 @@ class BackgroundManager {
 
   /**
    * Transition to a page-specific configuration
+   * Uses a fade-through strategy to mask jarring parameter changes
    * @param {string} namespace - Page namespace (e.g., 'about', 'default')
    * @param {number} duration - Transition duration in seconds
    */
@@ -166,11 +167,33 @@ class BackgroundManager {
       return;
     }
     
-    // Transition to the page's configuration
-    this.configManager.transitionToPage(namespace, duration);
+    const canvas = this.renderer?.getCanvas();
+    if (!canvas) {
+      // Fallback if no canvas
+      this.configManager.transitionToPage(namespace, duration);
+      return;
+    }
     
-    // Fade back in
-    this.fadeIn(duration);
+    // Fade-through transition strategy to mask jarring parameter changes
+    // Timeline: fade out (30%) → transition params (40%) → fade in (30%)
+    const fadeOutDuration = duration * 0.3;
+    const fadeInDuration = duration * 0.3;
+    const transitionDelay = fadeOutDuration * 0.5; // Start param transition halfway through fade out
+    
+    // Fade out to low opacity
+    canvas.style.transition = `opacity ${fadeOutDuration}s ease-in`;
+    canvas.style.opacity = "0.15";
+    
+    // Start parameter transition during fade out
+    setTimeout(() => {
+      this.configManager.transitionToPage(namespace, duration);
+    }, transitionDelay * 1000);
+    
+    // Fade back in after parameters have mostly transitioned
+    setTimeout(() => {
+      canvas.style.transition = `opacity ${fadeInDuration}s ease-out`;
+      canvas.style.opacity = "1";
+    }, (fadeOutDuration + duration * 0.4) * 1000);
   }
 
   /**

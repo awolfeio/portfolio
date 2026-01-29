@@ -192,7 +192,7 @@ export class BackgroundRenderer {
         // Visual quality
         u_softness: { value: 0.2 },
         u_contrast: { value: 0.75 },
-        u_brightness: { value: 1.25 },
+        u_brightness: { value: 1.5 },
         u_exposure: { value: 1.0 },
         u_blackLevel: { value: 0.0 },
 

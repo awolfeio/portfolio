@@ -45,7 +45,7 @@ export class ConfigManager {
         u_colorShiftModulation: 0.0,
         u_softness: 0.2,
         u_contrast: 0.75,
-        u_brightness: 1.25,
+        u_brightness: 1.5,
         u_exposure: 1.0,
         u_blackLevel: 0.0,
         u_colorMix1: 0.5,

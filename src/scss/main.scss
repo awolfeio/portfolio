@@ -9,7 +9,7 @@ html {
         display: none;
     }
 
-    background: #E5F0FD;
+    background: #6ba7fb;
     height: 100%;
 
     &.lenis-smooth {
@@ -18,6 +18,7 @@ html {
 
     main + canvas {
         filter:brightness(1.2);
+        height:100lvh!important;
         @media (min-width: $desktop-viewport) {
             height:calc(100vh + 40px)!important;
         }
@@ -28,7 +29,9 @@ body {
     overflow-x: hidden;
     min-height: 100vh;
     margin: 0;
-
+    @media (max-width:$desktop-viewport) {
+        min-height:100lvh;
+    }
     &.lenis {
         height: auto;
     }
@@ -113,7 +116,7 @@ body {
 }
 
 #height-detect {
-    height: 100vh;
+    height: 100dvh;
     width: 0;
     position: absolute;
 }

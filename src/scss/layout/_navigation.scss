@@ -404,9 +404,10 @@ body:not(.menu-active) {
 body.menu-active {
     nav {
         @media (max-width: $desktop-viewport) {
-            background: #222;
+            background: rgba(82, 0, 175, 0.56);
             opacity: 1;
             pointer-events: auto;
+            backdrop-filter: blur(16px);
         }
 
         a {
