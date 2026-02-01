@@ -37,7 +37,7 @@ header {
                 }
                 a:hover {
                     svg path {
-                        fill: #a4a6ff;
+                        fill: #6c70ff;
                     }
                 }
             }
@@ -54,8 +54,8 @@ header {
                     .hover {
                         @media (min-width: #{$desktop-viewport + 1px}) {
                             span {
-                                color: #a4a6ff;
-                                background: #a4a6ff;
+                                color: #6c70ff;
+                                background: #6c70ff;
                                 @include text-clip;
                             }
                         }

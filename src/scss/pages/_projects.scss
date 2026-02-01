@@ -194,10 +194,11 @@
         transition-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
 
         &:hover {
-            background: rgba(56, 0, 175, 0.6);
-
+            //background: rgba(56, 0, 175, 0.6);
+            background:rgba(255, 0, 0, 0.6);
             span {
-                color: rgba(37, 255, 160, 0.9);
+                //color: rgba(37, 255, 160, 0.9);
+                color:rgba(255, 249, 96, 0.9);
                 transform: translateX(-50%) translateY(-50%) translateZ(200px);
             }
         }

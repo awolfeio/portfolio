@@ -9,7 +9,7 @@ main {
     padding-bottom: 14vh;
 
     &:not(#index) {
-      padding-top: 12vh;
+      padding-top: 20vh;
       padding-bottom: 0;
 
       @media (min-width: #{$desktop-viewport + 1px}) {

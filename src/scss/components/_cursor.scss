@@ -38,7 +38,7 @@
     // PERFORMANCE: Moved filter to a will-change layer and simplified
     // Combining sepia+saturate+hue-rotate on a blend-mode element is very expensive
     // Use a simpler filter that achieves similar effect
-    filter: sepia(1) saturate(10) hue-rotate(45deg);
+    filter: sepia(1) saturate(10) hue-rotate(310deg);
     
     z-index: 999;
     opacity: 0;
@@ -255,6 +255,12 @@
     }
 }
 
+
+body:has(.next-project-banner:hover) {
+    .cursor-element {
+        filter: sepia(1) saturate(10) hue-rotate(223deg);
+    }
+}
 // Touch device - completely hide
 .touch-device .cursor-element {
     display: none;

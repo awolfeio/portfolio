@@ -22,6 +22,22 @@
     src: url("../assets/fonts/MADE Kenfolg v2.woff") format("woff")
 }
 
+@font-face {
+    font-family: "MADE Outer Sans";
+    font-weight: bold;
+    src: url("../assets/fonts/MADE Outer Sans Bold.woff2") format("woff2"),
+        url("../assets/fonts/MADE Outer Sans Bold.woff") format("woff");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "MADE Outer Sans Outline";
+    font-weight: bold;
+    src: url("../assets/fonts/MADE Outer Sans Outline Bold.woff2") format("woff2"),
+        url("../assets/fonts/MADE Outer Sans Outline Bold.woff") format("woff");
+    font-display: swap;
+}
+
 
 body {
 
@@ -124,6 +140,25 @@ body {
     h1,
     h2 {
         cursor: default;
+    }
+
+    h1.display,
+    h2.display,
+    h3.display {
+        font-family: 'MADE Outer Sans', 'Evolve', 'Helvetica', 'Arial', sans-serif;
+        font-weight: bold;
+        letter-spacing:-6px;
+        @media (max-width:1366px) {
+            letter-spacing:-2px;
+        }
+        span.word,
+        span.word:before,
+        span.word:after,
+        span.char,
+        span.char:before,
+        span.char:after {
+            color: #000;font-family: 'MADE Outer Sans', 'Evolve', 'Helvetica', 'Arial', sans-serif;
+        }
     }
 
     h5 {
