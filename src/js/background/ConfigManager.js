@@ -156,6 +156,10 @@ export class ConfigManager {
     // Get the configuration for this page
     const config = this.getConfig(namespace);
     
+    // Determine the Mid Tone color based on the page
+    // About page uses #7a9cff, all other pages use #4e2bda
+    const midToneColor = namespace === 'about' ? 0x7a9cff : 0x4e2bda;
+    
     // Prepare uniforms object for transition
     const uniforms = {
       u_zoom: config.u_zoom,
@@ -206,6 +210,7 @@ export class ConfigManager {
       u_quantizeStep: config.u_quantizeStep,
       u_mirrorX: config.u_mirrorX,
       u_mirrorY: config.u_mirrorY,
+      u_color2: midToneColor, // Mid Tone color: #7a9cff for about, #4e2bda for all others
     };
     
     // Use ShaderController's transitionTo for smooth GSAP transitions
@@ -214,7 +219,7 @@ export class ConfigManager {
     // Update current page
     this.currentPage = namespace;
     
-    console.log(`ConfigManager: Applied "${namespace}" configuration`);
+    console.log(`ConfigManager: Applied "${namespace}" configuration with Mid Tone color ${namespace === 'about' ? '#7a9cff' : '#4e2bda'}`);
   }
 
   /**

@@ -1,22 +1,32 @@
 @use "animations" as *;
 
+// Comprehensive list of transition-safe properties
+// Excludes layout-triggering properties for better performance
+$transition-properties: opacity, transform, color, background-color, background, 
+                        border-color, border, box-shadow, text-shadow, outline,
+                        fill, stroke, backdrop-filter, clip-path, scale, rotate, translate;
+
 @mixin transition-fast {
-    transition: all $transition-fast, filter 0s;
+    transition-property: $transition-properties;
+    transition-duration: $transition-fast;
     transition-timing-function: cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 
 @mixin transition-smooth {
-    transition: $transition-smooth ease;
-    //transition-timing-function:cubic-bezier(0.785, 0.135, 0.15, 0.86);
+    transition-property: $transition-properties;
+    transition-duration: $transition-smooth;
+    transition-timing-function: cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 
 @mixin transition-medium {
-    transition: all $transition-medium, filter 0s;
+    transition-property: $transition-properties;
+    transition-duration: $transition-medium;
     transition-timing-function: cubic-bezier(0, 0, .19, 1);
 }
 
 @mixin transition-slow {
-    transition: all $transition-slow, filter 0s;
+    transition-property: $transition-properties;
+    transition-duration: $transition-slow;
     transition-timing-function: cubic-bezier(0, 0, .19, 1);
 }
 

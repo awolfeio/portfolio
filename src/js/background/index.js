@@ -197,6 +197,62 @@ class BackgroundManager {
   }
 
   /**
+   * Transition to a page-specific configuration with fade-out/instant-change/fade-in
+   * This provides a cleaner transition for page changes
+   * @param {string} namespace - Page namespace (e.g., 'about', 'default')
+   * @param {number} fadeOutDuration - Fade out duration in seconds (default: 0.3)
+   * @param {number} fadeInDuration - Fade in duration in seconds (default: 0.4)
+   * @returns {Promise} Resolves when the transition is complete
+   */
+  transitionToPageWithFade(namespace, fadeOutDuration = 0.3, fadeInDuration = 0.4) {
+    return new Promise((resolve) => {
+      if (!this.configManager) {
+        console.warn("ConfigManager not initialized");
+        resolve();
+        return;
+      }
+      
+      // Check if transition is needed
+      if (!this.configManager.shouldTransition(namespace)) {
+        console.log(`No transition needed for ${namespace} - same config`);
+        resolve();
+        return;
+      }
+      
+      const canvas = this.renderer?.getCanvas();
+      if (!canvas) {
+        // Fallback if no canvas - instant change
+        this.configManager.transitionToPage(namespace, 0);
+        resolve();
+        return;
+      }
+      
+      console.log(`Background fade transition to "${namespace}": fade out → instant change → fade in`);
+      
+      // Step 1: Fade out
+      canvas.style.transition = `opacity ${fadeOutDuration}s ease-out`;
+      canvas.style.opacity = "0";
+      
+      // Step 2: After fade out completes, instantly change parameters
+      setTimeout(() => {
+        // Instant parameter change (duration = 0)
+        this.configManager.transitionToPage(namespace, 0);
+        
+        // Step 3: Immediately start fading back in
+        setTimeout(() => {
+          canvas.style.transition = `opacity ${fadeInDuration}s ease-in`;
+          canvas.style.opacity = "1";
+          
+          // Resolve after fade in completes
+          setTimeout(() => {
+            resolve();
+          }, fadeInDuration * 1000);
+        }, 50); // Small delay to ensure parameter change has been applied
+      }, fadeOutDuration * 1000);
+    });
+  }
+
+  /**
    * Get the shader controller for external access
    */
   getShaderController() {

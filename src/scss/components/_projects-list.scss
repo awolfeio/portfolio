@@ -7,7 +7,9 @@
     margin-right: auto;
 
     a {
+        position: relative;
         color: #000;
+        font-family: "MADE Outer Sans Outline", sans-serif;
         font-size: 120px;
         font-weight:900;
         margin: 32px auto;
@@ -15,6 +17,24 @@
         opacity: 0.6;
         letter-spacing: -4px;
         @include transition-smooth;
+
+        // Pseudo-element with solid font that reveals on hover
+        &::before {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-family: "MADE Outer Sans", sans-serif;
+            font-size: inherit;
+            font-weight: inherit;
+            letter-spacing: inherit;
+            color: inherit;
+            pointer-events: none;
+            clip-path: inset(100% 0 0 0);
+            @include transition-medium;
+        }
 
         @media (max-width:1368px) {
             font-size: 80px;
@@ -33,8 +53,14 @@
 
         &:hover {
             opacity: 1;
-        }
 
+            &::before {
+                clip-path: inset(0 0 0 0);
+            }
+        }
+        &:active {
+            transform:scale(0.95);
+        }
         &:nth-child(1) {
             margin-top: 0;
         }

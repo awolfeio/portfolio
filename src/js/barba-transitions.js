@@ -368,11 +368,14 @@ function handleEnter(data) {
     fadeTransition.enter(data.next.container).then(() => {
       console.log("BARBA PAGE TRANSITION COMPLETE - Now safe to run animations");
 
-      // Apply background configuration for the new page
+      // Apply background configuration for the new page with fade transition
       const newNamespace = data.next.namespace;
       
       console.log(`Applying background configuration for "${newNamespace}" page`);
-      backgroundManager.transitionToPage(newNamespace, 2.0);
+      // Use fade-out/instant-change/fade-in transition for cleaner page changes
+      backgroundManager.transitionToPageWithFade(newNamespace, 0.3, 0.4).then(() => {
+        console.log(`Background transition to "${newNamespace}" complete`);
+      });
 
       // Mark transition as complete in the controller
       window.animationController.completeTransition();
