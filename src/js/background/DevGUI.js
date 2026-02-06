@@ -106,6 +106,22 @@ export class DevGUI {
       mirrorX: uniforms.u_mirrorX ? (uniforms.u_mirrorX.value > 0.5) : false,
       mirrorY: uniforms.u_mirrorY ? (uniforms.u_mirrorY.value > 0.5) : false,
 
+      // Dynamic Pattern Morphing
+      patternMorph: uniforms.u_patternMorph ? uniforms.u_patternMorph.value : 0.0,
+      lacunarityOscillation: uniforms.u_lacunarityOscillation ? uniforms.u_lacunarityOscillation.value : 0.5,
+      gainOscillation: uniforms.u_gainOscillation ? uniforms.u_gainOscillation.value : 0.3,
+      warpFeedback: uniforms.u_warpFeedback ? uniforms.u_warpFeedback.value : 0.2,
+      spectralBreathing: uniforms.u_spectralBreathing ? uniforms.u_spectralBreathing.value : 0.4,
+
+      // Base Pattern Complexity
+      warpLayers: uniforms.u_warpLayers ? uniforms.u_warpLayers.value : 0.0,
+      noiseDistortion: uniforms.u_noiseDistortion ? uniforms.u_noiseDistortion.value : 0.0,
+      turbulentFbm: uniforms.u_turbulentFbm ? uniforms.u_turbulentFbm.value : 0.0,
+      layerInteraction: uniforms.u_layerInteraction ? uniforms.u_layerInteraction.value : 0.0,
+
+      // Animation Balance
+      translationScale: uniforms.u_translationScale ? uniforms.u_translationScale.value : 1.0,
+
       // Spectral Separation (Phase 1)
       baseWeight: uniforms.u_baseWeight ? uniforms.u_baseWeight.value : 1.0,
       midWeight: uniforms.u_midWeight ? uniforms.u_midWeight.value : 0.5,
@@ -166,6 +182,8 @@ export class DevGUI {
     this.addAnimationFolder();
     this.addOrganicModulationFolder();
     this.addArtisticFolder();
+    this.addBaseComplexityFolder();
+    this.addPatternMorphingFolder();
     this.addFilmGrainFolder();
     this.addVisualQualityFolder();
     this.addColorMixingFolder();
@@ -527,6 +545,13 @@ export class DevGUI {
         this.shaderController.updateUniform('u_directionY', value);
       });
     
+    // Translation vs Evolution balance
+    folder.add(this.params, 'translationScale', 0.0, 1.0, 0.01)
+      .name('Translation Scale')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_translationScale', value);
+      });
+    
     folder.close();
   }
 
@@ -640,6 +665,89 @@ export class DevGUI {
         this.shaderController.updateUniform('u_mirrorY', value ? 1.0 : 0.0);
       });
       
+    folder.close();
+  }
+
+  /**
+   * Pattern Morphing folder - Dynamic pattern modulation at noise generation level
+   */
+  addPatternMorphingFolder() {
+    const folder = this.gui.addFolder('🌀 Pattern Morphing');
+    this.folders.patternMorphing = folder;
+    
+    // Master control - affects all morphing effects
+    folder.add(this.params, 'patternMorph', 0.0, 1.0, 0.01)
+      .name('⚡ Master Intensity')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_patternMorph', value);
+      });
+    
+    // Lacunarity oscillation - pattern complexity shifts
+    folder.add(this.params, 'lacunarityOscillation', 0.0, 1.0, 0.01)
+      .name('Lacunarity Osc')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_lacunarityOscillation', value);
+      });
+    
+    // Gain oscillation - amplitude decay shifts
+    folder.add(this.params, 'gainOscillation', 0.0, 1.0, 0.01)
+      .name('Gain Osc')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_gainOscillation', value);
+      });
+    
+    // Warp feedback - noise-into-warp self-reference
+    folder.add(this.params, 'warpFeedback', 0.0, 1.0, 0.01)
+      .name('Warp Feedback')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_warpFeedback', value);
+      });
+    
+    // Spectral breathing - layer weight oscillation
+    folder.add(this.params, 'spectralBreathing', 0.0, 1.0, 0.01)
+      .name('Spectral Breathing')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_spectralBreathing', value);
+      });
+    
+    folder.close();
+  }
+
+  /**
+   * Base Pattern Complexity folder - Structural complexity controls (not temporal)
+   */
+  addBaseComplexityFolder() {
+    const folder = this.gui.addFolder('🧱 Base Complexity');
+    this.folders.baseComplexity = folder;
+    
+    // Multi-layer warp - recursive folding
+    folder.add(this.params, 'warpLayers', 0.0, 3.0, 1.0)
+      .name('Warp Layers')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_warpLayers', value);
+      });
+    
+    // Noise distortion - spatial parameter variance
+    folder.add(this.params, 'noiseDistortion', 0.0, 1.0, 0.01)
+      .name('Noise Distortion')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_noiseDistortion', value);
+      });
+    
+    // Turbulent FBM - absolute value folding
+    folder.add(this.params, 'turbulentFbm', 0.0, 1.0, 0.01)
+      .name('Turbulent FBM')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_turbulentFbm', value);
+      });
+    
+    // Layer interaction - multiplicative blending
+    folder.add(this.params, 'layerInteraction', 0.0, 1.0, 0.01)
+      .name('Layer Interaction')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_layerInteraction', value);
+      });
+    
     folder.close();
   }
 

@@ -125,7 +125,7 @@ function fadeBackgroundIn() {
   // Apply transitions for smooth fade-in
   if (vantaCanvas) {
     vantaCanvas.style.transition = "opacity 0.6s ease";
-    vantaCanvas.style.opacity = "0.66";
+    vantaCanvas.style.opacity = "1.0";
   }
 
   if (viewport) {

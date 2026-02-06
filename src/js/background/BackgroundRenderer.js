@@ -77,6 +77,11 @@ export class BackgroundRenderer {
     this.accumulatedModulationTime = 0;
     this.accumulatedRotation = 0;
 
+    // PERFORMANCE: Bind render once to avoid per-frame allocation
+    this.render = this.render.bind(this);
+    this.handleResize = this.handleResize.bind(this);
+    this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
+
     this.init();
   }
 
@@ -262,6 +267,22 @@ export class BackgroundRenderer {
         u_mirrorX: { value: 0.0 },                  // X Reflection (0 or 1)
         u_mirrorY: { value: 0.0 },                  // Y Reflection (0 or 1)
 
+        // Dynamic Pattern Morphing (root-level noise modulation)
+        u_patternMorph: { value: 0.0 },             // Master control for all pattern morphing (0=off, 1=full)
+        u_lacunarityOscillation: { value: 0.5 },    // Lacunarity variation intensity (0-1)
+        u_gainOscillation: { value: 0.3 },          // Gain variation intensity (0-1)
+        u_warpFeedback: { value: 0.2 },             // Noise-into-warp feedback (0-1)
+        u_spectralBreathing: { value: 0.4 },        // Spectral band weight oscillation (0-1)
+
+        // Base Pattern Complexity (structural, not temporal)
+        u_warpLayers: { value: 0.0 },               // Recursive warp passes (0=none, 1-3=layers)
+        u_noiseDistortion: { value: 0.0 },          // Spatial FBM parameter variance (0-1)
+        u_turbulentFbm: { value: 0.0 },             // Absolute-value folding in FBM (0-1)
+        u_layerInteraction: { value: 0.0 },         // Spectral blend mode (0=add, 1=multiply)
+
+        // Animation Balance
+        u_translationScale: { value: 1.0 },         // Translation vs evolution (0=evolve in place, 1=normal movement)
+
         // Film grain
         u_grainIntensity: { value: 0.2 },     // Film grain intensity
         u_grainSpeed: { value: 20.0 },        // Grain animation speed
@@ -307,10 +328,10 @@ export class BackgroundRenderer {
    * Setup window resize handler
    */
   setupEventListeners() {
-    window.addEventListener("resize", this.handleResize.bind(this));
+    window.addEventListener("resize", this.handleResize);
 
     // Pause rendering when tab is not visible (performance optimization)
-    document.addEventListener("visibilitychange", this.handleVisibilityChange.bind(this));
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
   }
 
   /**
@@ -564,7 +585,7 @@ export class BackgroundRenderer {
       this.performanceMonitor.update();
     }
 
-    this.animationId = requestAnimationFrame(this.render.bind(this));
+    this.animationId = requestAnimationFrame(this.render);
   }
 
   /**

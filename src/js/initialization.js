@@ -84,15 +84,9 @@ function detectFirstPage() {
 
   const firstPage = mainContainer.dataset.barbaNamespace;
   
-  // Apply initial background configuration for first page
-  if (firstPage) {
-    const configManager = backgroundManager.getConfigManager();
-    if (configManager) {
-      console.log(`Setting initial background configuration for "${firstPage}" page`);
-      // Apply config without transition (instant)
-      configManager.transitionToPage(firstPage, 0);
-    }
-  }
+  // NOTE: Initial background configuration is already handled in backgroundManager.init()
+  // via detectInitialPageNamespace() which has more robust detection (including URL fallback)
+  // Removed duplicate transitionToPage call that was causing inconsistent initial load
 
   // Apply initial animations for any page
   const pageElement = mainContainer.querySelector(".page");

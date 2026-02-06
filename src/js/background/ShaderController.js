@@ -26,14 +26,27 @@ export class ShaderController {
       return;
     }
 
-    // Handle different uniform types
-    if (value instanceof THREE.Color) {
-      this.material.uniforms[uniformName].value.copy(value);
-    } else if (typeof value === "object" && value.r !== undefined) {
-      // Color object {r, g, b}
-      this.material.uniforms[uniformName].value.setRGB(value.r, value.g, value.b);
+    const uniform = this.material.uniforms[uniformName];
+
+    // Handle Color uniforms specially to preserve the THREE.Color instance
+    // Use the same approach as GSAP: create THREE.Color and copy values
+    if (uniform.value instanceof THREE.Color) {
+      if (value instanceof THREE.Color) {
+        uniform.value.copy(value);
+      } else {
+        // Create a new THREE.Color from any supported format (hex number, string, etc.)
+        // This matches GSAP's approach: const targetColor = new THREE.Color(targetValue);
+        const targetColor = new THREE.Color(value);
+        uniform.value.copy(targetColor);
+      }
+      return;
+    }
+
+    // Handle other types
+    if (value instanceof THREE.Vector2 && uniform.value instanceof THREE.Vector2) {
+      uniform.value.copy(value);
     } else {
-      this.material.uniforms[uniformName].value = value;
+      uniform.value = value;
     }
   }
 
@@ -54,6 +67,26 @@ export class ShaderController {
    */
   transitionTo(targetUniforms, duration = 7.0) {
     if (!this.material) return;
+
+    // Optimization for instant updates (avoid GSAP overhead)
+    if (duration <= 0) {
+      console.log(`🎨 ShaderController: Instant update (duration=${duration}), applying ${Object.keys(targetUniforms).length} uniforms`);
+      
+      // Log color values being set
+      if (targetUniforms.u_color2 !== undefined) {
+        console.log(`🎨 ShaderController: Setting u_color2 to ${typeof targetUniforms.u_color2 === 'number' ? '0x' + targetUniforms.u_color2.toString(16) : targetUniforms.u_color2}`);
+      }
+      
+      Object.keys(targetUniforms).forEach((uniformName) => {
+        this.updateUniform(uniformName, targetUniforms[uniformName]);
+      });
+      
+      // Verify color was set
+      if (this.material.uniforms.u_color2) {
+        console.log(`🎨 ShaderController: u_color2 is now #${this.material.uniforms.u_color2.value.getHexString()}`);
+      }
+      return;
+    }
 
     // Use a smoother easing curve for longer transitions
     // power1.inOut provides smoother, more gradual transitions for longer durations

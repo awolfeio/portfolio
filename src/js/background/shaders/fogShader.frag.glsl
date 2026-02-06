@@ -101,6 +101,22 @@ uniform float u_quantizeStep;              // Noise quantization steps (0 = smoo
 uniform float u_mirrorX;                   // 0 or 1 to enable X mirroring
 uniform float u_mirrorY;                   // 0 or 1 to enable Y mirroring
 
+// Dynamic Pattern Modulation (root-level noise generation changes)
+uniform float u_patternMorph;              // Master intensity for all pattern morphing (0=off, 1=full)
+uniform float u_lacunarityOscillation;     // Animate lacunarity over time (0=static, 1=full range)
+uniform float u_gainOscillation;           // Animate gain over time (0=static, 1=full range)
+uniform float u_warpFeedback;              // Noise feeds back into domain warp (0=none, 1=full)
+uniform float u_spectralBreathing;         // Spectral band weights oscillate (0=static, 1=full)
+
+// Base Pattern Complexity (structural, not temporal)
+uniform float u_warpLayers;                // Recursive warp passes (0=none, 1-3=layers)
+uniform float u_noiseDistortion;           // Spatial FBM parameter variance (0=uniform, 1=varied)
+uniform float u_turbulentFbm;              // Absolute-value folding in FBM (0=smooth, 1=turbulent)
+uniform float u_layerInteraction;          // Spectral blend mode (0=additive, 1=multiplicative)
+
+// Animation Balance
+uniform float u_translationScale;          // Translation vs evolution ratio (0=evolve in place, 1=normal movement)
+
 // Visual quality parameters
 uniform float u_softness;       // Edge softness
 uniform float u_contrast;       // Overall contrast
@@ -163,6 +179,27 @@ float fbm(vec2 st, int octaves, float lacunarity, float gain) {
         if(i >= octaves) break;
         
         value += amplitude * snoise(st * frequency);
+        frequency *= lacunarity;
+        amplitude *= gain;
+    }
+    
+    return value;
+}
+
+// Enhanced FBM with turbulence option (absolute-value folding for structural complexity)
+float fbmEnhanced(vec2 st, int octaves, float lacunarity, float gain, float turbulence) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    float frequency = 1.0;
+    
+    for(int i = 0; i < 8; i++) {
+        if(i >= octaves) break;
+        
+        float n = snoise(st * frequency);
+        // Turbulent FBM: absolute value creates ridges/folds (like billowing smoke)
+        n = mix(n, abs(n) * 2.0 - 1.0, turbulence);
+        
+        value += amplitude * n;
         frequency *= lacunarity;
         amplitude *= gain;
     }
@@ -471,7 +508,10 @@ void main() {
         sin(timeFlow * 0.3) * 0.5,
         cos(timeFlow * 0.23) * 0.5
     ) * u_circularMotionIntensity; // User-controllable intensity
-    vec2 movement = u_directionEffective * timeFlow + circularMotion;
+    
+    // Apply translation scale to control movement vs evolution ratio
+    // translationScale=1.0: normal movement, translationScale=0.0: pattern evolves in place
+    vec2 movement = (u_directionEffective * timeFlow + circularMotion) * u_translationScale;
     st += movement;
     
     // VFX TECHNIQUE 2: Temporal noise evolution - NOW MODULATABLE
@@ -488,19 +528,82 @@ void main() {
         warpedPos = domainWarp(warpedPos, u_time * u_speed, u_turbulenceEffective, u_warpOctaves);
     }
     
+    // ===== BASE PATTERN COMPLEXITY (structural, not temporal) =====
+    
+    // Multi-layer warp: recursive warp passes for more folded structures
+    if (u_warpLayers > 0.5) {
+        // Second warp pass - different scale/speed for variation
+        warpedPos = domainWarp(warpedPos, u_time * u_speed * 0.7, u_turbulenceEffective * 0.6, 1);
+    }
+    if (u_warpLayers > 1.5) {
+        // Third warp pass - finer detail warping
+        warpedPos = domainWarp(warpedPos, u_time * u_speed * 1.3, u_turbulenceEffective * 0.3, 1);
+    }
+    if (u_warpLayers > 2.5) {
+        // Fourth warp pass - subtle micro-warping
+        warpedPos = domainWarp(warpedPos, u_time * u_speed * 2.0, u_turbulenceEffective * 0.15, 1);
+    }
+    
+    // Noise Distortion: spatial variance of FBM parameters
+    float distortionNoise = 0.0;
+    if (u_noiseDistortion > 0.01) {
+        distortionNoise = snoise(warpedPos * 0.3) * u_noiseDistortion;
+    }
+    // ===== END BASE PATTERN COMPLEXITY =====
+    
+    // ===== DYNAMIC PATTERN MORPHING =====
+    // These modulations affect the core noise generation parameters over time
+    
+    float morphTime = u_time * 0.1 * u_patternMorph;
+    
+    // Dynamic lacunarity: oscillates around base value (affects pattern complexity)
+    float dynamicLacunarity = u_lacunarity;
+    if (u_lacunarityOscillation > 0.01 && u_patternMorph > 0.01) {
+        // Oscillate between 0.7x and 1.3x of base lacunarity
+        float lacOsc = sin(morphTime * 1.7) * 0.3 * u_lacunarityOscillation;
+        dynamicLacunarity = u_lacunarity * (1.0 + lacOsc);
+    }
+    
+    // Dynamic gain: oscillates around base value (affects amplitude decay)
+    float dynamicGain = u_gainEffective;
+    if (u_gainOscillation > 0.01 && u_patternMorph > 0.01) {
+        // Oscillate between 0.6x and 1.4x of base gain
+        float gainOsc = sin(morphTime * 1.3 + 1.5) * 0.4 * u_gainOscillation;
+        dynamicGain = u_gainEffective * (1.0 + gainOsc);
+    }
+    
+    // Warp Feedback: noise output feeds back into its own warp (self-similar distortions)
+    if (u_warpFeedback > 0.01 && u_patternMorph > 0.01) {
+        // Sample preliminary noise at current position
+        float feedbackNoise = snoise(warpedPos * 0.5 + u_time * 0.02);
+        
+        // Use noise to create secondary warp offset
+        vec2 feedbackOffset = vec2(
+            sin(feedbackNoise * 6.28 + u_time * 0.1),
+            cos(feedbackNoise * 6.28 + u_time * 0.13)
+        ) * u_warpFeedback * u_patternMorph * 0.5;
+        
+        warpedPos += feedbackOffset;
+    }
+    // ===== END PATTERN MORPHING =====
+    
+    // Apply spatial distortion to FBM parameters for non-uniform detail
+    float spatialLacunarity = dynamicLacunarity * (1.0 + distortionNoise * 0.3);
+    float spatialGain = dynamicGain * (1.0 - distortionNoise * 0.2);
+    
     // VFX TECHNIQUE 3: Spectral Separation (Phase 1)
     // Replace dual-layer with 3-band spectral composition
     
-    // Base layer: Low frequency, large soft shapes (1 octave)
-    float noiseBase = fbm(warpedPos, 1, 2.0, 0.5);
+    // Base layer: Low frequency, large soft shapes (1 octave) - uses turbulent FBM
+    float noiseBase = fbmEnhanced(warpedPos, 1, 2.0, 0.5, u_turbulentFbm);
     
     // Mid layer: Mid frequency, standard detail (based on u_octaves)
-    // Use slightly faster evolution than base
-    float noiseMid = fbm(warpedPos * 2.5 + evolution * 0.15, max(1, u_octaves), u_lacunarity, u_gainEffective);
+    // Use spatially-varied parameters and turbulent FBM
+    float noiseMid = fbmEnhanced(warpedPos * 2.5 + evolution * 0.15, max(1, u_octaves), spatialLacunarity, spatialGain, u_turbulentFbm);
     
     // High layer: High frequency, fine detail
-    // Shifted position to avoid stacking artifacts, faster evolution
-    float noiseHigh = fbm(warpedPos * 5.0 + evolution * 0.3 + vec2(5.2, 1.3), max(1, u_octaves), u_lacunarity, u_gainEffective);
+    // Shifted position to avoid stacking artifacts - spatially-varied and turbulent
+    float noiseHigh = fbmEnhanced(warpedPos * 5.0 + evolution * 0.3 + vec2(5.2, 1.3), max(1, u_octaves), spatialLacunarity, spatialGain, u_turbulentFbm);
     
     // Phase 4: Detail Masking
     // If enabled, high frequency noise only appears where base noise is strong
@@ -532,9 +635,44 @@ void main() {
         worleyWeight = u_noiseType; // 0.0 or 1.0 (or variable if slider)
     }
     
-    // Composition: Weighted average of ALL spectral bands (Base, Mid, High, Structure)
-    float totalWeight = u_baseWeight + u_midWeight + u_highWeight + worleyWeight + 0.001;
-    float noise = (noiseBase * u_baseWeight + noiseMid * u_midWeight + noiseHigh * u_highWeight + worleyNoise * worleyWeight) / totalWeight;
+    // ===== SPECTRAL BREATHING =====
+    // Animate layer weights so different frequency bands take turns being prominent
+    float breatheBase = u_baseWeight;
+    float breatheMid = u_midWeight;
+    float breatheHigh = u_highWeight;
+    
+    if (u_spectralBreathing > 0.01 && u_patternMorph > 0.01) {
+        float breatheTime = u_time * 0.08;
+        float intensity = u_spectralBreathing * u_patternMorph;
+        
+        // Each band breathes at different rates (creates shifting emphasis)
+        breatheBase *= 1.0 + sin(breatheTime * 0.7) * 0.4 * intensity;
+        breatheMid *= 1.0 + sin(breatheTime * 1.1 + 2.0) * 0.5 * intensity;
+        breatheHigh *= 1.0 + sin(breatheTime * 1.7 + 4.0) * 0.6 * intensity;
+    }
+    // ===== END SPECTRAL BREATHING =====
+    
+    // ===== LAYER INTERACTION =====
+    // Spectral composition with optional multiplicative blending
+    float totalWeight = breatheBase + breatheMid + breatheHigh + worleyWeight + 0.001;
+    float noise;
+    
+    if (u_layerInteraction > 0.01) {
+        // Multiplicative: layers modulate each other (deeper contrast where they overlap)
+        float additive = (noiseBase * breatheBase + noiseMid * breatheMid + noiseHigh * breatheHigh + worleyNoise * worleyWeight) / totalWeight;
+        
+        // Normalize layers to 0-1 range before multiplying
+        float baseNorm = noiseBase * 0.5 + 0.5;
+        float midNorm = noiseMid * 0.5 + 0.5;
+        float highNorm = noiseHigh * 0.5 + 0.5;
+        float multiplicative = baseNorm * midNorm * highNorm * 2.0 - 0.5; // Rescale result
+        
+        noise = mix(additive, multiplicative, u_layerInteraction);
+    } else {
+        // Standard additive weighted average
+        noise = (noiseBase * breatheBase + noiseMid * breatheMid + noiseHigh * breatheHigh + worleyNoise * worleyWeight) / totalWeight;
+    }
+    // ===== END LAYER INTERACTION =====
     
     // Ridge noise option for sharper features
     if(u_ridgeAmount > 0.01) {

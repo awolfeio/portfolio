@@ -58,6 +58,22 @@ export const backgroundPresets = {
       u_mirrorX: 0.0,
       u_mirrorY: 0.0,
 
+      // Dynamic Pattern Morphing (off by default for stability)
+      u_patternMorph: 0.0,
+      u_lacunarityOscillation: 0.5,
+      u_gainOscillation: 0.3,
+      u_warpFeedback: 0.2,
+      u_spectralBreathing: 0.4,
+
+      // Base Pattern Complexity (off by default for backward compatibility)
+      u_warpLayers: 0.0,
+      u_noiseDistortion: 0.0,
+      u_turbulentFbm: 0.0,
+      u_layerInteraction: 0.0,
+
+      // Animation Balance
+      u_translationScale: 1.0,
+
       // Phase 6: Liquid-Chromatic
       u_iridescenceStrength: 0.14,
       u_fresnelStrength: 250.0,
@@ -421,14 +437,14 @@ export const backgroundPresets = {
       u_gainModulation: 0.0,
       u_colorSpreadModulation: 0.0,
       u_colorShiftModulation: 0.0,
-      u_softness: 0.2,
-      u_contrast: 0.75,
+      u_softness: 0.0,
+      u_contrast: 0.5,
       u_brightness: 1.5,
       u_exposure: 1.0,
       u_blackLevel: 0.0,
       u_colorMix1: 0.64,
       u_colorMix2: 0.5,
-      u_colorSpread: 0.0,
+      u_colorSpread: 0.6,
       u_colorSeparation: 0.4,
       u_colorBands: 0.0,
       u_grainIntensity: 0.56,
@@ -479,6 +495,19 @@ export const backgroundPresets = {
       u_quantizeStep: 0.0,
       u_mirrorX: 0.0,
       u_mirrorY: 0.0,
+
+      // Pattern Morphing
+      u_patternMorph: 0.0,
+      u_lacunarityOscillation: 0.5,
+      u_gainOscillation: 0.3,
+      u_warpFeedback: 0.2,
+      u_spectralBreathing: 0.4,
+
+      // Base Pattern Complexity
+      u_warpLayers: 0.0,
+      u_noiseDistortion: 0.0,
+      u_turbulentFbm: 0.0,
+      u_layerInteraction: 0.0,
     },
   },
 };

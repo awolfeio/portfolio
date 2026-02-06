@@ -509,10 +509,8 @@ function initializeBackground() {
 
   console.log("Loading-screen: initializing background for namespace:", namespace);
 
-  // Note: Page-specific background configs will be implemented in Phase 6
-  // For now, just ensure the canvas is at the right opacity
   const canvas = backgroundManager.getRenderer()?.getCanvas();
   if (canvas) {
-    canvas.style.opacity = "0.66";
+    canvas.style.opacity = "1.0";
   }
 }

@@ -97,10 +97,21 @@ export class ConfigManager {
         u_flakeScale: 1500.0,
 
         u_rippleFrequency: 23.8,
-        u_rippleStrength: 0.1,
-        u_quantizeStep: 0.0,
         u_mirrorX: 0.0,
         u_mirrorY: 0.0,
+
+        // Pattern Morphing
+        u_patternMorph: 0.0,
+        u_lacunarityOscillation: 0.5,
+        u_gainOscillation: 0.3,
+        u_warpFeedback: 0.2,
+        u_spectralBreathing: 0.4,
+
+        // Base Pattern Complexity
+        u_warpLayers: 0.0,
+        u_noiseDistortion: 0.0,
+        u_turbulentFbm: 0.0,
+        u_layerInteraction: 0.0,
       },
     });
 
@@ -198,10 +209,10 @@ export class ConfigManager {
         u_baseColor: 0x2e9aff
       },
       about: {
-        u_color1: 0x5ffe5d,
-        u_color2: 0x7431a0,
+        u_color1: 0xe4751b,
+        u_color2: 0x8218c9,
         u_color3: 0x252ab6,
-        u_baseColor: 0x5fff5c
+        u_baseColor: 0xffd500
       }
     };
 
@@ -272,7 +283,7 @@ export class ConfigManager {
     // Update current page
     this.currentPage = namespace;
     
-    console.log(`ConfigManager: Applied "${namespace}" configuration with Mid Tone color ${namespace === 'about' ? '#7a9cff' : '#4e2bda'}`);
+    console.log(`ConfigManager: Applied "${namespace}" configuration with Mid Tone color ${namespace === 'about' ? '#8218c9' : '#4e2bda'}`);
   }
 
   /**
@@ -314,8 +325,8 @@ export class ConfigManager {
       );
       
       // Also check if Mid Tone colors would be the same
-      const currentMidTone = this.currentPage === 'about' ? 0x7a9cff : 0x4e2bda;
-      const newMidTone = newNamespace === 'about' ? 0x7a9cff : 0x4e2bda;
+      const currentMidTone = this.currentPage === 'about' ? 0x8218c9 : 0x4e2bda;
+      const newMidTone = newNamespace === 'about' ? 0x8218c9 : 0x4e2bda;
       
       return !areIdentical || currentMidTone !== newMidTone;
     }

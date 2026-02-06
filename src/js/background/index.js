@@ -48,7 +48,12 @@ class BackgroundManager {
       // This ensures the correct parameters are used from the start
       // Use transitionToPage with duration=0 to ensure same parameter set as transitions
       if (initialNamespace && this.configManager) {
+        console.log(`🎨 Initial namespace detected: "${initialNamespace}"`);
+        console.log(`🎨 Color BEFORE transitionToPage: u_color2 = #${material.uniforms.u_color2.value.getHexString()}`);
+        
         this.configManager.transitionToPage(initialNamespace, 0);
+        
+        console.log(`🎨 Color AFTER transitionToPage: u_color2 = #${material.uniforms.u_color2.value.getHexString()}`);
         console.log(`Applied initial background configuration for "${initialNamespace}" page`);
       }
       
@@ -96,18 +101,18 @@ class BackgroundManager {
     const container = document.querySelector("[data-barba='container']");
     if (container) {
       const namespace = container.getAttribute("data-barba-namespace");
-      if (namespace) return namespace;
+      if (namespace) return namespace.toLowerCase();
     }
     
     // Fallback: check main container
     const mainContainer = document.querySelector("main > div");
     if (mainContainer) {
       const namespace = mainContainer.dataset.barbaNamespace;
-      if (namespace) return namespace;
+      if (namespace) return namespace.toLowerCase();
     }
     
     // Fallback: check URL path
-    const path = window.location.pathname;
+    const path = window.location.pathname.toLowerCase();
     if (path.includes('/about')) return 'about';
     if (path.includes('/works')) return 'works';
     if (path.includes('/contact')) return 'contact';
