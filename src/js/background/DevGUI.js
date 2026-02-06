@@ -105,6 +105,39 @@ export class DevGUI {
       quantizeStep: uniforms.u_quantizeStep ? uniforms.u_quantizeStep.value : 0.0,
       mirrorX: uniforms.u_mirrorX ? (uniforms.u_mirrorX.value > 0.5) : false,
       mirrorY: uniforms.u_mirrorY ? (uniforms.u_mirrorY.value > 0.5) : false,
+
+      // Spectral Separation (Phase 1)
+      baseWeight: uniforms.u_baseWeight ? uniforms.u_baseWeight.value : 1.0,
+      midWeight: uniforms.u_midWeight ? uniforms.u_midWeight.value : 0.5,
+      highWeight: uniforms.u_highWeight ? uniforms.u_highWeight.value : 0.25,
+
+      // Phase 2: Flow & Warp
+      warpScale: uniforms.u_warpScale ? uniforms.u_warpScale.value : 1.0,
+      flowType: uniforms.u_flowType ? (uniforms.u_flowType.value > 0.5) : false,
+
+      // Phase 3: Texture & Structure
+      noiseType: uniforms.u_noiseType ? (uniforms.u_noiseType.value > 0.5) : false,
+      cellScale: uniforms.u_cellScale ? uniforms.u_cellScale.value : 2.0,
+      cellJitter: uniforms.u_cellJitter ? uniforms.u_cellJitter.value : 1.0,
+
+      // Phase 4: Composition & Masking
+      vignetteStrength: uniforms.u_vignetteStrength ? uniforms.u_vignetteStrength.value : 0.0,
+      vignetteRadius: uniforms.u_vignetteRadius ? uniforms.u_vignetteRadius.value : 0.5,
+      centerMaskStrength: uniforms.u_centerMaskStrength ? uniforms.u_centerMaskStrength.value : 0.0,
+      centerMaskSize: uniforms.u_centerMaskSize ? uniforms.u_centerMaskSize.value : 0.5,
+      centerMaskSize: uniforms.u_centerMaskSize ? uniforms.u_centerMaskSize.value : 0.5,
+      detailMasking: uniforms.u_detailMasking ? uniforms.u_detailMasking.value : 0.0,
+
+      // Phase 5: Stylization
+      edgeEnhance: uniforms.u_edgeEnhance ? uniforms.u_edgeEnhance.value : 0.0,
+      postPosterize: uniforms.u_postPosterize ? uniforms.u_postPosterize.value : 0.0,
+
+      // Phase 6: Liquid-Chromatic
+      iridescenceStrength: uniforms.u_iridescenceStrength ? uniforms.u_iridescenceStrength.value : 0.0,
+      fresnelStrength: uniforms.u_fresnelStrength ? uniforms.u_fresnelStrength.value : 0.0,
+      specularStrength: uniforms.u_specularStrength ? uniforms.u_specularStrength.value : 0.0,
+      flakeStrength: uniforms.u_flakeStrength ? uniforms.u_flakeStrength.value : 0.0,
+      flakeScale: uniforms.u_flakeScale ? uniforms.u_flakeScale.value : 1500.0,
     };
   }
 
@@ -123,6 +156,13 @@ export class DevGUI {
     // Add folders
     this.addColorsFolder();
     this.addNoiseFolder();
+    this.addSpectralFolder();
+    this.addSpectralFolder();
+    this.addFlowFolder();
+    this.addTextureFolder();
+    this.addCompositionFolder();
+    this.addStylizationFolder();
+    this.addLiquidMetalFolder();
     this.addAnimationFolder();
     this.addOrganicModulationFolder();
     this.addArtisticFolder();
@@ -258,6 +298,207 @@ export class DevGUI {
         this.shaderController.updateUniform('u_detailAmount', value);
       });
     
+    folder.close();
+  }
+
+  /**
+   * Spectral Separation folder (Phase 1)
+   */
+  addSpectralFolder() {
+    const folder = this.gui.addFolder('🌈 Spectral Separation');
+    this.folders.spectral = folder;
+    
+    folder.add(this.params, 'baseWeight', 0.0, 2.0, 0.05)
+      .name('Base (Low Freq)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_baseWeight', value);
+      });
+      
+    folder.add(this.params, 'midWeight', 0.0, 2.0, 0.05)
+      .name('Mid (Std Detail)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_midWeight', value);
+      });
+      
+    folder.add(this.params, 'highWeight', 0.0, 2.0, 0.05)
+      .name('High (Fine Detail)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_highWeight', value);
+      });
+      
+    folder.close();
+  }
+
+  /**
+   * Flow & Warp folder (Phase 2)
+   */
+  addFlowFolder() {
+    const folder = this.gui.addFolder('🌀 Flow & Warp');
+    this.folders.flow = folder;
+    
+    folder.add(this.params, 'flowType')
+      .name('Curl Noise (Fluid)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_flowType', value ? 1.0 : 0.0);
+      });
+      
+    folder.add(this.params, 'warpScale', 0.1, 5.0, 0.1)
+      .name('Warp Scale')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_warpScale', value);
+      });
+      
+    // Reference/Alias to existing turbulence (Warp Strength)
+    // We update the original parameter which updates the uniform
+    folder.add(this.params, 'turbulence', 0.0, 2.0, 0.05)
+      .name('Warp Strength')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_turbulence', value);
+      });
+      
+    folder.close();
+  }
+
+  /**
+   * Texture & Structure (Phase 3)
+   */
+  addTextureFolder() {
+    const folder = this.gui.addFolder('🕸️ Texture & Structure');
+    this.folders.texture = folder;
+    
+    // Switch between FBM (Clouds) and Worley (Cells/Stones)
+    folder.add(this.params, 'noiseType')
+      .name('Cellular Noise (Worley)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_noiseType', value ? 1.0 : 0.0);
+      });
+      
+    // Scale of the cells
+    folder.add(this.params, 'cellScale', 0.5, 10.0, 0.1)
+      .name('Cell Scale')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_cellScale', value);
+      });
+      
+    // Jitter (Randomness)
+    // 0 = Grid 1 = Organic, >1 = Chaotic
+    folder.add(this.params, 'cellJitter', 0.0, 2.0, 0.05)
+      .name('Cell Randomness')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_cellJitter', value);
+      });
+      
+    folder.close();
+  }
+
+  /**
+   * Composition & Masking (Phase 4)
+   */
+  addCompositionFolder() {
+    const folder = this.gui.addFolder('🖼️ Composition & Masking');
+    this.folders.composition = folder;
+    
+    // Vignette
+    folder.add(this.params, 'vignetteStrength', 0.0, 1.0, 0.01)
+      .name('Vignette Darken')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_vignetteStrength', value);
+      });
+      
+    folder.add(this.params, 'vignetteRadius', 0.0, 1.0, 0.01)
+      .name('Vignette Radius')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_vignetteRadius', value);
+      });
+      
+    // Center Mask (Text protection)
+    folder.add(this.params, 'centerMaskStrength', 0.0, 1.0, 0.01)
+      .name('Center Clarity')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_centerMaskStrength', value);
+      });
+      
+    folder.add(this.params, 'centerMaskSize', 0.0, 1.0, 0.01)
+      .name('Center Size')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_centerMaskSize', value);
+      });
+      
+    // Detail Masking (Complex noise interaction)
+    folder.add(this.params, 'detailMasking', 0.0, 1.0, 0.01)
+      .name('Detail Clumping')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_detailMasking', value);
+      });
+      
+    folder.close();
+  }
+
+  /**
+   * Post-Processing & Stylization (Phase 5)
+   */
+  addStylizationFolder() {
+    const folder = this.gui.addFolder('✨ Stylization & VFX');
+    this.folders.stylization = folder;
+    
+    // Edge Enhancement (Neon/Sketch edges)
+    folder.add(this.params, 'edgeEnhance', 0.0, 10.0, 0.1)
+      .name('Edge Glow')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_edgeEnhance', value);
+      });
+      
+    // Posterization (steps)
+    folder.add(this.params, 'postPosterize', 0.0, 32.0, 1.0)
+      .name('Posterize Steps')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_postPosterize', value);
+      });
+      
+    folder.close();
+  }
+
+  /**
+   * Liquid-Chromatic & Oil Slick (Phase 6)
+   */
+  addLiquidMetalFolder() {
+    const folder = this.gui.addFolder('💧 Liquid Metal & Oil');
+    this.folders.liquid = folder;
+    
+    // Step 1: Iridescence
+    folder.add(this.params, 'iridescenceStrength', 0.0, 1.0, 0.01)
+      .name('Oil Slick (Iridescence)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_iridescenceStrength', value);
+      });
+      
+    // Step 2: Fresnel Edge Tint
+    folder.add(this.params, 'fresnelStrength', 0.0, 250.0, 0.1)
+      .name('Metallic Edge (Fresnel)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_fresnelStrength', value);
+      });
+      
+    // Step 3: Clear-Coat Specular
+    folder.add(this.params, 'specularStrength', 0.0, 2.0, 0.001)
+      .name('Glossy Clear-Coat (Specular)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_specularStrength', value);
+      });
+      
+    // Step 4: Metallic Flakes
+    folder.add(this.params, 'flakeStrength', 0.0, 5.0, 0.01)
+      .name('Glitter (M. Flakes)')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_flakeStrength', value);
+      });
+      
+    folder.add(this.params, 'flakeScale', 100.0, 5000.0, 10.0)
+      .name('Glitter Size')
+      .onChange((value) => {
+        this.shaderController.updateUniform('u_flakeScale', value);
+      });
+      
     folder.close();
   }
 
@@ -798,6 +1039,39 @@ export class DevGUI {
       u_colorSpread: params.u_colorSpread,
       u_colorSeparation: params.u_colorSeparation,
       u_colorBands: params.u_colorBands,
+      
+      // Phase 1: Spectral Separation
+      u_baseWeight: params.u_baseWeight !== undefined ? params.u_baseWeight : 1.0,
+      u_midWeight: params.u_midWeight !== undefined ? params.u_midWeight : 0.5,
+      u_highWeight: params.u_highWeight !== undefined ? params.u_highWeight : 0.25,
+      
+      // Phase 2: Flow & Warp
+      u_warpScale: params.u_warpScale !== undefined ? params.u_warpScale : 1.0,
+      u_flowType: params.u_flowType !== undefined ? params.u_flowType : 0.0,
+      
+      // Phase 3: Texture & Structure
+      u_noiseType: params.u_noiseType !== undefined ? params.u_noiseType : 0.0,
+      u_cellScale: params.u_cellScale !== undefined ? params.u_cellScale : 2.0,
+      u_cellJitter: params.u_cellJitter !== undefined ? params.u_cellJitter : 1.0,
+      
+      // Phase 4: Composition & Masking
+      u_vignetteStrength: params.u_vignetteStrength !== undefined ? params.u_vignetteStrength : 0.0,
+      u_vignetteRadius: params.u_vignetteRadius !== undefined ? params.u_vignetteRadius : 0.5,
+      u_centerMaskStrength: params.u_centerMaskStrength !== undefined ? params.u_centerMaskStrength : 0.0,
+      u_centerMaskSize: params.u_centerMaskSize !== undefined ? params.u_centerMaskSize : 0.5,
+      u_detailMasking: params.u_detailMasking !== undefined ? params.u_detailMasking : 0.0,
+      
+      // Phase 5: Stylization
+      u_edgeEnhance: params.u_edgeEnhance !== undefined ? params.u_edgeEnhance : 0.0,
+      u_postPosterize: params.u_postPosterize !== undefined ? params.u_postPosterize : 0.0,
+      
+      // Phase 6
+      u_iridescenceStrength: params.u_iridescenceStrength !== undefined ? params.u_iridescenceStrength : 0.0,
+      u_fresnelStrength: params.u_fresnelStrength !== undefined ? params.u_fresnelStrength : 0.0,
+      u_specularStrength: params.u_specularStrength !== undefined ? params.u_specularStrength : 0.0,
+      u_flakeStrength: params.u_flakeStrength !== undefined ? params.u_flakeStrength : 0.0,
+      u_flakeScale: params.u_flakeScale !== undefined ? params.u_flakeScale : 150.0,
+      
       u_grainIntensity: params.u_grainIntensity,
       u_grainSpeed: params.u_grainSpeed,
       u_grainSize: params.u_grainSize,

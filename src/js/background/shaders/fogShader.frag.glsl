@@ -2,6 +2,127 @@
 // Phase 2: Noise & Colors implementation
 
 // ===== NOISE FUNCTIONS =====
+varying vec2 vUv;
+
+// Time and resolution
+uniform float u_time;
+uniform float u_timeAbsolute;
+uniform vec2 u_resolution;
+
+// Color uniforms
+uniform vec3 u_color1;          // Highlight color
+uniform vec3 u_color2;          // Midtone color
+uniform vec3 u_color3;          // Lowlight color
+uniform vec3 u_baseColor;       // Background base color
+
+// Noise parameters
+uniform float u_zoom;           // Overall scale
+uniform float u_noiseScale;     // Fine noise scale
+uniform int u_octaves;          // FBM octaves (complexity)
+uniform float u_lacunarity;     // Frequency multiplier per octave
+uniform float u_gain;           // Amplitude multiplier per octave
+uniform float u_turbulence;     // Domain warping amount
+uniform int u_warpOctaves;      // Octaves for domain warping
+uniform float u_ridgeAmount;    // Ridge noise amount (0=smooth, 1=ridged)
+uniform float u_detailScale;    // Secondary detail noise scale
+uniform float u_detailAmount;   // Secondary detail noise amount
+
+// Animation parameters
+uniform float u_speed;          // Animation speed multiplier
+uniform float u_directionX;     // Horizontal flow direction
+uniform float u_directionY;     // Vertical flow direction
+
+// Organic modulation parameters (for time-based evolution)
+uniform float u_modulationSpeed;    // Global speed multiplier for all modulations
+uniform float u_modulationIntensity; // Global intensity multiplier (0=none, 1=full)
+uniform float u_turbulenceModulation; // Amount of turbulence breathing (0=static, 1=full)
+uniform float u_zoomModulation;     // Amount of zoom pulsing (0=static, 1=full)
+uniform float u_colorModulation;    // Amount of color shifting (0=static, 1=full)
+uniform float u_rotationModulation; // Amount of flow rotation (0=static, 1=full)
+uniform float u_noiseScaleModulation; // Noise scale pulsing (0=static)
+uniform float u_gainModulation;       // Gain modulation (0=static)
+uniform float u_colorSpreadModulation; // Color spread modulation
+uniform float u_colorShiftModulation;  // Palette shift modulation
+
+// Precomputed modulation outputs (set from CPU for performance)
+uniform float u_noiseScaleEffective;
+uniform float u_gainEffective;
+uniform float u_zoomEffective;
+uniform float u_turbulenceEffective;
+uniform vec2 u_directionEffective;
+uniform float u_colorMix1Effective;
+uniform float u_colorMix2Effective;
+uniform float u_colorSpreadEffective;
+uniform float u_colorShiftOffset;
+
+// Organic motion parameters (NEW - for VFX techniques)
+uniform float u_circularMotionIntensity;  // Strength of circular swirling (0-1)
+uniform float u_evolutionSpeed;            // Speed of temporal noise evolution (0-1)
+uniform float u_layerBlend;                // Blend between primary and secondary noise layers (0-1)
+uniform float u_colorEvolutionSpeed;       // Speed of color morphing (0-1)
+
+// Phase 1: Spectral Separation Controls
+uniform float u_baseWeight;                // Weight of low-frequency noise
+uniform float u_midWeight;                 // Weight of mid-frequency noise
+uniform float u_highWeight;                // Weight of high-frequency noise
+
+// Phase 2: Advanced Distortion & Flow
+uniform float u_warpScale;                 // Scale of the warp noise
+uniform float u_flowType;                  // 0 = Standard (Sine/Linear), 1 = Curl (Fluid)
+
+// Phase 3: Texture & Structure (Worley)
+uniform float u_noiseType;                 // 0 = FBM (Cloudy), 1 = Worley (Cellular)
+uniform float u_cellScale;                 // Scale of the cellular patterns
+uniform float u_cellJitter;                // Randomness of the cells (0=grid, 1=organic)
+
+// Phase 4: Composition & Masking
+uniform float u_vignetteStrength;          // Darkness of the corners
+uniform float u_vignetteRadius;            // Size of the vignette
+uniform float u_centerMaskStrength;        // Clarity of the center (for text)
+uniform float u_centerMaskSize;            // Size of the center mask
+
+uniform float u_detailMasking;             // Amount that Base layer masks High layer (0=none, 1=full)
+
+// Phase 5: Post-Processing & Stylization
+uniform float u_edgeEnhance;               // Highlight edges (derivative)
+uniform float u_postPosterize;             // Final color posterization steps (0=none, >0=steps)
+
+// Phase 6: Liquid-Chromatic Post-Processing
+uniform float u_iridescenceStrength;       // Strength of Thin-Film Interference
+uniform float u_fresnelStrength;           // Strength of Fresnel Edge Tint
+uniform float u_specularStrength;          // Strength of Clear-Coat Specular
+uniform float u_flakeStrength;             // Strength of Metallic Flakes
+uniform float u_flakeScale;                // Scale (density/size) of Flakes
+
+// Artistic controls (NEW - Phase 4)
+uniform float u_rippleFrequency;           // Frequency of sine ripple distortion
+uniform float u_rippleStrength;            // Strength of sine ripple distortion
+uniform float u_quantizeStep;              // Noise quantization steps (0 = smooth)
+uniform float u_mirrorX;                   // 0 or 1 to enable X mirroring
+uniform float u_mirrorY;                   // 0 or 1 to enable Y mirroring
+
+// Visual quality parameters
+uniform float u_softness;       // Edge softness
+uniform float u_contrast;       // Overall contrast
+uniform float u_brightness;     // Overall brightness
+uniform float u_exposure;       // Overall exposure (multiplicative)
+uniform float u_blackLevel;     // Additional darkening (0 = none, 1 = full black)
+
+// Color mixing parameters
+uniform float u_colorMix1;      // Mix between color1 and color2
+uniform float u_colorMix2;      // Mix between result and color3
+uniform float u_colorSpread;    // Color distribution/contrast (0=tight, 1=spread)
+uniform float u_colorSeparation; // Color distinctness (0=smooth blend, 0.85+=distinct zones)
+uniform float u_colorBands;     // Posterization amount (0=smooth, 1=strong banding)
+
+// Film grain parameters
+uniform float u_grainIntensity; // Grain strength (0-1)
+uniform float u_grainSpeed;     // Grain animation speed
+uniform float u_grainSize;      // Grain particle size
+uniform int u_grainBlendMode;   // 0: overlay, 1: multiply, 2: add, 3: screen
+uniform float u_grainAspect;    // 0: match viewport, 1: square grains
+uniform float u_grainComplexity; // 0: base pattern, 1: maximum detail
+uniform float u_grainFrameHold;  // Frame hold for performance (1.0 = every frame, 2.0+ = skip frames)
 // Simplex 2D noise
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
 
@@ -49,21 +170,97 @@ float fbm(vec2 st, int octaves, float lacunarity, float gain) {
     return value;
 }
 
-// ULTRA-OPTIMIZED domain warping - uses sine instead of FBM
-// Old version: 2 FBM calls = 4+ snoise calculations
-// New version: 2 sine calls = ~2 GPU instructions!
+// Curl Noise - calculates the curl of a 2D potential field (pseudo-derivative)
+// Creates fluid-like, non-divergent rotation
+vec2 curlNoise(vec2 p) {
+    const float e = 0.1;
+    float n1 = snoise(p + vec2(e, 0.0));
+    float n2 = snoise(p - vec2(e, 0.0));
+    float n3 = snoise(p + vec2(0.0, e));
+    float n4 = snoise(p - vec2(0.0, e));
+    
+    float x = n2 - n1;
+    float y = n4 - n3;
+    
+    // Curl = (dF/dy, -dF/dx)
+    return vec2(y, -x) * (1.0 / (2.0 * e)); // Normalize derivative
+}
+
+// Ultra-fast hash function - single operation, optimized for grain
+float fastHash(vec2 p) {
+    // Single fract operation - much faster than hash3
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+// Optimized 2D hash for grain with better distribution
+vec2 hash2(vec2 p) {
+    p = fract(p * vec2(443.897, 441.423));
+    p += dot(p, p.yx + 19.19);
+    return fract(vec2(p.x * p.y, p.x + p.y));
+}
+
+// Worley Noise (Cellular/Voronoi) - creates cells, stones, scales
+float worley(vec2 st, float jitter) {
+    vec2 p = floor(st);
+    vec2 f = fract(st);
+    
+    float min_dist = 1.0;  // Minimum distance to neighbors
+    
+    // Check 3x3 neighbor window
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            vec2 neighbor = vec2(float(x), float(y));
+            
+            // Random point in neighbor cell
+            vec2 point = hash2(p + neighbor);
+            
+            // Animate point (organic movement) - SLOWED DOWN
+            // Reduced speed by 0.2x because 1.0 was way too frantic
+            point = 0.5 + 0.5 * sin(u_time * 0.2 + 6.2831 * point);
+            
+            // Vector to point
+            vec2 diff = neighbor + point * jitter - f;
+            
+            // Distance
+            float dist = length(diff);
+            
+            // Keep minimum distance
+            min_dist = min(min_dist, dist);
+        }
+    }
+    
+    return min_dist;
+}
+
+// ULTRA-OPTIMIZED domain warping
+// Supports both fast Sine warping and advanced Curl warping
 vec2 domainWarp(vec2 p, float time, float warpAmount, int warpOctaves) {
-    // Use simple sine waves instead of expensive FBM for warping
-    // This gives organic movement without the massive computational cost
-    float t1 = time * 0.05;
-    float t2 = time * 0.03;
-    
-    vec2 q = vec2(
-        sin(p.x * 0.5 + t1) + sin(p.y * 0.3 + t1 * 1.3),
-        sin(p.x * 0.3 + t2) + sin(p.y * 0.5 + t2 * 0.7)
-    ) * 0.5;
-    
-    return p + warpAmount * q;
+    if (u_flowType > 0.5) {
+        // Phase 2: Curl Noise Flow
+        // More expensive but creates beautiful fluid dynamics
+        vec2 t = vec2(time * 0.1);
+        vec2 q = curlNoise(p * u_warpScale + t);
+        
+        // Optional: Second octave of curl for detail (if octaves > 1)
+        if (warpOctaves > 1) {
+            q += curlNoise(p * u_warpScale * 2.0 - t) * 0.5;
+        }
+        
+        return p + warpAmount * q;
+        
+    } else {
+        // "Standard" Sine Warping (Optimized)
+        // Gives organic movement without the massive computational cost of full FBM
+        float t1 = time * 0.05;
+        float t2 = time * 0.03;
+        
+        vec2 q = vec2(
+            sin(p.x * 0.5 + t1) + sin(p.y * 0.3 + t1 * 1.3),
+            sin(p.x * 0.3 + t2) + sin(p.y * 0.5 + t2 * 0.7)
+        ) * 0.5;
+        
+        return p + warpAmount * q;
+    }
 }
 
 // Ridge noise - creates sharper, more defined features
@@ -94,18 +291,7 @@ float detailNoise(vec2 st, float time, float scale, float speed) {
     return snoise((st + offset) * scale) * 0.5 + 0.5;
 }
 
-// Ultra-fast hash function - single operation, optimized for grain
-float fastHash(vec2 p) {
-    // Single fract operation - much faster than hash3
-    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-}
 
-// Optimized 2D hash for grain with better distribution
-vec2 hash2(vec2 p) {
-    p = fract(p * vec2(443.897, 441.423));
-    p += dot(p, p.yx + 19.19);
-    return fract(vec2(p.x * p.y, p.x + p.y));
-}
 
 // OPTIMIZED: Branchless film grain - eliminates GPU warp divergence
 float filmGrain(vec2 st, float time, float size, float speed, float grainAspectRatio, float complexity, float frameHold) {
@@ -174,96 +360,89 @@ vec3 applyGrain(vec3 base, float grain, float intensity, int mode) {
     
     return overlay * isMode0 + multiply * isMode1 + add * isMode2 + screen * isMode3;
 }
+
+// Phase 6: Liquid-Chromatic Helpers
+vec3 computeNormal(float field) {
+  // Clamp derivatives to reduce harsh aliasing on steep slopes
+  // 60.0 multiplier means we are boosting small derivatives, so we limit the input
+  // to prevent single-pixel spikes
+  float dx = clamp(dFdx(field), -0.02, 0.02) * 60.0;
+  float dy = clamp(dFdy(field), -0.02, 0.02) * 60.0;
+  return normalize(vec3(dx, dy, 1.0));
+}
+
+vec3 thinFilmIridescence(vec3 normal, float strength) {
+  float fresnel = pow(1.0 - normal.z, 3.0);
+  return vec3(
+    sin(fresnel * 6.283 + 0.0),
+    sin(fresnel * 6.283 + 2.1),
+    sin(fresnel * 6.283 + 4.2)
+  ) * strength;
+}
+
+vec3 fresnelTint(vec3 normal, vec3 tintColor, float strength) {
+  // Lower power (1.5) to catch shallower slopes
+  // Intensity boost removed (handled by uniform range 0-25)
+  float f = pow(clamp(1.0 - normal.z, 0.0, 1.0), 1.5);
+  return tintColor * f * strength;
+}
+
+float specularHighlight(vec3 normal, vec3 lightDir, float strength) {
+  // Blinn-Phong specular with much higher shininess for "wet paint" look
+  vec3 viewDir = vec3(0.0, 0.0, 1.0);
+  vec3 halfDir = normalize(lightDir + viewDir);
+  float NdotH = max(dot(normal, halfDir), 0.0);
+  
+  // Exponent 300.0 for very sharp, distinct highlights (vehicle clearcoat)
+  float spec = pow(NdotH, 300.0);
+  
+  // Anti-Aliased Cutoff:
+  // Instead of a hard threshold (0.05), use fwidth to determine the "blur edge" size
+  // This creates a smooth transition at the pixel boundary
+  float aa = fwidth(spec);
+  float mask = smoothstep(0.05 - aa, 0.05 + aa, spec);
+  
+  // Also multiply by the mask instead of reshaping the value itself
+  // This preserves the inner gradient while cleaning the edge
+  return spec * mask * strength;
+}
+
+// Sparkle noise for metallic flakes
+float sparkleNoise(vec2 uv) {
+    float n = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+    return n;
+}
+
+vec3 metallicFlakes(vec2 uv, vec3 normal, float scale, float strength, float time) {
+    // 1. High frequency grid for flakes
+    // Scale UVs up significantly
+    vec2 flakeUV = uv * scale;
+    
+    // 2. Compute per-cell sparkle
+    vec2 cell = floor(flakeUV);
+    vec2 local = fract(flakeUV);
+    
+    // 3. Jitter: Use the cell ID to get a random "orientation" for the flake
+    float hash = sparkleNoise(cell);
+    
+    // 4. Persistence: REMOVED view-dependent flickering to keep them visible
+    // They will naturally move because 'uv' (warpedPos) moves
+    
+    // 5. Thresholding to make them sparse and sharp
+    // Only show flake if hash is high enough - STATIC selection (persistent)
+    float probability = smoothstep(0.95, 1.0, hash);
+    
+    // 6. Normal mask: Flakes show up more on "slopes" or flats?
+    // Let's make them show up everywhere but modulated by surface lighting
+    // Simple Lambert-ish term to simulate distinct flake reflection
+    float light = max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
+    
+    // Combine - consistently visible
+    return vec3(1.0) * probability * strength * light;
+}
+
 // ===== END NOISE FUNCTIONS =====
 
-// Time and resolution
-uniform float u_time;
-uniform float u_timeAbsolute;
-uniform vec2 u_resolution;
-
-// Color uniforms
-uniform vec3 u_color1;          // Highlight color
-uniform vec3 u_color2;          // Midtone color
-uniform vec3 u_color3;          // Lowlight color
-uniform vec3 u_baseColor;       // Background base color
-
-// Noise parameters
-uniform float u_zoom;           // Overall scale
-uniform float u_noiseScale;     // Fine noise scale
-uniform int u_octaves;          // FBM octaves (complexity)
-uniform float u_lacunarity;     // Frequency multiplier per octave
-uniform float u_gain;           // Amplitude multiplier per octave
-uniform float u_turbulence;     // Domain warping amount
-uniform int u_warpOctaves;      // Octaves for domain warping
-uniform float u_ridgeAmount;    // Ridge noise amount (0=smooth, 1=ridged)
-uniform float u_detailScale;    // Secondary detail noise scale
-uniform float u_detailAmount;   // Secondary detail noise amount
-
-// Animation parameters
-uniform float u_speed;          // Animation speed multiplier
-uniform float u_directionX;     // Horizontal flow direction
-uniform float u_directionY;     // Vertical flow direction
-
-// Organic modulation parameters (for time-based evolution)
-uniform float u_modulationSpeed;    // Global speed multiplier for all modulations
-uniform float u_modulationIntensity; // Global intensity multiplier (0=none, 1=full)
-uniform float u_turbulenceModulation; // Amount of turbulence breathing (0=static, 1=full)
-uniform float u_zoomModulation;     // Amount of zoom pulsing (0=static, 1=full)
-uniform float u_colorModulation;    // Amount of color shifting (0=static, 1=full)
-uniform float u_rotationModulation; // Amount of flow rotation (0=static, 1=full)
-uniform float u_noiseScaleModulation; // Noise scale pulsing (0=static)
-uniform float u_gainModulation;       // Gain modulation (0=static)
-uniform float u_colorSpreadModulation; // Color spread modulation
-uniform float u_colorShiftModulation;  // Palette shift modulation
-
-// Precomputed modulation outputs (set from CPU for performance)
-uniform float u_noiseScaleEffective;
-uniform float u_gainEffective;
-uniform float u_zoomEffective;
-uniform float u_turbulenceEffective;
-uniform vec2 u_directionEffective;
-uniform float u_colorMix1Effective;
-uniform float u_colorMix2Effective;
-uniform float u_colorSpreadEffective;
-uniform float u_colorShiftOffset;
-
-// Organic motion parameters (NEW - for VFX techniques)
-uniform float u_circularMotionIntensity;  // Strength of circular swirling (0-1)
-uniform float u_evolutionSpeed;            // Speed of temporal noise evolution (0-1)
-uniform float u_layerBlend;                // Blend between primary and secondary noise layers (0-1)
-uniform float u_colorEvolutionSpeed;       // Speed of color morphing (0-1)
-
-// Artistic controls (NEW - Phase 4)
-uniform float u_rippleFrequency;           // Frequency of sine ripple distortion
-uniform float u_rippleStrength;            // Strength of sine ripple distortion
-uniform float u_quantizeStep;              // Noise quantization steps (0 = smooth)
-uniform float u_mirrorX;                   // 0 or 1 to enable X mirroring
-uniform float u_mirrorY;                   // 0 or 1 to enable Y mirroring
-
-// Visual quality parameters
-uniform float u_softness;       // Edge softness
-uniform float u_contrast;       // Overall contrast
-uniform float u_brightness;     // Overall brightness
-uniform float u_exposure;       // Overall exposure (multiplicative)
-uniform float u_blackLevel;     // Additional darkening (0 = none, 1 = full black)
-
-// Color mixing parameters
-uniform float u_colorMix1;      // Mix between color1 and color2
-uniform float u_colorMix2;      // Mix between result and color3
-uniform float u_colorSpread;    // Color distribution/contrast (0=tight, 1=spread)
-uniform float u_colorSeparation; // Color distinctness (0=smooth blend, 0.85+=distinct zones)
-uniform float u_colorBands;     // Posterization amount (0=smooth, 1=strong banding)
-
-// Film grain parameters
-uniform float u_grainIntensity; // Grain strength (0-1)
-uniform float u_grainSpeed;     // Grain animation speed
-uniform float u_grainSize;      // Grain particle size
-uniform int u_grainBlendMode;   // 0: overlay, 1: multiply, 2: add, 3: screen
-uniform float u_grainAspect;    // 0: match viewport, 1: square grains
-uniform float u_grainComplexity; // 0: base pattern, 1: maximum detail
-uniform float u_grainFrameHold;  // Frame hold for performance (1.0 = every frame, 2.0+ = skip frames)
-
-varying vec2 vUv;
 
 void main() {
     // Normalized coordinates accounting for aspect ratio
@@ -309,15 +488,53 @@ void main() {
         warpedPos = domainWarp(warpedPos, u_time * u_speed, u_turbulenceEffective, u_warpOctaves);
     }
     
-    // VFX TECHNIQUE 3: Dual-layer FBM - NOW MODULATABLE
-    // Primary layer: slow evolution for large forms
-    float noisePrimary = fbm(warpedPos, u_octaves, u_lacunarity, u_gainEffective);
+    // VFX TECHNIQUE 3: Spectral Separation (Phase 1)
+    // Replace dual-layer with 3-band spectral composition
     
-    // Secondary layer: faster evolution for dynamic detail
-    float noiseSecondary = fbm(warpedPos * 1.7 + evolution * 0.5, max(1, u_octaves - 1), u_lacunarity, u_gainEffective);
+    // Base layer: Low frequency, large soft shapes (1 octave)
+    float noiseBase = fbm(warpedPos, 1, 2.0, 0.5);
     
-    // Blend layers with user-controllable amount
-    float noise = mix(noisePrimary, noiseSecondary, u_layerBlend);
+    // Mid layer: Mid frequency, standard detail (based on u_octaves)
+    // Use slightly faster evolution than base
+    float noiseMid = fbm(warpedPos * 2.5 + evolution * 0.15, max(1, u_octaves), u_lacunarity, u_gainEffective);
+    
+    // High layer: High frequency, fine detail
+    // Shifted position to avoid stacking artifacts, faster evolution
+    float noiseHigh = fbm(warpedPos * 5.0 + evolution * 0.3 + vec2(5.2, 1.3), max(1, u_octaves), u_lacunarity, u_gainEffective);
+    
+    // Phase 4: Detail Masking
+    // If enabled, high frequency noise only appears where base noise is strong
+    // This creates "clumps" of detail rather than uniform static
+    if (u_detailMasking > 0.01) {
+        float mask = smoothstep(0.3, 0.8, noiseBase);
+        noiseHigh *= mix(1.0, mask, u_detailMasking);
+        noiseMid *= mix(1.0, smoothstep(0.2, 0.9, noiseBase), u_detailMasking * 0.5);
+    }
+
+    // Phase 3: Texture & Structure (Worley Layer)
+    // Treated as an additive spectral layer "Structure"
+    float worleyNoise = 0.0;
+    float worleyWeight = 0.0;
+    
+    if (u_noiseType > 0.01) {
+        // Calculate Worley noise
+        // Use separate scaling for cells
+        float cellScale = u_cellScale > 0.1 ? u_cellScale : 1.0;
+        
+        // Use user-defined jitter (0=grid, 1=organic)
+        worleyNoise = worley(warpedPos * cellScale, u_cellJitter);
+        
+        // Invert for "cells" look (0=center, 1=edge) -> (1=center, 0=edge)
+        worleyNoise = 1.0 - worleyNoise;
+        
+        // Use u_noiseType as the weight for this layer
+        // This allows additive mixing with the other spectral bands
+        worleyWeight = u_noiseType; // 0.0 or 1.0 (or variable if slider)
+    }
+    
+    // Composition: Weighted average of ALL spectral bands (Base, Mid, High, Structure)
+    float totalWeight = u_baseWeight + u_midWeight + u_highWeight + worleyWeight + 0.001;
+    float noise = (noiseBase * u_baseWeight + noiseMid * u_midWeight + noiseHigh * u_highWeight + worleyNoise * worleyWeight) / totalWeight;
     
     // Ridge noise option for sharper features
     if(u_ridgeAmount > 0.01) {
@@ -334,6 +551,10 @@ void main() {
     
     // Normalize noise to 0-1 range
     noise = noise * 0.5 + 0.5;
+
+    // SAVE SMOOTH NOISE FOR PHYSICS (Liquid Metal)
+    // This is calculating the "true" surface before any artistic posterization
+    float physicsNoise = noise;
 
     // ARTISTIC CONTROL 3: Noise Quantization (Topographic map effect)
     if (u_quantizeStep > 0.01) {
@@ -461,5 +682,87 @@ void main() {
         finalColor *= attenuation;
     }
     
+    // Phase 6: Liquid-Chromatic Post-Processing (Step 1)
+    if (u_iridescenceStrength > 0.001) {
+        vec3 normal = computeNormal(physicsNoise); // Use the SMOOTH physics noise field
+        finalColor += thinFilmIridescence(normal, u_iridescenceStrength);
+    }
+    
+    // Phase 6 Step 2: Fresnel Edge Tint
+    if (u_fresnelStrength > 0.001) {
+        // Reuse normal if computed, otherwise compute it (optimization: assume reused or compute)
+        // Since we are in a separate block, we might need to recompute if Iridescence was OFF.
+        // But for code simplicity/safety, let looks dirty recompute:
+        vec3 normal = computeNormal(physicsNoise);
+        
+        // Use u_color2 (Midtone) as the tint color
+        finalColor += fresnelTint(normal, u_color2, u_fresnelStrength);
+    }
+    
+    // Phase 6 Step 3: Clear-Coat Specular
+    if (u_specularStrength > 0.001) {
+        // Assume normal is available or recompute. 
+        // Optimization: In a real multipass, we'd pass this. Here, lightweight enough.
+        vec3 normal = computeNormal(physicsNoise);
+        
+        // Fixed light source from top-left (classic studio lighting)
+        vec3 lightDir = normalize(vec3(-0.5, 0.5, 1.0));
+        
+        float spec = specularHighlight(normal, lightDir, u_specularStrength);
+        
+        // Add pure white specular highlight (additive)
+        finalColor += vec3(spec);
+    }
+    
+    // Phase 6 Step 4: Metallic Flakes
+    if (u_flakeStrength > 0.001) {
+        // Use warpedPos so flakes flow with the liquid
+        // Need fairly high scale default
+        vec3 normal = computeNormal(physicsNoise);
+        float scale = u_flakeScale > 1.0 ? u_flakeScale : 80.0;
+        
+        vec3 flakes = metallicFlakes(warpedPos, normal, scale, u_flakeStrength, u_time);
+        
+        // Additive blend, but respecting the underlying darkness (optional)
+        finalColor += flakes;
+    }
+
+    // Phase 4: Composition Masks (Vignette & Center)
+    
+    // Vignette
+    if (u_vignetteStrength > 0.001) {
+        float dist = distance(vUv, vec2(0.5));
+        float vig = smoothstep(u_vignetteRadius, u_vignetteRadius + 0.5, dist);
+        finalColor = mix(finalColor, vec3(0.0), vig * u_vignetteStrength);
+    }
+    
+    // Center Mask (protects text legibility)
+    if (u_centerMaskStrength > 0.001) {
+        float dist = distance(vUv, vec2(0.5));
+        // Inverse vignette: opaque in center, fades out
+        float mask = 1.0 - smoothstep(0.0, u_centerMaskSize, dist);
+        // Mix towards base color (clearing the fog) or just lower contrast
+        // Here we mix towards base color to "clear" the fog
+        finalColor = mix(finalColor, u_baseColor * u_brightness, mask * u_centerMaskStrength);
+    }
+
+    // Phase 5: Stylization
+
+    // Edge Enhancement (Derivative/Sobel-like)
+    if (u_edgeEnhance > 0.001) {
+        // Calculate rate of change of the noise value
+        // fwidth = abs(dFdx) + abs(dFdy) - standard way to get "steepness"
+        float edge = fwidth(noise) * 5.0; // Multiplier to make it visible
+        
+        // Add edge brightness
+        finalColor += vec3(edge * u_edgeEnhance);
+    }
+    
+    // Post-Process Posterization (Graphic/Retro look)
+    if (u_postPosterize > 0.1) {
+        float steps = floor(u_postPosterize);
+        finalColor = floor(finalColor * steps) / steps;
+    }
+
     gl_FragColor = vec4(finalColor, 1.0);
 }

@@ -46,6 +46,8 @@ export default defineConfig({
     //},
   },
   server: {
+    port: 1000,
+    strictPort: true, // fail instead of auto-picking another port
     watch: {
       usePolling: true,
     },

@@ -15,7 +15,7 @@ $transition-properties: opacity, transform, color, background-color, background,
 @mixin transition-smooth {
     transition-property: $transition-properties;
     transition-duration: $transition-smooth;
-    transition-timing-function: cubic-bezier(0.785, 0.135, 0.15, 0.86);
+    transition-timing-function: cubic-bezier(0.43, 0.02, 0, 1.1);
 }
 
 @mixin transition-medium {

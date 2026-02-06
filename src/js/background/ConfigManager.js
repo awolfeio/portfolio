@@ -20,22 +20,22 @@ export class ConfigManager {
       type: 'custom',
       description: 'Renderer base defaults',
       parameters: {
-        u_zoom: 0.3,
-        u_noiseScale: 0.5,
-        u_octaves: 3,
-        u_lacunarity: 3.0,
+        u_zoom: 0.1,
+        u_noiseScale: 1.6,
+        u_octaves: 2,
+        u_lacunarity: 2.5,
         u_gain: 0.35,
-        u_turbulence: 0.2,
+        u_turbulence: 2.0,
         u_warpOctaves: 2,
         u_ridgeAmount: 0.0,
         u_detailScale: 1.0,
         u_detailAmount: 0.0,
-        u_speed: 0.08,
+        u_speed: 0.04,
         u_directionX: 0.5,
         u_directionY: 0.3,
         u_modulationSpeed: 0.4,
         u_modulationIntensity: 12.0,
-        u_turbulenceModulation: 0.24,
+        u_turbulenceModulation: 0.0,
         u_zoomModulation: 0.0,
         u_colorModulation: 0.0,
         u_rotationModulation: 0.01,
@@ -63,8 +63,41 @@ export class ConfigManager {
         u_evolutionSpeed: 0.15,
         u_layerBlend: 0.3,
         u_colorEvolutionSpeed: 0.1,
-        u_rippleFrequency: 0.0,
-        u_rippleStrength: 0.0,
+        
+        // Phase 1: Spectral Separation
+        u_baseWeight: 1.2,
+        u_midWeight: 0.7,
+        u_highWeight: 0.25,
+        
+        // Phase 2: Advanced Distortion & Flow
+        u_warpScale: 1.0,
+        u_flowType: 0.0,
+        
+        // Phase 3: Texture & Structure (Worley)
+        u_noiseType: 0.0,
+        u_cellScale: 2.0,
+        u_cellJitter: 1.0,
+
+        // Phase 4: Composition & Masking
+        u_vignetteStrength: 0.12,
+        u_vignetteRadius: 0.12,
+        u_centerMaskStrength: 0.0,
+        u_centerMaskSize: 0.3,
+        u_detailMasking: 0.0,
+
+        // Phase 5: Post-Processing & Stylization
+        u_edgeEnhance: 0.0,
+        u_postPosterize: 0.0,
+
+        // Phase 6: Liquid-Chromatic Post-Processing
+        u_iridescenceStrength: 0.14,
+        u_fresnelStrength: 250.0,
+        u_specularStrength: 0.44,
+        u_flakeStrength: 0.0,
+        u_flakeScale: 1500.0,
+
+        u_rippleFrequency: 23.8,
+        u_rippleStrength: 0.1,
         u_quantizeStep: 0.0,
         u_mirrorX: 0.0,
         u_mirrorY: 0.0,
@@ -156,12 +189,33 @@ export class ConfigManager {
     // Get the configuration for this page
     const config = this.getConfig(namespace);
     
-    // Determine the Mid Tone color based on the page
-    // About page uses #7a9cff, all other pages use #4e2bda
-    const midToneColor = namespace === 'about' ? 0x7a9cff : 0x4e2bda;
+    // Define color palettes
+    const palettes = {
+      default: {
+        u_color1: 0x80fff0,
+        u_color2: 0x4e2bda,
+        u_color3: 0x20cf95,
+        u_baseColor: 0x2e9aff
+      },
+      about: {
+        u_color1: 0x5ffe5d,
+        u_color2: 0x7431a0,
+        u_color3: 0x252ab6,
+        u_baseColor: 0x5fff5c
+      }
+    };
+
+    // Select palette
+    const palette = namespace === 'about' ? palettes.about : palettes.default;
     
     // Prepare uniforms object for transition
     const uniforms = {
+      // Colors
+      u_color1: palette.u_color1,
+      u_color2: palette.u_color2,
+      u_color3: palette.u_color3,
+      u_baseColor: palette.u_baseColor,
+
       u_zoom: config.u_zoom,
       u_noiseScale: config.u_noiseScale,
       u_octaves: config.u_octaves,
@@ -210,7 +264,6 @@ export class ConfigManager {
       u_quantizeStep: config.u_quantizeStep,
       u_mirrorX: config.u_mirrorX,
       u_mirrorY: config.u_mirrorY,
-      u_color2: midToneColor, // Mid Tone color: #7a9cff for about, #4e2bda for all others
     };
     
     // Use ShaderController's transitionTo for smooth GSAP transitions
@@ -237,7 +290,37 @@ export class ConfigManager {
       return currentConfig.preset !== newConfig.preset;
     }
     
-    // Always transition for custom configs
+    // If one is preset and one is custom, they're different
+    if (currentConfig.type !== newConfig.type) {
+      return true;
+    }
+    
+    // Both are custom configs - compare their actual parameters
+    // If both configs point to the same function (rendererBaseParams), they're identical
+    if (currentConfig.type === 'custom' && newConfig.type === 'custom') {
+      // Get the actual parameter objects
+      const currentParams = this.getConfig(this.currentPage);
+      const newParams = this.getConfig(newNamespace);
+      
+      // Compare key parameters that define the "background mode"
+      const keyParams = [
+        'u_zoom', 'u_speed', 'u_modulationSpeed', 'u_modulationIntensity',
+        'u_turbulenceModulation', 'u_brightness', 'u_contrast'
+      ];
+      
+      // Check if all key parameters are identical
+      const areIdentical = keyParams.every(param => 
+        currentParams[param] === newParams[param]
+      );
+      
+      // Also check if Mid Tone colors would be the same
+      const currentMidTone = this.currentPage === 'about' ? 0x7a9cff : 0x4e2bda;
+      const newMidTone = newNamespace === 'about' ? 0x7a9cff : 0x4e2bda;
+      
+      return !areIdentical || currentMidTone !== newMidTone;
+    }
+    
+    // Default: transition needed
     return true;
   }
 

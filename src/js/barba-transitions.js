@@ -6,7 +6,7 @@ import backgroundManager from "./background/index.js";
 import splitText from "./text-splitting.js";
 import { setupUnifiedReveals, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
 import { rotateTitles, circleText, revealH1Characters, animateDataSplittingChars } from "./type-anim.js";
-import { cursorCheck } from "./cursor-element.js";
+import { cursorCheck, setupMagnifyingGlass } from "./cursor-element.js";
 import { setupEventHandlers } from "./event-handlers.js";
 import { checkLocationAndRemoveElements } from "./geographic.js";
 import { gsap } from "gsap";
@@ -368,14 +368,28 @@ function handleEnter(data) {
     fadeTransition.enter(data.next.container).then(() => {
       console.log("BARBA PAGE TRANSITION COMPLETE - Now safe to run animations");
 
-      // Apply background configuration for the new page with fade transition
+      // Apply background configuration for the new page
       const newNamespace = data.next.namespace;
+      const oldNamespace = data.current.namespace;
       
-      console.log(`Applying background configuration for "${newNamespace}" page`);
-      // Use fade-out/instant-change/fade-in transition for cleaner page changes
-      backgroundManager.transitionToPageWithFade(newNamespace, 0.3, 0.4).then(() => {
-        console.log(`Background transition to "${newNamespace}" complete`);
-      });
+      console.log(`Checking background transition from "${oldNamespace}" to "${newNamespace}"`);
+      
+      // Check if we need to transition the background shader parameters
+      const needsBackgroundTransition = backgroundManager.getConfigManager()?.shouldTransition(newNamespace);
+      
+      if (needsBackgroundTransition) {
+        console.log(`Background mode change detected - applying fade transition to "${newNamespace}"`);
+        // Use fade-out/instant-change/fade-in transition for different background modes
+        backgroundManager.transitionToPageWithFade(newNamespace, 0.3, 0.4).then(() => {
+          console.log(`Background transition to "${newNamespace}" complete`);
+        });
+      } else {
+        console.log(`Same background mode - skipping fade transition for "${newNamespace}"`);
+        // No background change needed, but still update the current page tracker
+        if (backgroundManager.getConfigManager()) {
+          backgroundManager.getConfigManager().currentPage = newNamespace;
+        }
+      }
 
       // Mark transition as complete in the controller
       window.animationController.completeTransition();
@@ -494,6 +508,9 @@ function handleAfterEnter(data) {
 
     // Set up unified reveal system for all elements
     setupUnifiedReveals();
+
+    // Set up magnifying glass for .large-photo elements
+    setupMagnifyingGlass();
 
     // Enable video autoplay on scroll
     playVideosOnEnter();

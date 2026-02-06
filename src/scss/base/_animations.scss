@@ -1,5 +1,5 @@
 $transition-fast: 0.18s;
-$transition-smooth: 0.24s;
+$transition-smooth: 0.6s;
 $transition-medium: 0.4s;
 $transition-slow: 1s;
 
@@ -98,6 +98,11 @@ $transition-slow: 1s;
             transition-delay: #{$i}s;
         }
     }
+}
+
+// Ensure splitting-rows with fade-reveal start hidden
+.splitting-rows.fade-reveal:not(.active):not(.reveal) {
+    opacity: 0;
 }
 
 /* Style for line animations */

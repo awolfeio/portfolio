@@ -16,6 +16,17 @@ let isVisible = false;
 let pendingMove = null;
 let rafId = null;
 
+// Magnifying glass state
+let magnifyGlass = null;
+let currentLargePhoto = null;
+let magnifyRafId = null;
+let isZoomedIn = false; // Track zoom toggle state
+const DEFAULT_ZOOM = 1.333; // Reduced from 2x
+const ZOOMED_ZOOM = DEFAULT_ZOOM * 1.2;
+
+// Animated zoom level for smooth transitions
+let currentZoomLevel = { value: DEFAULT_ZOOM };
+
 /**
  * Initialize cursor element and set up optimized movement tracking
  */
@@ -33,6 +44,9 @@ export function cursorElement() {
     cursorSpan = cursorEl?.querySelector("span");
 
     if (!cursorEl) return;
+
+    // Create magnifying glass element
+    createMagnifyingGlass();
 
     // Set initial position
     gsap.set(cursorEl, { xPercent: -50, yPercent: -50 });
@@ -219,3 +233,265 @@ export function cursorCheck() {
     }, 800);
   });
 }
+
+/**
+ * Create the magnifying glass element
+ */
+function createMagnifyingGlass() {
+  const magnifyHtml = `
+    <div class="magnify-glass">
+      <canvas class="magnify-canvas"></canvas>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", magnifyHtml);
+  
+  magnifyGlass = document.querySelector(".magnify-glass");
+  const canvas = magnifyGlass.querySelector(".magnify-canvas");
+  
+  // Set canvas size for high DPI displays
+  const size = 280; // Size of the magnifying glass (updated to match CSS)
+  canvas.width = size * 2; // 2x for retina
+  canvas.height = size * 2;
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  
+  // Initially hide the magnifying glass with proper positioning
+  gsap.set(magnifyGlass, { 
+    opacity: 0,
+    xPercent: -50,
+    yPercent: -50
+  });
+  
+  console.log("Magnifying glass created:", magnifyGlass);
+}
+
+/**
+ * Set up magnifying glass for .large-photo elements
+ */
+export function setupMagnifyingGlass() {
+  console.log("setupMagnifyingGlass called, magnifyGlass exists:", !!magnifyGlass);
+  
+  if (!magnifyGlass) {
+    console.warn("Magnifying glass element not found, skipping setup");
+    return;
+  }
+  
+  const largePhotos = document.querySelectorAll(".large-photo");
+  console.log(`Found ${largePhotos.length} .large-photo elements`);
+  
+  largePhotos.forEach((photo, index) => {
+    const img = photo.querySelector("img");
+    if (!img) {
+      console.warn(`No img found in .large-photo[${index}]`);
+      return;
+    }
+    
+    console.log(`Setting up magnifying glass for .large-photo[${index}]`);
+    
+    // Ensure image is loaded before setting up hover
+    if (!img.complete) {
+      img.addEventListener("load", () => setupPhotoHover(photo, img));
+    } else {
+      setupPhotoHover(photo, img);
+    }
+  });
+}
+
+/**
+ * Set up hover handlers for a photo element
+ */
+function setupPhotoHover(photo, img) {
+  photo.addEventListener("mouseenter", () => {
+    currentLargePhoto = { element: photo, img: img };
+    isZoomedIn = false; // Reset zoom state on enter
+    
+    // Reset zoom level to default (instant)
+    currentZoomLevel.value = DEFAULT_ZOOM;
+    
+    console.log("Entered .large-photo, showing magnifying glass");
+    
+    // Show magnifying glass (opacity only)
+    gsap.to(magnifyGlass, {
+      opacity: 1,
+      duration: 0.4,
+      ease: "power2.out"
+    });
+    
+    // Hide regular cursor elements
+    cursorEl?.classList.add("magnify-active");
+  });
+  
+  photo.addEventListener("mouseleave", () => {
+    currentLargePhoto = null;
+    isZoomedIn = false; // Reset zoom state on leave
+    
+    console.log("Left .large-photo, hiding magnifying glass");
+    
+    // Remove zoomed class
+    magnifyGlass.classList.remove('zoomed');
+    
+    // Hide magnifying glass with immediate fade-out (opacity only)
+    gsap.to(magnifyGlass, {
+      opacity: 0,
+      duration: 0.05, // Very fast fade-out for immediate response
+      ease: "power2.in"
+    });
+    
+    // Show regular cursor
+    cursorEl?.classList.remove("magnify-active");
+    
+    // Cancel any pending magnify updates
+    if (magnifyRafId) {
+      cancelAnimationFrame(magnifyRafId);
+      magnifyRafId = null;
+    }
+  });
+  
+  // Click to toggle zoom level
+  photo.addEventListener("click", (e) => {
+    if (!currentLargePhoto) return;
+    
+    isZoomedIn = !isZoomedIn;
+    const targetZoom = isZoomedIn ? ZOOMED_ZOOM : DEFAULT_ZOOM;
+    console.log(`Zoom toggled to: ${isZoomedIn ? 'ZOOMED' : 'DEFAULT'} (${targetZoom}x)`);
+    
+    // Toggle CSS class for styling
+    if (isZoomedIn) {
+      magnifyGlass.classList.add('zoomed');
+    } else {
+      magnifyGlass.classList.remove('zoomed');
+    }
+    
+    // Animate zoom level transition smoothly
+    gsap.to(currentZoomLevel, {
+      value: targetZoom,
+      duration: 0.18,
+      ease: "power2.out",
+      onUpdate: () => {
+        // Continuously update the canvas during the zoom transition
+        updateMagnifyingGlass(e.clientX, e.clientY);
+      }
+    });
+  });
+  
+  photo.addEventListener("mousemove", (e) => {
+    if (!currentLargePhoto) return;
+    
+    // Store last mouse position for scroll updates
+    currentLargePhoto.lastMouseX = e.clientX;
+    currentLargePhoto.lastMouseY = e.clientY;
+    
+    // Update magnifying glass position and content
+    if (!magnifyRafId) {
+      magnifyRafId = requestAnimationFrame(() => {
+        updateMagnifyingGlass(e.clientX, e.clientY);
+        magnifyRafId = null;
+      });
+    }
+  }, { passive: true });
+}
+
+// Global scroll handler for magnifying glass updates
+let scrollUpdateRafId = null;
+window.addEventListener("scroll", () => {
+  // Only update if we're currently hovering over a large photo
+  if (!currentLargePhoto || !currentLargePhoto.lastMouseX) return;
+  
+  // Use RAF to throttle scroll updates
+  if (!scrollUpdateRafId) {
+    scrollUpdateRafId = requestAnimationFrame(() => {
+      // Update the canvas with the last known mouse position
+      // The image position has changed due to scroll, so we need to redraw
+      if (currentLargePhoto && currentLargePhoto.lastMouseX) {
+        updateMagnifyingGlass(currentLargePhoto.lastMouseX, currentLargePhoto.lastMouseY);
+      }
+      scrollUpdateRafId = null;
+    });
+  }
+}, { passive: true });
+
+/**
+ * Update the magnifying glass position and render zoomed image
+ */
+function updateMagnifyingGlass(mouseX, mouseY) {
+  if (!currentLargePhoto || !magnifyGlass) return;
+  
+  const { element, img } = currentLargePhoto;
+  const canvas = magnifyGlass.querySelector(".magnify-canvas");
+  const ctx = canvas.getContext("2d");
+  
+  // Position the magnifying glass at cursor using left/top (not x/y to avoid transform conflicts)
+  gsap.set(magnifyGlass, {
+    left: mouseX,
+    top: mouseY
+  });
+  
+  // Get image and canvas dimensions
+  const imgRect = img.getBoundingClientRect();
+  const canvasSize = canvas.width; // Already 2x for retina
+  const displaySize = parseInt(canvas.style.width); // Actual display size
+  
+  // Calculate mouse position relative to image
+  const relativeX = mouseX - imgRect.left;
+  const relativeY = mouseY - imgRect.top;
+  
+  // Calculate scale factors between displayed image and natural image size
+  const scaleX = img.naturalWidth / imgRect.width;
+  const scaleY = img.naturalHeight / imgRect.height;
+  
+  // Calculate source position in the original image (centered on cursor)
+  // Use animated zoom level for smooth transitions
+  const zoom = currentZoomLevel.value;
+  const sourceSize = displaySize / zoom;
+  const sourceX = (relativeX * scaleX) - (sourceSize * scaleX / 2);
+  const sourceY = (relativeY * scaleY) - (sourceSize * scaleY / 2);
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, canvasSize, canvasSize);
+  
+  // Create rounded rectangle clipping path to match .large-photo border-radius
+  ctx.save();
+  ctx.beginPath();
+  
+  // Use 24px border-radius to match .large-photo (desktop)
+  const borderRadius = 24;
+  const x = 0;
+  const y = 0;
+  const width = canvasSize;
+  const height = canvasSize;
+  
+  // Draw rounded rectangle path
+  ctx.moveTo(x + borderRadius, y);
+  ctx.lineTo(x + width - borderRadius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + borderRadius);
+  ctx.lineTo(x + width, y + height - borderRadius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - borderRadius, y + height);
+  ctx.lineTo(x + borderRadius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - borderRadius);
+  ctx.lineTo(x, y + borderRadius);
+  ctx.quadraticCurveTo(x, y, x + borderRadius, y);
+  ctx.closePath();
+  ctx.clip();
+  
+  // Draw the zoomed portion of the image
+  try {
+    ctx.drawImage(
+      img,
+      sourceX,
+      sourceY,
+      sourceSize * scaleX,
+      sourceSize * scaleY,
+      0,
+      0,
+      canvasSize,
+      canvasSize
+    );
+  } catch (e) {
+    // Handle edge cases where source is outside image bounds
+    console.warn("Magnify draw error:", e);
+  }
+  
+  ctx.restore();
+}
+
+

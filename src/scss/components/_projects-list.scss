@@ -32,8 +32,9 @@
             letter-spacing: inherit;
             color: inherit;
             pointer-events: none;
-            clip-path: inset(100% 0 0 0);
-            @include transition-medium;
+            // Angular skewed reveal - starts hidden at bottom with dramatic diagonal edge
+            clip-path: polygon(0% 100%, 100% 160%, 100% 160%, 0% 100%);
+            @include transition-smooth;
         }
 
         @media (max-width:1368px) {
@@ -55,7 +56,8 @@
             opacity: 1;
 
             &::before {
-                clip-path: inset(0 0 0 0);
+                // Angular reveal - dramatic diagonal sweep, fully covers at end
+                clip-path: polygon(0% -60%, 100% 0%, 100% 100%, 0% 100%);
             }
         }
         &:active {

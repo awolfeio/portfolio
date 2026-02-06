@@ -165,26 +165,26 @@ export class BackgroundRenderer {
         u_baseColor: { value: new THREE.Color(0x2e9aff) },   // Base: #2e9aff
 
         // Noise parameters (OPTIMIZED FOR HIGH FPS - 165fps+)
-        u_zoom: { value: 0.3 },
-        u_noiseScale: { value: 0.5 },
+        u_zoom: { value: 0.1 },
+        u_noiseScale: { value: 1.6 },
         u_octaves: { value: 2 },
-        u_lacunarity: { value: 3 },
+        u_lacunarity: { value: 2.5 },
         u_gain: { value: 0.35 },
-        u_turbulence: { value: 0.15 },        // ENABLED: Subtle warping for organic fog motion (uses fast sine)
+        u_turbulence: { value: 2.0 },        // Warping for organic fog motion
         u_warpOctaves: { value: 1 },          // REDUCED: 1 warp octave instead of 2 (but using sine now anyway)
         u_ridgeAmount: { value: 0.0 },        // 0 = smooth fog, 1 = sharp ridges
         u_detailScale: { value: 1.0 },        // Secondary detail scale
         u_detailAmount: { value: 0.0 },       // Disabled for performance
 
         // Animation parameters
-        u_speed: { value: 0.08 },
+        u_speed: { value: 0.04 },
         u_directionX: { value: 0.5 },
         u_directionY: { value: 0.3 },
 
         // Organic modulation parameters
         u_modulationSpeed: { value: 0.28 },         // Global modulation speed multiplier
         u_modulationIntensity: { value: 12.0 },    // Global modulation intensity multiplier
-        u_turbulenceModulation: { value: 0.24 },    // Turbulence breathing amount
+        u_turbulenceModulation: { value: 0.0 },    // Turbulence breathing amount
         u_zoomModulation: { value: 0.0 },          // Zoom pulsing amount
         u_colorModulation: { value: 0.0 },         // Color shifting amount
         u_rotationModulation: { value: 0.01 },     // Flow rotation amount
@@ -223,9 +223,41 @@ export class BackgroundRenderer {
         u_layerBlend: { value: 0.3 },               // Secondary layer blend (0-1)
         u_colorEvolutionSpeed: { value: 0.1 },      // Color morphing speed (0-1)
 
+        // Phase 1: Spectral Separation
+        u_baseWeight: { value: 1.2 },               // Default: 0.3
+        u_midWeight: { value: 0.7 },                // Default: 1.0
+        u_highWeight: { value: 0.25 },              // Default: 0.25
+
+        // Phase 2: Advanced Distortion & Flow
+        u_warpScale: { value: 1.0 },                // Scale of the warp noise
+        u_flowType: { value: 0.0 },                 // 0 = Standard, 1 = Curl
+
+        // Phase 3: Texture & Structure (Worley)
+        u_noiseType: { value: 0.0 },                // 0 = FBM, 1 = Worley
+        u_cellScale: { value: 2.0 },                // Scale of cells
+        u_cellJitter: { value: 1.0 },               // Jitter (1.0 = organic)
+
+        // Phase 4: Composition & Masking
+        u_vignetteStrength: { value: 0.12 },         // Darkness of corners (0-1)
+        u_vignetteRadius: { value: 0.12 },           // Size of clear area (0-1)
+        u_centerMaskStrength: { value: 0.0 },       // Clarity of center (0-1)
+        u_centerMaskSize: { value: 0.5 },           // Size of center mask (0-1)
+        u_detailMasking: { value: 0.0 },            // Detail masking amount (0-1)
+
+        // Phase 5: Post-Processing & Stylization
+        u_edgeEnhance: { value: 0.0 },              // Edge highlight strength (0-1)
+        u_postPosterize: { value: 0.0 },            // Posterization steps (0=off)
+
+        // Phase 6: Liquid-Chromatic Post-Processing
+        u_iridescenceStrength: { value: 0.14 },      // Iridescence strength (0-1)
+        u_fresnelStrength: { value: 250.0 },          // Fresnel edge tint strength (0-1)
+        u_specularStrength: { value: 0.44 },         // Clear-Coat Specular strength (0-1)
+        u_flakeStrength: { value: 0.0 },            // Metallic flakes strength (0-1)
+        u_flakeScale: { value: 1500.0 },             // Metallic flakes scale
+
         // Artistic controls (NEW - Phase 4)
-        u_rippleFrequency: { value: 0.0 },          // Frequency of ripple distortion
-        u_rippleStrength: { value: 0.0 },           // Strength of ripple distortion
+        u_rippleFrequency: { value: 23.8 },          // Frequency of ripple distortion
+        u_rippleStrength: { value: 0.1 },           // Strength of ripple distortion
         u_quantizeStep: { value: 0.0 },             // Noise quantization (0-1)
         u_mirrorX: { value: 0.0 },                  // X Reflection (0 or 1)
         u_mirrorY: { value: 0.0 },                  // Y Reflection (0 or 1)
@@ -238,6 +270,9 @@ export class BackgroundRenderer {
         u_grainAspect: { value: 1.0 },        // 0 = match viewport, 1 = square grains
         u_grainComplexity: { value: 1.0 },    // 0 = base pattern, 1 = richer pattern
         u_grainFrameHold: { value: 1.0 },     // Frame hold for performance (1.0 = update every frame)
+      },
+      extensions: {
+        derivatives: true, // Enable GL_OES_standard_derivatives
       },
       transparent: true,
     });

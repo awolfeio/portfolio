@@ -61,6 +61,10 @@ function convertToFadeReveal() {
   splittingRows.forEach((element) => {
     element.classList.add("fade-reveal");
     element.setAttribute("data-reveal-type", "splitting-rows");
+    // Ensure initial opacity is 0
+    if (!element.classList.contains("active") && !element.classList.contains("reveal")) {
+      gsap.set(element, { opacity: 0 });
+    }
   });
 
   // Convert .splitting elements that need reveals
@@ -75,7 +79,10 @@ function convertToFadeReveal() {
   // Convert any h1, h2, h3 elements that don't already have fade-reveal
   const headings = document.querySelectorAll("h1, h2, h3");
   headings.forEach((element) => {
-    if (!element.classList.contains("fade-reveal") && !element.closest("nav")) {
+    // Exclude nav elements and .titles-wrapper (which has its own rotation animation)
+    if (!element.classList.contains("fade-reveal") && 
+        !element.closest("nav") && 
+        !element.classList.contains("titles-wrapper")) {
       element.classList.add("fade-reveal");
       element.setAttribute("data-reveal-type", "heading");
     }
@@ -122,20 +129,49 @@ function groupElementsByViewport(elements) {
 function setupSequentialReveal(elements, groupIndex) {
   const groupKey = `group-${groupIndex}`;
 
-  // Create a ScrollTrigger that monitors when this group enters the viewport
-  ScrollTrigger.create({
-    trigger: elements[0], // Use first element as trigger
-    start: "top 80%",
-    end: "bottom 15%",
-    onEnter: () => startSequentialReveal(elements, groupKey),
-    onLeaveBack: () => hideSequentialReveal(elements, groupKey),
-    markers: false,
-  });
+  // Check if this group contains .large-photo elements
+  // These should be revealed individually, not as a group
+  const hasLargePhotos = elements.some(el => el.classList.contains('large-photo'));
+  
+  if (hasLargePhotos) {
+    // Set up individual triggers for each .large-photo element
+    elements.forEach((element, index) => {
+      const elementKey = `${groupKey}-element-${index}`;
+      
+      ScrollTrigger.create({
+        trigger: element, // Use the element itself as trigger
+        start: "top 80%",
+        end: "bottom 15%",
+        onEnter: () => startSequentialReveal([element], elementKey),
+        onLeaveBack: () => hideSequentialReveal([element], elementKey),
+        markers: false,
+      });
 
-  // Check if elements have already passed the reveal threshold on load
-  // This prevents elements from revealing too early
-  if (hasPassedRevealThreshold(elements[0])) {
-    startSequentialReveal(elements, groupKey);
+      // Check if element has already passed the reveal threshold on load
+      // BUT only if loading screen is not present
+      const loadingSplash = document.querySelector('#loading-splash');
+      if (!loadingSplash && hasPassedRevealThreshold(element)) {
+        startSequentialReveal([element], elementKey);
+      }
+    });
+  } else {
+    // Original grouped behavior for non-.large-photo elements
+    // Create a ScrollTrigger that monitors when this group enters the viewport
+    ScrollTrigger.create({
+      trigger: elements[0], // Use first element as trigger
+      start: "top 80%",
+      end: "bottom 15%",
+      onEnter: () => startSequentialReveal(elements, groupKey),
+      onLeaveBack: () => hideSequentialReveal(elements, groupKey),
+      markers: false,
+    });
+
+    // Check if elements have already passed the reveal threshold on load
+    // BUT only if loading screen is not present
+    const loadingSplash = document.querySelector('#loading-splash');
+    if (!loadingSplash && hasPassedRevealThreshold(elements[0])) {
+      startSequentialReveal(elements, groupKey);
+    }
   }
 }
 
@@ -155,7 +191,39 @@ function startSequentialReveal(elements, groupKey) {
 
   elements.forEach((element, index) => {
     const revealType = element.getAttribute("data-reveal-type") || "default";
-    const delay = getRevealDelay(revealType, index);
+    
+    // Check if this element should be part of a sequential chain
+    // Exclude .large-photo, .clip-swipe, and .skills-wrapper children from sequential behavior
+    const isLargePhoto = element.classList.contains('large-photo');
+    const isClipSwipe = element.classList.contains('clip-swipe');
+    const isSkillsWrapperChild = element.parentElement?.classList.contains('skills-wrapper');
+    const shouldExcludeFromSequence = isLargePhoto || isClipSwipe || isSkillsWrapperChild;
+    
+    // Check if this element has sequential siblings (same parent, consecutive fade-reveal elements)
+    let isSequential = false;
+    let elementIndex = 0;
+    
+    if (!shouldExcludeFromSequence) {
+      const parent = element.parentElement;
+      const siblings = Array.from(parent.children).filter(child => 
+        child.classList.contains('fade-reveal') && 
+        !child.classList.contains('large-photo') &&
+        !child.classList.contains('clip-swipe') &&
+        !child.parentElement?.classList.contains('skills-wrapper')
+      );
+      elementIndex = siblings.indexOf(element);
+      isSequential = siblings.length > 1 && elementIndex >= 0;
+    }
+    
+    // Calculate delay based on whether it's part of a sequential chain
+    let delay = 0;
+    if (isSequential && elementIndex > 0) {
+      // Wait for previous sibling to complete (base animation duration + reveal duration)
+      delay = ">-0.2"; // Start 0.2s before previous completes for slight overlap
+    } else {
+      // Use standard delay for non-sequential or first element
+      delay = getRevealDelay(revealType, index);
+    }
 
     // Add custom reveal based on type
     if (revealType === "splitting-rows") {
@@ -169,6 +237,11 @@ function startSequentialReveal(elements, groupKey) {
         null,
         delay
       );
+      
+      // Add duration placeholder for sequential timing
+      if (isSequential) {
+        tl.to({}, { duration: 1.4 }); // Match splitting-rows animation duration
+      }
     } else if (revealType === "splitting") {
       tl.call(
         () => {
@@ -180,8 +253,13 @@ function startSequentialReveal(elements, groupKey) {
         null,
         delay
       );
+      
+      // Add duration placeholder for sequential timing
+      if (isSequential) {
+        tl.to({}, { duration: 0.8 }); // Match splitting animation duration
+      }
     } else {
-      // Default fade-reveal behavior
+      // Default fade-reveal behavior (includes .large-photo and .clip-swipe)
       tl.call(
         () => {
           element.classList.add("active");
@@ -191,11 +269,11 @@ function startSequentialReveal(elements, groupKey) {
         null,
         delay
       );
-    }
-
-    // Add a small overlap for smoother sequential reveals
-    if (index < elements.length - 1) {
-      tl.set({}, {}, "-=0.1");
+      
+      // Add duration placeholder for sequential timing (only if part of sequence)
+      if (isSequential && !shouldExcludeFromSequence) {
+        tl.to({}, { duration: 1.4 }); // Match fade-reveal transition duration (1s + 0.4s delay)
+      }
     }
   });
 

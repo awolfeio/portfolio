@@ -265,3 +265,136 @@ body:has(.next-project-banner:hover) {
 .touch-device .cursor-element {
     display: none;
 }
+
+// Magnifying glass element
+.magnify-glass {
+    position: fixed;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    box-shadow:0px 8px 24px rgba(0,0,0,0.24);
+    // Liquid glass effect with refraction
+    //background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(4px) saturate(1.2);
+
+    // Glass border with gradient for refraction
+    //border: 2px solid rgba(255, 255, 255, 0.4);
+    
+    // GPU acceleration
+    will-change: transform, opacity;
+    transform-origin: center center;
+    
+    // Smooth transitions
+    transition: width $transition-smooth, height $transition-smooth, opacity 0.18s ease;
+    
+    @media (max-width: $desktop-viewport) {
+        display: none;
+    }
+    
+    canvas {
+        width:calc(100% - 6px)!important;
+        height:calc(100% - 6px)!important;
+    }
+    // Liquid glass refraction overlay
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 50%;
+        background: radial-gradient(
+            circle at 30% 30%,
+            rgba(255, 255, 255, 0.4) 0%,
+            rgba(255, 255, 255, 0.2) 30%,
+            rgba(255, 255, 255, 0.05) 50%,
+            transparent 70%
+        );
+        pointer-events: none;
+        mix-blend-mode: overlay;
+        z-index:2;
+    }
+    
+    // Darkening effect for bottom-right depth
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 50%;
+        background: radial-gradient(
+            circle at 70% 70%,
+            rgba(0, 0, 0, 0.25) 0%,
+            rgba(0, 0, 0, 0.12) 30%,
+            rgba(0, 0, 0, 0.06) 50%,
+            transparent 70%
+        );
+        pointer-events: none;
+        mix-blend-mode: multiply;
+        z-index:1;
+    }
+    
+    .magnify-canvas {
+        position: absolute;
+        z-index:3;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        transition: width 0.18s ease, height 0.18s ease;
+        // Subtle inner shadow for depth
+        box-shadow: 
+            inset 0 0 30px rgba(0, 0, 0, 0.15),
+            inset 0 0 15px rgba(0, 0, 0, 0.1);
+        
+        // Slight border to separate from glass edge
+        //border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+}
+
+
+
+// Hide regular cursor when magnifying glass is active
+.cursor-element.magnify-active {
+    .cursor-wrapper,
+    .cursor-effect,
+    span {
+        opacity: 0 !important;
+    }
+}
+
+// Zoomed state styling for magnifying glass
+.magnify-glass.zoomed {
+    width: 480px;
+    height: 480px;
+    
+    canvas {
+        width:calc(100% - 12px)!important;
+        height:calc(100% - 12px)!important;
+    }
+    
+    // Stronger backdrop blur when zoomed for better focus
+    backdrop-filter: blur(6px) saturate(1.3);
+    
+    // Subtle blue tint to indicate zoomed state
+    &::before {
+        background: radial-gradient(
+            circle at 30% 30%,
+            rgba(150, 200, 255, 0.2) 0%,
+            rgba(255, 255, 255, 0.1) 30%,
+            rgba(255, 255, 255, 0.05) 50%,
+            transparent 70%
+        );
+    }
+}
+
+// Hide native browser cursor on .large-photo elements
+.large-photo {
+    cursor: none;
+}
+

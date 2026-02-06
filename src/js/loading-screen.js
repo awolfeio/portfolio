@@ -2,6 +2,7 @@ import { setupUnifiedReveals, playVideosOnEnter, autoScrollContainer } from "./s
 import initSmoothScroll from "./smooth-scroll.js";
 import splitText from "./text-splitting.js";
 import { circleText, revealH1Characters, rotateTitles, animateDataSplittingChars } from "./type-anim.js";
+import { setupMagnifyingGlass } from "./cursor-element.js";
 import { removeSpecificElements, checkLocationAndRemoveElements } from "./geographic.js";
 import { preventAnimationRefire } from "./animation-helpers.js";
 import { gsap } from "gsap";
@@ -386,10 +387,13 @@ export function loadingSplash() {
                 // Set up all scroll-triggered animations
                 tl.call(
                   () => {
-                    console.log("Loading screen: setting up scroll animations");
+                    console.log("Loading screen: setting up scroll features (excluding fade-reveal)");
 
-                    // Set up unified reveal system for all elements
-                    setupUnifiedReveals();
+                    // NOTE: setupUnifiedReveals() is called AFTER loading splash removal
+                    // to prevent premature reveals
+
+                    // Set up magnifying glass for .large-photo elements
+                    setupMagnifyingGlass();
 
                     // Enable video playback on scroll
                     playVideosOnEnter();
@@ -459,6 +463,18 @@ export function loadingSplash() {
                 console.log("Loading complete - setting initialPageLoad to false for future transitions");
                 window.animationController.initialPageLoad = false;
               }
+
+              // NOW set up fade-reveal system after loading splash is completely removed
+              console.log("Loading screen removed - now setting up fade-reveal system");
+              setupUnifiedReveals();
+              
+              // Refresh ScrollTrigger after setting up reveals
+              setTimeout(() => {
+                if (window.ScrollTrigger) {
+                  window.ScrollTrigger.refresh();
+                  console.log("ScrollTrigger refresh after fade-reveal setup");
+                }
+              }, 100);
             }, 500);
           });
         }
