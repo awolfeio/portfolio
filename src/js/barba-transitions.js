@@ -153,6 +153,13 @@ export function initializeBarba() {
   barba.hooks.beforeEnter((data) => {
     console.log("Barba beforeEnter: container added to DOM");
 
+    // Handle .about class on html element
+    if (data.next.namespace === "about") {
+      document.documentElement.classList.add("about");
+    } else {
+      document.documentElement.classList.remove("about");
+    }
+
     // Ensure all content within the container is also initially invisible
     const pageElement = data.next.container.querySelector(".page");
     if (pageElement) {

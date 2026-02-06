@@ -131,6 +131,7 @@ function detectFirstPage() {
 
   // Set specific page settings
   if (firstPage === "about") {
+    document.documentElement.classList.add("about");
     // Note: Page-specific background config will be handled by ConfigManager in Phase 6
     // For now, the default shader config will be used
     document.querySelector("nav a.about")?.classList.add("active");

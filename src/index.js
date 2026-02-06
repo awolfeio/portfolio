@@ -1,5 +1,11 @@
 import "./scss/main.scss";
 
+// Force scroll to top on page reload
+if (history.scrollRestoration) {
+  history.scrollRestoration = "manual";
+}
+window.scrollTo(0, 0);
+
 // Import core initialization modules
 import { initializeApp } from "./js/initialization.js";
 import { initializeBarba } from "./js/barba-transitions.js";
@@ -20,6 +26,9 @@ document.addEventListener("DOMContentLoaded", init);
  * This properly sequences the loading flow to ensure proper visibility
  */
 function init() {
+  // Ensure we are at the top
+  window.scrollTo(0, 0);
+
   // Initialize application first (includes loading screen)
   initializeApp();
 
