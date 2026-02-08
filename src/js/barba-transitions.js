@@ -11,6 +11,7 @@ import { setupEventHandlers } from "./event-handlers.js";
 import { checkLocationAndRemoveElements } from "./geographic.js";
 import { gsap } from "gsap";
 import SplitType from "split-type";
+import mediaPreloader from "./media-preloader.js";
 
 /**
  * Initialize Barba.js and set up page transitions
@@ -344,7 +345,7 @@ function handleLeave(data) {
  * Handle the enter transition
  */
 function handleEnter(data) {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     // Force scroll to top again when entering
     const scrollToTop = () => {
     if (lenis) {
@@ -371,6 +372,30 @@ function handleEnter(data) {
     // Keep transition flag active
     window.barbaTransitionActive = true;
 
+    // Check if media is already preloading/preloaded
+    let mediaPromise;
+    const nextUrl = data.next.url.href;
+    
+    // Check cache first
+    let cachedData = null;
+    if (window.barba && window.barba.cache) {
+        cachedData = window.barba.cache.get(nextUrl);
+    }
+    
+    if (cachedData && cachedData.mediaReady) {
+        console.log("Waiting for preloaded media from cache...");
+        mediaPromise = cachedData.mediaReady;
+    } else {
+        // Fallback: discover and load media now
+        console.log("No cached media found, discovering and loading now...");
+        const assets = mediaPreloader.discoverAssets(data.next.container);
+        mediaPromise = mediaPreloader.preload(assets);
+    }
+
+    // Wait for media to be ready (critical assets at least)
+    await mediaPromise;
+    console.log("Media ready! proceeding with transition");
+    
     // Animation for entering the new page
     fadeTransition.enter(data.next.container).then(() => {
       console.log("BARBA PAGE TRANSITION COMPLETE - Now safe to run animations");
@@ -443,6 +468,8 @@ function handleAfterEnter(data) {
   if (contentElements.length > 0) {
     contentElements.forEach((el) => {
       if (el.matches(revealManagedSelectors)) {
+        // Set inline opacity: 0 to ensure elements start hidden
+        // The reveal logic will remove this inline style to allow CSS transition
         gsap.set(el, { opacity: 0, pointerEvents: "auto", visibility: "visible" });
       } else {
         gsap.set(el, { opacity: 0, pointerEvents: "auto", visibility: "visible" });

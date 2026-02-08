@@ -21,8 +21,8 @@ let magnifyGlass = null;
 let currentLargePhoto = null;
 let magnifyRafId = null;
 let isZoomedIn = false; // Track zoom toggle state
-const DEFAULT_ZOOM = 1.333; // Reduced from 2x
-const ZOOMED_ZOOM = DEFAULT_ZOOM * 1.2;
+const DEFAULT_ZOOM = 1.26;
+const ZOOMED_ZOOM = DEFAULT_ZOOM * 1.1;
 
 // Animated zoom level for smooth transitions
 let currentZoomLevel = { value: DEFAULT_ZOOM };
@@ -313,7 +313,7 @@ function setupPhotoHover(photo, img) {
     // Show magnifying glass (opacity only)
     gsap.to(magnifyGlass, {
       opacity: 1,
-      duration: 0.4,
+      duration: 0.18,
       ease: "power2.out"
     });
     

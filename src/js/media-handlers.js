@@ -1,17 +1,4 @@
-/**
- * Handle video preloading
- * @param {Array} videosArray An array of video sources to preload
- */
-export function preloadVideos(videosArray) {
-  videosArray.forEach((videoSrc) => {
-    const videoElement = document.createElement("video");
-    videoElement.preload = "auto";
-    videoElement.src = videoSrc;
-    videoElement.oncanplaythrough = () => {
-      console.log(`Preloaded: ${videoSrc}`);
-    };
-  });
-}
+
 
 /**
  * Setup video player controls

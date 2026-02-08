@@ -344,7 +344,7 @@ export function revealH1Characters() {
         chars.forEach((char, index) => {
           setTimeout(() => {
             char.classList.add("reveal-char");
-          }, 50 + index * 25); // Start after a small delay and stagger
+          }, 50 + index * 50); // Increased stagger for project pages
         });
       }
     } else {

@@ -77,6 +77,8 @@ $transition-slow: 1s;
 
 .clip-swipe {
     clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+    transition: clip-path 1s cubic-bezier(.785, 0.135, 0.15, 0.86);
+    transition-delay: 0.4s;
 
     &.active {
         clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);

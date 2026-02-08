@@ -9,6 +9,7 @@ import { gsap } from "gsap";
 import SplitType from "split-type";
 import backgroundManager from "./background/index.js";
 import { initExtrudedLogo } from "./3d-logo.js";
+import mediaPreloader from "./media-preloader.js";
 
 /**
  * Preload important pages to speed up Barba transitions
@@ -56,10 +57,15 @@ async function preloadPages() {
           const container = tempDiv.querySelector('[data-barba="container"]');
 
           if (container && window.barba && window.barba.cache) {
-            // Add to Barba's cache
+            // Discover and preload media from this page using MediaPreloader
+            const assets = mediaPreloader.discoverAssets(container); // container is already a DOM element
+            const mediaPromise = mediaPreloader.preload(assets);
+
+            // Add to Barba's cache with media promise
             window.barba.cache.set(url, {
               html: html,
               container: container,
+              mediaReady: mediaPromise // NEW: Track media loading
             });
 
             // Also try to cache the URL without .html for cleaner URLs
@@ -68,20 +74,17 @@ async function preloadPages() {
               window.barba.cache.set(cleanUrl, {
                 html: html,
                 container: container,
+                mediaReady: mediaPromise
               });
             }
 
-            console.log(`Successfully cached: ${path}`);
-
-            // Preload hero images from the page
-            const heroImages = container.querySelectorAll(".hero img, .hero-image img, [data-hero-image]");
-            heroImages.forEach((img) => {
-              if (img.src || img.dataset.src) {
-                const imgSrc = img.src || img.dataset.src;
-                const image = new Image();
-                image.src = imgSrc;
-                console.log(`Preloading hero image: ${imgSrc}`);
-              }
+            console.log(`Successfully cached HTML and started media preload: ${path}`);
+            
+            // Allow media loading to proceed in background
+            mediaPromise.then(() => {
+                console.log(`Media preloaded for: ${path}`);
+            }).catch(err => {
+                console.warn(`Media preload warning for ${path}:`, err);
             });
           }
 
@@ -171,6 +174,15 @@ export function loadingSplash() {
 
       // Start preloading pages while showing the loading screen
       const preloadingPromise = preloadPages();
+
+      // Start preloading media for the current page
+      const currentContainer = document.querySelector('[data-barba="container"]');
+      if (currentContainer) {
+        console.log("Starting media preload for current page");
+        const currentAssets = mediaPreloader.discoverAssets(currentContainer);
+        // We don't await this here as we want animations to run, but we start it early
+        mediaPreloader.preload(currentAssets);
+      }
 
       // Add a logo ready listener
       document.addEventListener("logo3d-ready", function logoReadyHandler() {
@@ -278,6 +290,8 @@ export function loadingSplash() {
                 if (contentElements.length > 0) {
                   Array.from(contentElements).forEach((el) => {
                     if (el.matches(revealManagedSelectors)) {
+                      // Set inline opacity: 0 to ensure elements start hidden
+                      // The reveal logic will remove this inline style to allow CSS transition
                       gsap.set(el, { opacity: 0, pointerEvents: "auto", visibility: "visible" });
                     } else {
                       gsap.set(el, { opacity: 0, pointerEvents: "auto", visibility: "visible" });
