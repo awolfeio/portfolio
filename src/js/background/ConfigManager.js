@@ -219,63 +219,23 @@ export class ConfigManager {
     // Select palette
     const palette = namespace === 'about' ? palettes.about : palettes.default;
     
-    // Prepare uniforms object for transition
+    // Prepare uniforms object for transition dynamically from config
+    // Start with colors from palette
     const uniforms = {
-      // Colors
       u_color1: palette.u_color1,
       u_color2: palette.u_color2,
       u_color3: palette.u_color3,
       u_baseColor: palette.u_baseColor,
-
-      u_zoom: config.u_zoom,
-      u_noiseScale: config.u_noiseScale,
-      u_octaves: config.u_octaves,
-      u_lacunarity: config.u_lacunarity,
-      u_gain: config.u_gain,
-      u_turbulence: config.u_turbulence,
-      u_warpOctaves: config.u_warpOctaves,
-      u_ridgeAmount: config.u_ridgeAmount,
-      u_detailScale: config.u_detailScale,
-      u_detailAmount: config.u_detailAmount,
-      u_speed: config.u_speed,
-      u_directionX: config.u_directionX,
-      u_directionY: config.u_directionY,
-      u_modulationSpeed: config.u_modulationSpeed,
-      u_modulationIntensity: config.u_modulationIntensity,
-      u_turbulenceModulation: config.u_turbulenceModulation,
-      u_zoomModulation: config.u_zoomModulation,
-      u_colorModulation: config.u_colorModulation,
-      u_rotationModulation: config.u_rotationModulation,
-      u_noiseScaleModulation: config.u_noiseScaleModulation,
-      u_gainModulation: config.u_gainModulation,
-      u_colorSpreadModulation: config.u_colorSpreadModulation,
-      u_colorShiftModulation: config.u_colorShiftModulation,
-      u_softness: config.u_softness,
-      u_contrast: config.u_contrast,
-      u_brightness: config.u_brightness,
-      u_exposure: config.u_exposure,
-      u_blackLevel: config.u_blackLevel,
-      u_colorMix1: config.u_colorMix1,
-      u_colorMix2: config.u_colorMix2,
-      u_colorSpread: config.u_colorSpread,
-      u_colorSeparation: config.u_colorSeparation,
-      u_colorBands: config.u_colorBands,
-      u_grainIntensity: config.u_grainIntensity,
-      u_grainSpeed: config.u_grainSpeed,
-      u_grainSize: config.u_grainSize,
-      u_grainBlendMode: config.u_grainBlendMode,
-      u_grainAspect: config.u_grainAspect,
-      u_grainComplexity: config.u_grainComplexity,
-      u_circularMotionIntensity: config.u_circularMotionIntensity,
-      u_evolutionSpeed: config.u_evolutionSpeed,
-      u_layerBlend: config.u_layerBlend,
-      u_colorEvolutionSpeed: config.u_colorEvolutionSpeed,
-      u_rippleFrequency: config.u_rippleFrequency,
-      u_rippleStrength: config.u_rippleStrength,
-      u_quantizeStep: config.u_quantizeStep,
-      u_mirrorX: config.u_mirrorX,
-      u_mirrorY: config.u_mirrorY,
     };
+    
+    // Add all parameters from config (these come from presets or custom configs)
+    // This ensures ALL parameters defined in presets are applied
+    Object.keys(config).forEach(key => {
+      // Skip non-uniform keys and color keys (already handled above)
+      if (key.startsWith('u_') && !['u_color1', 'u_color2', 'u_color3', 'u_baseColor'].includes(key)) {
+        uniforms[key] = config[key];
+      }
+    });
     
     // Use ShaderController's transitionTo for smooth GSAP transitions
     this.shaderController.transitionTo(uniforms, duration);

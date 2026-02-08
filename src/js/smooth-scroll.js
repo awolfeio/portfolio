@@ -53,12 +53,7 @@ export default function initSmoothScroll() {
   // Add ScrollTrigger listener for Lenis
   gsap.ticker.lagSmoothing(0);
 
-  // Make header initialized class be added on scroll
-  lenis.on("scroll", ({ scroll }) => {
-    if (scroll > 5 && !document.querySelector("header").classList.contains("initialized")) {
-      document.querySelector("header").classList.add("initialized");
-    }
-  });
+
 
   // Fix for iOS initial scroll position issues
   if (isTouchDevice) {

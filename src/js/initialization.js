@@ -5,7 +5,7 @@ import backgroundManager from "./background/index.js";
 import { loadingSplash } from "./loading-screen.js";
 import { rotateTitles } from "./type-anim.js";
 import { gsap } from "gsap";
-import { setupEventHandlers, setupHeaderInitialization, setupMobileMenuHandlers } from "./event-handlers.js";
+import { setupEventHandlers, setupMobileMenuHandlers } from "./event-handlers.js";
 import { setupResizeHandlers } from "./resize-handlers.js";
 
 /**
@@ -58,7 +58,7 @@ function setupEvents() {
   setupEventHandlers();
 
   // Setup header initialization
-  setupHeaderInitialization();
+
 
   // Make stage visible
   document.getElementById("stage").style.display = "block";

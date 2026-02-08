@@ -185,19 +185,4 @@ function handleMobileMenuClick() {
       this.classList.toggle("active");
 }
 
-/**
- * Handle header initialization on different events
- */
-export function setupHeaderInitialization() {
-  const headerElement = document.querySelector("header");
 
-  function initialize(event) {
-    if (!headerElement.classList.contains("initialized")) {
-      headerElement.classList.add("initialized");
-      eventTypes.forEach((evt) => headerElement.removeEventListener(evt, initialize));
-    }
-  }
-
-  const eventTypes = ["mouseenter", "hover", "touchstart"];
-  eventTypes.forEach((evt) => headerElement.addEventListener(evt, initialize));
-}

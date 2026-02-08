@@ -450,32 +450,49 @@ float sparkleNoise(vec2 uv) {
     return n;
 }
 
-vec3 metallicFlakes(vec2 uv, vec3 normal, float scale, float strength, float time) {
+vec3 metallicFlakes(vec2 uv, vec3 normal, float scale, float strength, float time, vec3 baseColor, float displacement) {
     // 1. High frequency grid for flakes
-    // Scale UVs up significantly
     vec2 flakeUV = uv * scale;
     
-    // 2. Compute per-cell sparkle
+    // 2. Compute per-cell sparkle with JITTER for randomization
     vec2 cell = floor(flakeUV);
     vec2 local = fract(flakeUV);
+    
+    // Random position within the cell (0.2 to 0.8 to keep away from edges)
+    vec2 randomCenter = hash2(cell) * 0.6 + 0.2;
+    
+    // Distance from current pixel to the random center
+    float dist = distance(local, randomCenter);
     
     // 3. Jitter: Use the cell ID to get a random "orientation" for the flake
     float hash = sparkleNoise(cell);
     
-    // 4. Persistence: REMOVED view-dependent flickering to keep them visible
-    // They will naturally move because 'uv' (warpedPos) moves
+    // Additional hash for color variation per flake
+    float colorHash = sparkleNoise(cell + vec2(42.7, 13.3));
     
-    // 5. Thresholding to make them sparse and sharp
-    // Only show flake if hash is high enough - STATIC selection (persistent)
-    float probability = smoothstep(0.95, 1.0, hash);
+    // 4. Thresholding/Probability
+    // Independent of displacement - uniform random distribution first
+    float probability = smoothstep(0.97, 1.0, hash);
     
-    // 6. Normal mask: Flakes show up more on "slopes" or flats?
-    // Let's make them show up everywhere but modulated by surface lighting
-    // Simple Lambert-ish term to simulate distinct flake reflection
+    // 5. Shape: Circular dot with larger radius to ensure visibility
+    // expanded radius (0.8) ensures it fills the cell enough to be seen even at high scale
+    float shape = 1.0 - smoothstep(0.2, 0.8, dist);
+    
+    // 6. Normal mask: modulated by light
     float light = max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
     
-    // Combine - consistently visible
-    return vec3(1.0) * probability * strength * light;
+    // 7. Prominence modulation
+    // Flakes are brighter on "peaks" (high displacement)
+    // Displacement boosts strength from 1.0x to 3.0x
+    float displacementFactor = smoothstep(0.2, 0.8, displacement);
+    float prominence = 1.0 + 2.0 * displacementFactor;
+    
+    // 8. Color blending: "Holo Sparkle" Additive feel
+    // Use much brighter base (x3.0) and mix with pure white
+    vec3 sparkColor = mix(baseColor * 3.0, vec3(1.5), 0.6 + colorHash * 0.4);
+    
+    // Combine
+    return sparkColor * probability * shape * strength * light * prominence;
 }
 
 // ===== END NOISE FUNCTIONS =====
@@ -854,12 +871,12 @@ void main() {
     
     // Phase 6 Step 4: Metallic Flakes
     if (u_flakeStrength > 0.001) {
-        // Use warpedPos so flakes flow with the liquid
-        // Need fairly high scale default
+        // Use evolvedSt (before warping) to prevent flakes from stretching
+        // while still flowing with the general movement
         vec3 normal = computeNormal(physicsNoise);
         float scale = u_flakeScale > 1.0 ? u_flakeScale : 80.0;
         
-        vec3 flakes = metallicFlakes(warpedPos, normal, scale, u_flakeStrength, u_time);
+        vec3 flakes = metallicFlakes(evolvedSt / max(u_zoomEffective, 0.01), normal, scale, u_flakeStrength, u_time, finalColor, physicsNoise);
         
         // Additive blend, but respecting the underlying darkness (optional)
         finalColor += flakes;

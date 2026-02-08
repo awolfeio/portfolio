@@ -11,6 +11,7 @@ import { initializeApp } from "./js/initialization.js";
 import { initializeBarba } from "./js/barba-transitions.js";
 import { setupVideoControls, preloadVideos } from "./js/media-handlers.js";
 import { setupEventHandlers } from "./js/event-handlers.js";
+import "./js/text-fill.js"; // Auto-initializes text fill for .fill-container and .fill-viewport elements
 
 // Video assets for preloading
 import video1 from "./assets/videos/MagsHomepageArticlePage.mp4";
