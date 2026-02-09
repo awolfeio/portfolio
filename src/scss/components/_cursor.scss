@@ -394,8 +394,9 @@ body:has(.next-project-banner:hover) {
     }
 }
 
-// Hide native browser cursor on .large-photo elements
-.large-photo {
+// Hide native browser cursor on .large-photo and .large-video elements
+.large-photo,
+.large-video {
     cursor: none;
 }
 

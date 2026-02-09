@@ -2,6 +2,15 @@
 @use "../components" as *;
 
 #index {
+    .home-content-wrapper {
+        width:80vw;
+        max-width:100%;
+        margin-left: auto;
+        margin-right: auto;
+        @media (max-width: $desktop-viewport) {
+            width:92vw;
+        }
+    }
     h1 {
         font-size: 140px;
         margin-bottom: 16px;

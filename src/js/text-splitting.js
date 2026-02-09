@@ -99,6 +99,7 @@ export default function splitText() {
       if (splitLines.lines) {
         splitLines.lines.forEach((line, index) => {
           line.setAttribute("data-line-index", index);
+          line.setAttribute("data-text", line.textContent);
 
           // Initially make each line have 0 opacity to prevent flash
           line.style.opacity = "0";

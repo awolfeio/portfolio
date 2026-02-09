@@ -27,6 +27,10 @@ const ZOOMED_ZOOM = DEFAULT_ZOOM * 1.1;
 // Animated zoom level for smooth transitions
 let currentZoomLevel = { value: DEFAULT_ZOOM };
 
+// Global mouse position for scroll interactions
+let currentMousePos = { x: -100, y: -100 };
+let cachedLargeMedia = []; // Cache for scroll checking
+
 /**
  * Initialize cursor element and set up optimized movement tracking
  */
@@ -57,6 +61,7 @@ export function cursorElement() {
     window.addEventListener("mousemove", (e) => {
       // Store pending move position
       pendingMove = { x: e.clientX, y: e.clientY };
+      currentMousePos = { x: e.clientX, y: e.clientY }; // Update global pos
       
       // Show cursor on first move (only once)
       if (!hasShown) {
@@ -276,23 +281,36 @@ export function setupMagnifyingGlass() {
     return;
   }
   
-  const largePhotos = document.querySelectorAll(".large-photo");
-  console.log(`Found ${largePhotos.length} .large-photo elements`);
+  const largeMedia = document.querySelectorAll(".large-photo, .large-video");
+  cachedLargeMedia = Array.from(largeMedia); // Cache as array for scroll checking
+  console.log(`Found ${largeMedia.length} .large-photo/.large-video elements`);
   
-  largePhotos.forEach((photo, index) => {
-    const img = photo.querySelector("img");
-    if (!img) {
-      console.warn(`No img found in .large-photo[${index}]`);
+  largeMedia.forEach((container, index) => {
+    // Check for img or video
+    const img = container.querySelector("img");
+    const video = container.querySelector("video");
+    const media = img || video;
+    
+    if (!media) {
+      console.warn(`No img or video found in .large-photo/.large-video[${index}]`);
       return;
     }
     
-    console.log(`Setting up magnifying glass for .large-photo[${index}]`);
+    console.log(`Setting up magnifying glass for .large-photo/.large-video[${index}]`);
     
-    // Ensure image is loaded before setting up hover
-    if (!img.complete) {
-      img.addEventListener("load", () => setupPhotoHover(photo, img));
-    } else {
-      setupPhotoHover(photo, img);
+    // Ensure media is loaded before setting up hover
+    if (media.tagName === 'IMG') {
+      if (!media.complete) {
+        media.addEventListener("load", () => setupPhotoHover(container, media));
+      } else {
+        setupPhotoHover(container, media);
+      }
+    } else if (media.tagName === 'VIDEO') {
+      if (media.readyState < 2) { // HAVE_CURRENT_DATA
+        media.addEventListener("loadeddata", () => setupPhotoHover(container, media));
+      } else {
+        setupPhotoHover(container, media);
+      }
     }
   });
 }
@@ -300,9 +318,15 @@ export function setupMagnifyingGlass() {
 /**
  * Set up hover handlers for a photo element
  */
-function setupPhotoHover(photo, img) {
-  photo.addEventListener("mouseenter", () => {
-    currentLargePhoto = { element: photo, img: img };
+function setupPhotoHover(photo, media) {
+  photo.addEventListener("mouseenter", (e) => {
+    // Capture initial mouse position from the enter event
+    currentLargePhoto = { 
+      element: photo, 
+      media: media, 
+      lastMouseX: e.clientX, 
+      lastMouseY: e.clientY 
+    };
     isZoomedIn = false; // Reset zoom state on enter
     
     // Reset zoom level to default (instant)
@@ -394,17 +418,76 @@ function setupPhotoHover(photo, img) {
 // Global scroll handler for magnifying glass updates
 let scrollUpdateRafId = null;
 window.addEventListener("scroll", () => {
-  // Only update if we're currently hovering over a large photo
-  if (!currentLargePhoto || !currentLargePhoto.lastMouseX) return;
-  
   // Use RAF to throttle scroll updates
   if (!scrollUpdateRafId) {
     scrollUpdateRafId = requestAnimationFrame(() => {
-      // Update the canvas with the last known mouse position
-      // The image position has changed due to scroll, so we need to redraw
-      if (currentLargePhoto && currentLargePhoto.lastMouseX) {
-        updateMagnifyingGlass(currentLargePhoto.lastMouseX, currentLargePhoto.lastMouseY);
+      const mouseX = currentMousePos.x;
+      const mouseY = currentMousePos.y;
+      
+      // 1. HANDLE EXIT: If currently hovering, check if we scrolled out
+      if (currentLargePhoto) {
+        // Update last mouse known position for the render loop
+        currentLargePhoto.lastMouseX = mouseX;
+        currentLargePhoto.lastMouseY = mouseY;
+        
+        const rect = currentLargePhoto.element.getBoundingClientRect();
+        
+        // Add a small buffer/tolerance if needed, or stick to strict bounds
+        const isOutside = (
+          mouseX < rect.left || 
+          mouseX > rect.right || 
+          mouseY < rect.top || 
+          mouseY > rect.bottom
+        );
+        
+        if (isOutside) {
+          // Force leave event to clean up
+          currentLargePhoto.element.dispatchEvent(new MouseEvent('mouseleave'));
+          // currentLargePhoto is now null (set in mouseleave handler)
+        } else {
+          // Still inside, just update the visual position
+          updateMagnifyingGlass(mouseX, mouseY);
+          // Return early since we are still hovering
+          scrollUpdateRafId = null;
+          return;
+        }
       }
+      
+      // 2. HANDLE ENTRY: If NOT hovering (or just exited), check if we scrolled INTO one
+      if (!currentLargePhoto && cachedLargeMedia.length > 0) {
+        // Optimize: Don't check loop if mouse is off-screen (e.g. initial load)
+        if (mouseX < 0 || mouseY < 0) {
+            scrollUpdateRafId = null;
+            return;
+        }
+
+        for (const container of cachedLargeMedia) {
+          // Skip if disconnected
+          if (!container.isConnected) continue;
+
+          const rect = container.getBoundingClientRect();
+          
+          // Check if mouse is inside this element
+          if (mouseX >= rect.left && mouseX <= rect.right &&
+              mouseY >= rect.top && mouseY <= rect.bottom) {
+              
+              // Trigger entrance
+              // Dispatch mouseenter to trigger setupPhotoHover logic
+              container.dispatchEvent(new MouseEvent('mouseenter', {
+                 clientX: mouseX,
+                 clientY: mouseY,
+                 bubbles: true
+              }));
+
+              // Force update immediately to ensure canvas shows new content (avoids 1-frame glitch)
+              updateMagnifyingGlass(mouseX, mouseY);
+              
+              // Only activate one, then break
+              break; 
+          }
+        }
+      }
+      
       scrollUpdateRafId = null;
     });
   }
@@ -416,7 +499,7 @@ window.addEventListener("scroll", () => {
 function updateMagnifyingGlass(mouseX, mouseY) {
   if (!currentLargePhoto || !magnifyGlass) return;
   
-  const { element, img } = currentLargePhoto;
+  const { element, media } = currentLargePhoto;
   const canvas = magnifyGlass.querySelector(".magnify-canvas");
   const ctx = canvas.getContext("2d");
   
@@ -426,18 +509,28 @@ function updateMagnifyingGlass(mouseX, mouseY) {
     top: mouseY
   });
   
-  // Get image and canvas dimensions
-  const imgRect = img.getBoundingClientRect();
+  // Get media and canvas dimensions
+  const mediaRect = media.getBoundingClientRect();
   const canvasSize = canvas.width; // Already 2x for retina
   const displaySize = parseInt(canvas.style.width); // Actual display size
   
-  // Calculate mouse position relative to image
-  const relativeX = mouseX - imgRect.left;
-  const relativeY = mouseY - imgRect.top;
+  // Calculate mouse position relative to media
+  const relativeX = mouseX - mediaRect.left;
+  const relativeY = mouseY - mediaRect.top;
   
-  // Calculate scale factors between displayed image and natural image size
-  const scaleX = img.naturalWidth / imgRect.width;
-  const scaleY = img.naturalHeight / imgRect.height;
+  // Calculate scale factors between displayed media and natural media size
+  let naturalWidth, naturalHeight;
+  
+  if (media.tagName === 'VIDEO') {
+    naturalWidth = media.videoWidth;
+    naturalHeight = media.videoHeight;
+  } else {
+    naturalWidth = media.naturalWidth;
+    naturalHeight = media.naturalHeight;
+  }
+  
+  const scaleX = naturalWidth / mediaRect.width;
+  const scaleY = naturalHeight / mediaRect.height;
   
   // Calculate source position in the original image (centered on cursor)
   // Use animated zoom level for smooth transitions
@@ -473,10 +566,10 @@ function updateMagnifyingGlass(mouseX, mouseY) {
   ctx.closePath();
   ctx.clip();
   
-  // Draw the zoomed portion of the image
+  // Draw the zoomed portion of the media
   try {
     ctx.drawImage(
-      img,
+      media,
       sourceX,
       sourceY,
       sourceSize * scaleX,

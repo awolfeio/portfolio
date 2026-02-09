@@ -372,11 +372,27 @@ span {
             animation: zFadeIn 1.4s;
             animation-fill-mode: forwards;
             animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
-
+            position: relative;
             @for $i from 1 through 20 {
                 &[data-line-index="#{$i - 1}"] {
                     animation-delay: calc(0.1s * #{$i} + 0.2s);
                 }
+            }
+
+            &:before {
+                content: attr(data-text);
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                visibility: visible !important;
+                animation-delay: calc(0.04s * var(--char-index)) !important;
+                backface-visibility: hidden;
+                will-change: transform;
+                color: transparent;
+                //text-shadow:0px 0.5px 1.5px rgba(255,255,255,0.5), 0px 1px 2px rgba(255,255,255,0.4), 0px 0.75px 12px rgba(255,255,255,0.4), 0px 1px 3px rgba(255,255,255,0.4); 
+                //-webkit-text-stroke: 4px rgba(255,255,255,0.4);
             }
         }
     }

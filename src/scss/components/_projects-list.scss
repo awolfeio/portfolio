@@ -5,7 +5,11 @@
     flex-direction: column;
     margin-left: auto;
     margin-right: auto;
-
+    width:80vw;
+    max-width:100%;
+    @media (max-width: $desktop-viewport) {
+        width:92vw;
+    }
     a {
         position: relative;
         color: #000;

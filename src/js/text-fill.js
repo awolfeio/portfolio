@@ -10,6 +10,7 @@
  * - Responsive resizing on window/container changes
  * - Variable character counts and font styles
  * - Font weight, letter-spacing, and text-transform inheritance
+ * - Waits for fonts to load before calculation
  */
 
 class TextFill {
@@ -24,7 +25,7 @@ class TextFill {
       viewportFillPercent: 92, // Fill 92% of viewport (4% margin on sides)
       minFontSize: 8,
       maxFontSize: 800,
-      debounceDelay: 50,
+      debounceDelay: 20, // Reduced delay for responsiveness
     };
 
     this.init();
@@ -36,7 +37,7 @@ class TextFill {
     // Set up ResizeObserver for container changes
     if (window.ResizeObserver) {
       this.resizeObserver = new ResizeObserver((entries) => {
-        this.debounce(() => {
+        window.requestAnimationFrame(() => {
           entries.forEach((entry) => {
             // Find elements within resized containers
             this.recalculateElementsInContainer(entry.target);
@@ -71,6 +72,13 @@ class TextFill {
 
     // Initial scan
     this.scanForElements(document.body);
+
+    // Ensure we recalculate when fonts are ready
+    if (document.fonts) {
+      document.fonts.ready.then(() => {
+        this.recalculateAll();
+      });
+    }
 
     this.isInitialized = true;
   }
@@ -139,7 +147,7 @@ class TextFill {
   }
 
   /**
-   * Get the target width based on mode
+   * Get the target content width for the text
    * @param {HTMLElement} element - The element
    * @param {'container'|'viewport'} mode - Fill mode
    * @returns {number} Target width in pixels
@@ -149,17 +157,31 @@ class TextFill {
       // Use 92% of viewport width (4% margin on each side)
       return (window.innerWidth * this.config.viewportFillPercent) / 100;
     } else {
-      // Use parent container width
+      // Use parent container width, accounting for parent padding and element borders/padding
       const parent = element.parentElement;
       if (!parent) return window.innerWidth;
 
-      // Get computed padding of parent
+      // Get computed styles
       const parentStyle = window.getComputedStyle(parent);
-      const paddingLeft = parseFloat(parentStyle.paddingLeft) || 0;
-      const paddingRight = parseFloat(parentStyle.paddingRight) || 0;
+      const elementStyle = window.getComputedStyle(element);
       
-      // Return available content width
-      return parent.clientWidth - paddingLeft - paddingRight;
+      const parentWidth = parent.clientWidth;
+      const parentPadding = parseFloat(parentStyle.paddingLeft) + parseFloat(parentStyle.paddingRight);
+      
+      // Calculate available width in parent content box
+      let availableWidth = parentWidth - parentPadding;
+      
+      // Subtract element margins
+      const elementMargin = parseFloat(elementStyle.marginLeft) + parseFloat(elementStyle.marginRight);
+      availableWidth -= elementMargin;
+      
+      // Subtract element border and padding (since text lives inside content box)
+      const elementBorder = parseFloat(elementStyle.borderLeftWidth) + parseFloat(elementStyle.borderRightWidth);
+      const elementPadding = parseFloat(elementStyle.paddingLeft) + parseFloat(elementStyle.paddingRight);
+      
+      availableWidth -= (elementBorder + elementPadding);
+      
+      return Math.max(0, availableWidth);
     }
   }
 
@@ -170,7 +192,7 @@ class TextFill {
    */
   createMeasurer(originalElement) {
     const measurer = document.createElement('span');
-    measurer.textContent = originalElement.textContent || originalElement.innerText;
+    measurer.textContent = (originalElement.textContent || originalElement.innerText || '').trim();
 
     // Copy all relevant font styles
     const computedStyle = window.getComputedStyle(originalElement);
@@ -211,45 +233,54 @@ class TextFill {
     const measurer = this.createMeasurer(element);
     document.body.appendChild(measurer);
 
-    // Binary search for optimal font size
-    let minSize = config.minFontSize;
-    let maxSize = config.maxFontSize;
-    let optimalSize = minSize;
+    // Use a reference font size to calculate ratio
+    const referenceSize = 100;
+    measurer.style.fontSize = `${referenceSize}px`;
+    
+    const measuredWidth = measurer.getBoundingClientRect().width;
+    
+    if (measuredWidth === 0) {
+      document.body.removeChild(measurer);
+      return;
+    }
 
-    // Increase precision for better filling
-    while (maxSize - minSize > 0.5) {
-      const midSize = (minSize + maxSize) / 2;
-      measurer.style.fontSize = `${midSize}px`;
+    // Calculate ideal font size based on ratio
+    const ratio = targetWidth / measuredWidth;
+    let idealSize = referenceSize * ratio;
 
-      const textWidth = measurer.scrollWidth;
+    // Clamp size
+    idealSize = Math.max(config.minFontSize, Math.min(config.maxFontSize, idealSize));
 
-      if (textWidth <= targetWidth) {
-        optimalSize = midSize;
-        minSize = midSize;
-      } else {
-        maxSize = midSize;
-      }
+    // Refinement: Double check fit and adjust if needed
+    // Sometimes sub-pixel rendering or kerning changes non-linearly
+    measurer.style.fontSize = `${idealSize}px`;
+    const finalWidth = measurer.getBoundingClientRect().width;
+    
+    // If we overshot/undershot by > 1px, adjust scaling
+    if (Math.abs(finalWidth - targetWidth) > 1) {
+       const correctionRatio = targetWidth / finalWidth;
+       idealSize *= correctionRatio;
     }
 
     // Clean up
     document.body.removeChild(measurer);
 
-    // Apply calculated font size using vw for responsiveness
+    // Apply calculated font size
     if (config.mode === 'viewport') {
       // Convert to vw for viewport mode
-      const vwSize = (optimalSize / window.innerWidth) * 100;
+      const vwSize = (idealSize / window.innerWidth) * 100;
       element.style.fontSize = `${vwSize}vw`;
     } else {
-      // For container mode, use px but recalculate on resize
-      element.style.fontSize = `${optimalSize}px`;
+      // For container mode, use px
+      element.style.fontSize = `${idealSize}px`;
     }
 
-    // Ensure the element doesn't wrap
+    // Ensure the element doesn't wrap and obeys layout
     element.style.whiteSpace = 'nowrap';
     element.style.display = 'block';
     element.style.width = '100%';
     
-    // Center for viewport mode
+    // Align text centered if viewport mode
     if (config.mode === 'viewport') {
       element.style.textAlign = 'center';
     }
@@ -261,7 +292,8 @@ class TextFill {
    */
   recalculateElementsInContainer(container) {
     this.elements.forEach((config, element) => {
-      if (config.mode === 'container' && container.contains(element)) {
+      // Check if element is inside container or IS the container
+      if (config.mode === 'container' && (container === element || container.contains(element))) {
         this.calculateFontSize(element, config);
       }
     });

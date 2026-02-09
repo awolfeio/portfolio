@@ -36,8 +36,8 @@ export class PerformanceMonitor {
    * OPTIMIZED: Uses cached DOM references instead of innerHTML rebuilding
    */
   createStatsDisplay() {
-    // Only render stats in development mode
-    if (!import.meta.env.DEV) return;
+    // Check if duplicate
+    if (this.statsElement) return;
 
     this.statsElement = document.createElement('div');
     this.statsElement.id = 'bg-performance-stats';

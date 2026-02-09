@@ -3,7 +3,7 @@ import { ShaderController } from "./ShaderController.js";
 import { createConfigManager } from "./ConfigManager.js";
 import { createPerformanceMonitor } from "./PerformanceMonitor.js";
 import { createAdaptiveQualityManager } from "./AdaptiveQualityManager.js";
-import { initDevGUI } from "./DevGUI.js";
+import { initDevGUI, DevGUI } from "./DevGUI.js"; // Import class to allow manual instantiation
 
 /**
  * Main background system entry point
@@ -30,10 +30,10 @@ class BackgroundManager {
     // Detect initial page namespace before initializing renderer
     const initialNamespace = this.detectInitialPageNamespace();
 
-    // Create performance monitor (ENABLED BY DEFAULT FOR PERFORMANCE TESTING)
+    // Create performance monitor
     const isDev = window.location.hostname === 'localhost' || 
                   window.location.search.includes('debug=true');
-    this.performanceMonitor = createPerformanceMonitor(true); // Always enabled for testing
+    this.performanceMonitor = createPerformanceMonitor(isDev); 
 
     // Create renderer with performance monitor
     this.renderer = new BackgroundRenderer(containerId, this.performanceMonitor);
@@ -88,6 +88,9 @@ class BackgroundManager {
 
     // Initialize DevGUI in development mode
     this.devGUI = initDevGUI(this);
+    
+    // Setup dev mode secret trigger
+    this.setupDevModeSecret();
 
     return this;
   }
@@ -358,7 +361,63 @@ class BackgroundManager {
     this.isInitialized = false;
     console.log("Background system destroyed");
   }
+  /**
+   * Setup 'devmode' secret typing trigger
+   */
+  setupDevModeSecret() {
+    let buffer = "";
+    const secret = "devmode";
+    
+    window.addEventListener("keydown", (e) => {
+      // Ignore if typing in an input
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      
+      if (e.key && e.key.length === 1 && /[a-z]/i.test(e.key)) {
+        buffer += e.key.toLowerCase();
+        
+        // Trim buffer
+        if (buffer.length > secret.length) {
+          buffer = buffer.slice(-secret.length);
+        }
+        
+        // Check match
+        if (buffer === secret) {
+          this.toggleDevMode();
+          buffer = "";
+        }
+      }
+    });
+  }
+
+  /**
+   * Toggle development mode tools
+   */
+  toggleDevMode() {
+    console.log("🔓 Dev mode triggered!");
+    
+    // Toggle Performance Monitor
+    if (this.performanceMonitor) {
+      this.performanceMonitor.toggle();
+    }
+    
+    // Toggle/Create DevGUI
+    if (!this.devGUI) {
+        // Dynamic import if needed, but we imported the class at top
+        try {
+          this.devGUI = new DevGUI(this);
+        } catch(e) {
+          console.error("Could not init DevGUI", e);
+        }
+    } else {
+       if (this.devGUI.gui._hidden) {
+           this.devGUI.gui.show();
+       } else {
+           this.devGUI.gui.hide();
+       }
+    }
+  }
 }
+
 
 // Create singleton instance
 const backgroundManager = new BackgroundManager();
