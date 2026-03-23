@@ -215,7 +215,7 @@ export function loadingSplash() {
         if (loadBar.classList.contains("loading")) {
           clearInterval(loadingReadyCheck);
 
-          // Run text splitting first
+          // Run text splitting first (only once — do NOT call again later)
           splitText();
 
           loadBar.addEventListener("animationend", () => {
@@ -281,6 +281,7 @@ export function loadingSplash() {
                 splitText();
 
                 // Now start the actual animation sequence
+                // NOTE: splitText() was already called above — do not call again here.
 
                 if (mainContent) {
                   gsap.set(mainContent, { opacity: 0, pointerEvents: "none" });
@@ -302,8 +303,6 @@ export function loadingSplash() {
 
                 // Run H1 character animations first
                 tl.call(() => {
-                  console.log("Loading screen: running H1 animations");
-
                   // Explicitly mark as initial page load before animations
                   if (window.animationController) {
                     window.animationController.initialPageLoad = true;
@@ -325,13 +324,9 @@ export function loadingSplash() {
                 // Run animations for data-splitting elements
                 tl.call(
                   () => {
-                    console.log("Loading screen: running data-splitting animations");
-
-                    // Ensure flags are set correctly
                     if (window.animationController) {
                       window.animationController.initialPageLoad = true;
                     }
-
                     animateDataSplittingChars();
                   },
                   null,
@@ -363,10 +358,7 @@ export function loadingSplash() {
 
                 // Run circle text animations
                 tl.call(
-                  () => {
-                    console.log("Loading screen: running circle text effect");
-                    circleText();
-                  },
+                  () => { circleText(); },
                   null,
                   null,
                   "+=0.1"
@@ -377,19 +369,13 @@ export function loadingSplash() {
                 if (isHomepage) {
                   tl.call(
                     () => {
-                      // Clear any existing title rotation
                       if (window.titleAnimationInterval) {
                         clearInterval(window.titleAnimationInterval);
                         window.titleAnimationInterval = null;
                       }
-
-                      // Ensure flags are set correctly
                       if (window.animationController) {
                         window.animationController.initialPageLoad = true;
                       }
-
-                      // Initialize title rotation
-                      console.log("Loading-screen: starting title rotation");
                       rotateTitles("loading-screen.js");
                     },
                     null,
@@ -399,36 +385,26 @@ export function loadingSplash() {
                 }
 
                 // Set up all scroll-triggered animations
+                // NOTE: setupUnifiedReveals() is called AFTER loading splash removal
+                // to prevent premature reveals
                 tl.call(
                   () => {
-                    console.log("Loading screen: setting up scroll features (excluding fade-reveal)");
-
-                    // NOTE: setupUnifiedReveals() is called AFTER loading splash removal
-                    // to prevent premature reveals
-
-                    // Set up magnifying glass for .large-photo elements
                     setupMagnifyingGlass();
-
-                    // Enable video playback on scroll
                     playVideosOnEnter();
-
-                    // Setup auto-scrolling containers
                     autoScrollContainer();
-
-                    // Initialize smooth scrolling
                     initSmoothScroll();
 
-                    // Force initial scroll height calculation after a delay
-                    setTimeout(() => {
-                      if (window.ScrollTrigger) {
-                        window.ScrollTrigger.refresh();
-                        console.log("Initial ScrollTrigger refresh after page load");
-                      }
-                      if (window.lenis) {
-                        window.lenis.resize();
-                        console.log("Initial Lenis resize after page load");
-                      }
-                    }, 200);
+                    // Defer scroll recalculation to idle time so it never
+                    // interrupts an in-flight reveal animation.
+                    const scheduleRefresh = () => {
+                      if (window.ScrollTrigger) window.ScrollTrigger.refresh();
+                      if (window.lenis) window.lenis.resize();
+                    };
+                    if (typeof requestIdleCallback === 'function') {
+                      requestIdleCallback(scheduleRefresh, { timeout: 1000 });
+                    } else {
+                      setTimeout(scheduleRefresh, 500);
+                    }
                   },
                   null,
                   null,
@@ -478,17 +454,19 @@ export function loadingSplash() {
                 window.animationController.initialPageLoad = false;
               }
 
-              // NOW set up fade-reveal system after loading splash is completely removed
-              console.log("Loading screen removed - now setting up fade-reveal system");
+              // Set up fade-reveal system after loading splash is completely removed
               setupUnifiedReveals();
-              
-              // Refresh ScrollTrigger after setting up reveals
-              setTimeout(() => {
-                if (window.ScrollTrigger) {
-                  window.ScrollTrigger.refresh();
-                  console.log("ScrollTrigger refresh after fade-reveal setup");
-                }
-              }, 100);
+
+              // Refresh ScrollTrigger at idle time — well after any in-flight
+              // reveal animations — to avoid a forced layout mid-transition.
+              const schedulePostRevealRefresh = () => {
+                if (window.ScrollTrigger) window.ScrollTrigger.refresh();
+              };
+              if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(schedulePostRevealRefresh, { timeout: 1500 });
+              } else {
+                setTimeout(schedulePostRevealRefresh, 600);
+              }
             }, 500);
           });
         }

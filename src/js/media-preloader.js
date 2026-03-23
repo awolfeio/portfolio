@@ -84,13 +84,17 @@ class MediaPreloader {
     // Load critical first, then high priority in parallel
     await Promise.all(criticalPromises);
     
-    // Don't wait for high priority, but start loading
-    Promise.all(highPromises).then(() => {
-      console.log('High priority assets loaded');
-    });
+    // Don't wait for high priority, but start loading in background
+    Promise.all(highPromises);
 
-    // Low priority loads in background (fire and forget)
-    assets.low.forEach(a => this._loadAsset(a));
+    // Defer low-priority assets to true idle time so they don't compete
+    // with the GPU during reveal animations.
+    const scheduleLowPriority = () => assets.low.forEach(a => this._loadAsset(a));
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(scheduleLowPriority, { timeout: 3000 });
+    } else {
+      setTimeout(scheduleLowPriority, 2000);
+    }
 
     return { critical: criticalPromises.length, high: highPromises.length };
   }
@@ -131,20 +135,22 @@ class MediaPreloader {
   }
 
   _loadVideo(url) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const video = document.createElement('video');
-      video.preload = 'auto';
-      video.oncanplaythrough = () => {
+      // Use 'metadata' instead of 'auto' — fetches only duration/dimensions
+      // without buffering the full stream, which was competing with rendering
+      // resources during reveal animations.
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
         this.stats.videos++;
         resolve(url);
       };
       video.onerror = () => {
-          // Resolve anyway to not block
-          console.warn(`Failed to preload video: ${url}`);
-          resolve(url);
+        console.warn(`Failed to preload video: ${url}`);
+        resolve(url);
       };
       video.src = url;
-      video.load(); // Trigger load
+      video.load();
     });
   }
 

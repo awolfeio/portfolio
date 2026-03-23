@@ -28,7 +28,7 @@ let currentLargePhoto = null;
 let magnifyRafId = null;
 let isZoomedIn = false;      // (kept for scroll-handler compat)
 let isMagnifyActive = false; // true when magnify glass is active
-const DEFAULT_ZOOM = 1.22;
+const DEFAULT_ZOOM = 1.4;
 
 // Animated zoom level for smooth transitions
 let currentZoomLevel = { value: DEFAULT_ZOOM };

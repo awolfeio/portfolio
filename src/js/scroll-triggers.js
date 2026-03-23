@@ -25,8 +25,6 @@ const revealChains = new Map();
  * All elements use .fade-reveal class and reveal in DOM order
  */
 export function setupUnifiedReveals() {
-  console.log("Setting up unified reveal system");
-
   // First, convert all reveal-type elements to use fade-reveal
   convertToFadeReveal();
 
@@ -36,40 +34,30 @@ export function setupUnifiedReveals() {
     return element.tagName.toLowerCase() !== "nav";
   });
 
-  if (allRevealElements.length === 0) {
-    console.log("No fade-reveal elements found");
-    return;
-  }
-
-  console.log(`Found ${allRevealElements.length} fade-reveal elements`);
+  if (allRevealElements.length === 0) return;
 
   // Check if loading screen is present
   const loadingSplash = document.querySelector('#loading-splash');
-  
-  // Create an individual ScrollTrigger for EACH element
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+  const revealThreshold = viewportHeight * 0.8;
+
+  // Batch ALL getBoundingClientRect reads BEFORE the forEach to avoid
+  // repeated forced layout/reflow inside the loop.
+  const rects = allRevealElements.map(el => el.getBoundingClientRect());
+
   allRevealElements.forEach((element, index) => {
-    const elementKey = `reveal-${index}`;
-    
-    console.log(`Creating ScrollTrigger for ${elementKey}:`, element.className);
-    
     ScrollTrigger.create({
       trigger: element,
-      start: "top 85%", // Trigger when top of element hits 85% down the viewport
+      start: "top 85%",
       end: "bottom 15%",
-      onEnter: () => {
-        console.log(`ScrollTrigger onEnter fired for ${elementKey}:`, element.className);
-        revealElement(element);
-      },
-      onLeaveBack: () => {
-        console.log(`ScrollTrigger onLeaveBack fired for ${elementKey}:`, element.className);
-        hideElement(element);
-      },
+      onEnter: () => revealElement(element),
+      onLeaveBack: () => hideElement(element),
       markers: false,
     });
 
-    // If no loading screen and element is already in viewport, reveal immediately
-    if (!loadingSplash && hasPassedRevealThreshold(element)) {
-      console.log(`${elementKey} already in viewport - revealing immediately:`, element.className);
+    // If no loading screen and element is already in viewport, reveal immediately.
+    // Use the pre-batched rect instead of calling getBoundingClientRect() again.
+    if (!loadingSplash && rects[index].top <= revealThreshold) {
       revealElement(element);
     }
   });
@@ -113,15 +101,13 @@ function convertToFadeReveal() {
  */
 function revealElement(element) {
   // Skip if already active
-  if (element.classList.contains('active')) {
-    return;
-  }
-  
-  console.log(`Revealing element:`, element.className);
-  
-  // Clear any inline opacity that GSAP may have set
-  gsap.set(element, { clearProps: 'opacity' });
-  
+  if (element.classList.contains('active')) return;
+
+  // Remove any inline opacity GSAP may have set so the CSS class-based
+  // transition takes full control — do this before adding .active so the
+  // browser doesn't trigger a synchronous style recalc mid-transition.
+  element.style.removeProperty('opacity');
+
   // Add the active class (and reveal class for splitting elements)
   const revealType = element.getAttribute("data-reveal-type");
   if (revealType === "splitting-rows" || revealType === "splitting") {
@@ -129,15 +115,31 @@ function revealElement(element) {
   }
   element.classList.add("active");
   element.style.pointerEvents = "auto";
-  
-  console.log(`Element revealed, computed opacity:`, window.getComputedStyle(element).opacity);
 }
 
 /**
- * Hide element when scrolling back up
+ * Hide element when scrolling back up — animated to mirror the entrance.
+ * CSS transitions are unreliable for off/near-viewport elements, so GSAP
+ * drives the exit explicitly.
  */
 function hideElement(element) {
-  element.classList.remove("active", "reveal");
+  if (!element.classList.contains('active')) return;
+
+  const revealType = element.getAttribute("data-reveal-type");
+
+  gsap.to(element, {
+    opacity: 0,
+    duration: 0.8,
+    ease: 'power2.in',
+    overwrite: 'auto',
+    onComplete: () => {
+      element.classList.remove('active', 'reveal');
+      // Clear GSAP's inline opacity so the CSS hidden state takes over cleanly
+      // for any subsequent re-reveals.
+      element.style.removeProperty('opacity');
+      element.style.pointerEvents = 'none';
+    }
+  });
 }
 
 /**
@@ -149,22 +151,18 @@ function startSequentialReveal(elements, groupKey) {
     revealChains.get(groupKey).kill();
   }
 
-  console.log(`Starting sequential reveal for ${groupKey} with ${elements.length} elements`);
-
   // Create a timeline for sequential reveals
   const tl = gsap.timeline();
 
   elements.forEach((element, index) => {
     const revealType = element.getAttribute("data-reveal-type") || "default";
     
-    // Check if this element should be part of a sequential chain
     // Exclude .large-photo, .large-video, .clip-swipe, and .skills-wrapper children from sequential behavior
     const isLargeMedia = element.classList.contains('large-photo') || element.classList.contains('large-video');
     const isClipSwipe = element.classList.contains('clip-swipe');
     const isSkillsWrapperChild = element.parentElement?.classList.contains('skills-wrapper');
     const shouldExcludeFromSequence = isLargeMedia || isClipSwipe || isSkillsWrapperChild;
     
-    // Check if this element has sequential siblings (same parent, consecutive fade-reveal elements)
     let isSequential = false;
     let elementIndex = 0;
     
@@ -181,103 +179,62 @@ function startSequentialReveal(elements, groupKey) {
       isSequential = siblings.length > 1 && elementIndex >= 0;
     }
     
-    // Calculate delay based on whether it's part of a sequential chain
     let delay = 0;
     if (isSequential && elementIndex > 0) {
-      // Wait for previous sibling to complete (base animation duration + reveal duration)
-      delay = ">-0.2"; // Start 0.2s before previous completes for slight overlap
+      delay = ">-0.2";
     } else {
-      // Use standard delay for non-sequential or first element
       delay = getRevealDelay(revealType, index);
     }
 
-    // Add custom reveal based on type
-    if (revealType === "splitting-rows") {
-      tl.call(
-        () => {
-          console.log(`Revealing splitting-rows element:`, element.className);
-          
-          // CRITICAL: Clear inline opacity using GSAP's clearProps
-          gsap.set(element, { clearProps: 'opacity' });
-          
-          element.classList.add("reveal");
-          element.classList.add("active");
-          element.style.pointerEvents = "auto";
-          
-          console.log(`Element opacity after reveal:`, window.getComputedStyle(element).opacity);
-        },
-        null,
-        delay
-      );
-      
-      // Add duration placeholder for sequential timing
-      if (isSequential) {
-        tl.to({}, { duration: 1.4 }); // Match splitting-rows animation duration
+    // Shared reveal callback — inline opacity cleared via style.removeProperty
+    // to avoid a gsap.set() / style recalc right before the CSS transition fires.
+    const doReveal = () => {
+      element.style.removeProperty('opacity');
+      if (revealType === "splitting-rows" || revealType === "splitting") {
+        element.classList.add("reveal");
       }
-    } else if (revealType === "splitting") {
-      tl.call(
-        () => {
-          console.log(`Revealing splitting element:`, element.className);
-          
-          // CRITICAL: Clear inline opacity using GSAP's clearProps
-          gsap.set(element, { clearProps: 'opacity' });
-          
-          element.classList.add("reveal");
-          element.classList.add("active");
-          element.style.pointerEvents = "auto";
-          
-          console.log(`Element opacity after reveal:`, window.getComputedStyle(element).opacity);
-        },
-        null,
-        delay
-      );
-      
-      // Add duration placeholder for sequential timing
-      if (isSequential) {
-        tl.to({}, { duration: 0.8 }); // Match splitting animation duration
-      }
-    } else {
-      // Default fade-reveal behavior (includes .large-photo, .large-video, .clip-swipe, .project-aspects, p.fade-reveal)
-      tl.call(
-        () => {
-          console.log(`Revealing default fade-reveal element:`, element.className);
-          
-          // CRITICAL: Clear inline opacity using GSAP's clearProps
-          gsap.set(element, { clearProps: 'opacity' });
-          
-          element.classList.add("active");
-          element.style.pointerEvents = "auto";
-          
-          console.log(`Element opacity after reveal:`, window.getComputedStyle(element).opacity);
-        },
-        null,
-        delay
-      );
-      
-      // Add duration placeholder for sequential timing (only if part of sequence)
-      if (isSequential && !shouldExcludeFromSequence) {
-        tl.to({}, { duration: 1.4 }); // Match fade-reveal transition duration (1s + 0.4s delay)
-      }
+      element.classList.add("active");
+      element.style.pointerEvents = "auto";
+    };
+
+    tl.call(doReveal, null, delay);
+
+    // Add duration placeholder for sequential timing
+    if (isSequential) {
+      const holdDuration = (revealType === "splitting") ? 0.8 : 1.4;
+      tl.to({}, { duration: holdDuration });
     }
   });
 
-  // Store the timeline
   revealChains.set(groupKey, tl);
 }
 
 /**
- * Hide elements when scrolling back up
+ * Hide elements sequentially when scrolling back up
  */
 function hideSequentialReveal(elements, groupKey) {
-  // Cancel any existing reveal for this group
+  // Cancel any in-progress reveal for this group
   if (revealChains.has(groupKey)) {
     revealChains.get(groupKey).kill();
     revealChains.delete(groupKey);
   }
 
-  // Hide all elements in reverse order
-  elements.forEach((element) => {
-    element.classList.remove("active", "reveal");
+  // Animate each element out in reverse DOM order
+  elements.slice().reverse().forEach((element, i) => {
+    if (!element.classList.contains('active')) return;
+
+    gsap.to(element, {
+      opacity: 0,
+      duration: 0.8,
+      delay: i * 0.06,
+      ease: 'power2.in',
+      overwrite: 'auto',
+      onComplete: () => {
+        element.classList.remove('active', 'reveal');
+        element.style.removeProperty('opacity');
+        element.style.pointerEvents = 'none';
+      }
+    });
   });
 }
 
