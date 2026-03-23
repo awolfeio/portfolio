@@ -394,9 +394,74 @@ body:has(.next-project-banner:hover) {
     }
 }
 
-// Hide native browser cursor on .large-photo and .large-video elements
-.large-photo,
-.large-video {
+// Hide native browser cursor only once the magnify glass is active (not during Zoom CTA)
+.magnify-mode .large-photo,
+.magnify-mode .large-video {
     cursor: none;
 }
 
+// Zoom CTA circle — follows cursor before magnify is activated
+@keyframes zoom-cta-spin {
+    from { transform: rotate(0deg) scale(0.84) }
+    to   { transform: rotate(360deg) scale(0.84) }
+}
+
+.zoom-cta {
+    position: fixed;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    z-index: 9998;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    will-change: transform, opacity;
+    mix-blend-mode: difference;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    //backdrop-filter: blur(4px);
+    //filter: brightness(1.2) contrast(1.5);
+
+    @media (max-width: $desktop-viewport) {
+        display: none;
+    }
+
+    // Centered magnifier icon
+    &__icon {
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #d4ff00;
+        z-index: 2;
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    // Spinning text ring — CircleType positions individual chars, ring div spins
+    &__ring {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: zoom-cta-spin 8s linear infinite;
+        z-index: 1;
+    }
+
+    &__text {
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #d4ff00;
+        white-space: nowrap;
+        position: relative; // CircleType needs relative positioning context
+    }
+}

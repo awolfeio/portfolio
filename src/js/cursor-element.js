@@ -1,5 +1,6 @@
 import { gsap } from "gsap";
 import { CustomEase } from "gsap/CustomEase";
+import CircleType from "circletype";
 gsap.registerPlugin(CustomEase);
 
 // PERFORMANCE: Create custom ease ONCE at module load, not per-mousemove
@@ -16,13 +17,18 @@ let isVisible = false;
 let pendingMove = null;
 let rafId = null;
 
+// Zoom CTA eased movement (mirrors base cursor RAF pattern)
+let zoomCtaPendingMove = null;
+let zoomCtaRafId = null;
+
 // Magnifying glass state
 let magnifyGlass = null;
+let zoomCta = null;          // The "Zoom" CTA label that follows the cursor
 let currentLargePhoto = null;
 let magnifyRafId = null;
-let isZoomedIn = false; // Track zoom toggle state
-const DEFAULT_ZOOM = 1.26;
-const ZOOMED_ZOOM = DEFAULT_ZOOM * 1.1;
+let isZoomedIn = false;      // (kept for scroll-handler compat)
+let isMagnifyActive = false; // true when magnify glass is active
+const DEFAULT_ZOOM = 1.22;
 
 // Animated zoom level for smooth transitions
 let currentZoomLevel = { value: DEFAULT_ZOOM };
@@ -49,8 +55,9 @@ export function cursorElement() {
 
     if (!cursorEl) return;
 
-    // Create magnifying glass element
+    // Create magnifying glass and zoom CTA elements
     createMagnifyingGlass();
+    createZoomCta();
 
     // Set initial position
     gsap.set(cursorEl, { xPercent: -50, yPercent: -50 });
@@ -271,6 +278,50 @@ function createMagnifyingGlass() {
 }
 
 /**
+ * Create the "Zoom" CTA circle that follows the cursor as the initial hover state.
+ * Contains a centered zoom icon + CircleType repeating "Zoom" text around the ring.
+ */
+function createZoomCta() {
+  const ctaHtml = `
+    <div class="zoom-cta">
+      <div class="zoom-cta__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="21" y1="21" x2="15.65" y2="15.65"/>
+          <line x1="11" y1="8" x2="11" y2="14"/>
+          <line x1="8" y1="11" x2="14" y2="11"/>
+        </svg>
+      </div>
+      <div class="zoom-cta__ring">
+        <span class="zoom-cta__text"></span>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", ctaHtml);
+  zoomCta = document.querySelector(".zoom-cta");
+
+  const textEl = zoomCta.querySelector(".zoom-cta__text");
+  if (textEl) {
+    const RADIUS = 46;
+    const unit = "Zoom\u00A0\u2022\u00A0"; // "Zoom • " with non-breaking spaces
+
+    // Measure one unit's rendered width to calculate exact repetitions needed
+    textEl.textContent = unit;
+    const unitWidth = textEl.getBoundingClientRect().width;
+    const circumference = 2 * Math.PI * RADIUS;
+    const count = Math.round(circumference / unitWidth);
+
+    // Build the full string with the exact count and init CircleType
+    textEl.textContent = unit.repeat(count);
+    new CircleType(textEl).radius(RADIUS);
+  }
+
+  // Position off-screen initially, centered on cursor via xPercent/yPercent
+  gsap.set(zoomCta, { opacity: 0, xPercent: -50, yPercent: -50, x: -200, y: -200, scale: 0.88 });
+}
+
+
+/**
  * Set up magnifying glass for .large-photo elements
  */
 export function setupMagnifyingGlass() {
@@ -320,6 +371,9 @@ export function setupMagnifyingGlass() {
  */
 function setupPhotoHover(photo, media) {
   photo.addEventListener("mouseenter", (e) => {
+    // Guard: only activate if the photo has completed its fade-reveal animation
+    if (!photo.classList.contains('active')) return;
+
     // Capture initial mouse position from the enter event
     currentLargePhoto = { 
       element: photo, 
@@ -327,19 +381,14 @@ function setupPhotoHover(photo, media) {
       lastMouseX: e.clientX, 
       lastMouseY: e.clientY 
     };
-    isZoomedIn = false; // Reset zoom state on enter
+    isMagnifyActive = false;
     
     // Reset zoom level to default (instant)
     currentZoomLevel.value = DEFAULT_ZOOM;
     
-    console.log("Entered .large-photo, showing magnifying glass");
-    
-    // Show magnifying glass (opacity only)
-    gsap.to(magnifyGlass, {
-      opacity: 1,
-      duration: 0.18,
-      ease: "power2.out"
-    });
+    // Show the Zoom CTA at the cursor instantly, then fade in
+    gsap.set(zoomCta, { x: e.clientX, y: e.clientY });
+    gsap.to(zoomCta, { opacity: 1, duration: 0.22, ease: "power2.out" });
     
     // Hide regular cursor elements
     cursorEl?.classList.add("magnify-active");
@@ -347,55 +396,48 @@ function setupPhotoHover(photo, media) {
   
   photo.addEventListener("mouseleave", () => {
     currentLargePhoto = null;
-    isZoomedIn = false; // Reset zoom state on leave
+    isMagnifyActive = false;
+    document.body.classList.remove('magnify-mode');
     
-    console.log("Left .large-photo, hiding magnifying glass");
-    
-    // Remove zoomed class
     magnifyGlass.classList.remove('zoomed');
     
-    // Hide magnifying glass with immediate fade-out (opacity only)
-    gsap.to(magnifyGlass, {
-      opacity: 0,
-      duration: 0.05, // Very fast fade-out for immediate response
-      ease: "power2.in"
-    });
+    // Hide both the CTA and the magnify glass
+    gsap.to(zoomCta, { opacity: 0, duration: 0.12, ease: "power2.in" });
+    gsap.to(magnifyGlass, { opacity: 0, duration: 0.05, ease: "power2.in" });
     
-    // Show regular cursor
     cursorEl?.classList.remove("magnify-active");
     
-    // Cancel any pending magnify updates
     if (magnifyRafId) {
       cancelAnimationFrame(magnifyRafId);
       magnifyRafId = null;
     }
   });
   
-  // Click to toggle zoom level
+  // Click: toggle between CTA (off) and magnify glass (on)
   photo.addEventListener("click", (e) => {
     if (!currentLargePhoto) return;
     
-    isZoomedIn = !isZoomedIn;
-    const targetZoom = isZoomedIn ? ZOOMED_ZOOM : DEFAULT_ZOOM;
-    console.log(`Zoom toggled to: ${isZoomedIn ? 'ZOOMED' : 'DEFAULT'} (${targetZoom}x)`);
+    isMagnifyActive = !isMagnifyActive;
     
-    // Toggle CSS class for styling
-    if (isZoomedIn) {
-      magnifyGlass.classList.add('zoomed');
+    if (isMagnifyActive) {
+      // → Show magnify glass
+      document.body.classList.add('magnify-mode');
+      
+      gsap.to(zoomCta, { opacity: 0, duration: 0.12, ease: "power2.in" });
+      gsap.set(magnifyGlass, { left: e.clientX, top: e.clientY });
+      gsap.to(magnifyGlass, { opacity: 1, duration: 0.22, ease: "power2.out" });
+      
+      currentZoomLevel.value = DEFAULT_ZOOM;
+      updateMagnifyingGlass(e.clientX, e.clientY);
+      
     } else {
-      magnifyGlass.classList.remove('zoomed');
+      // → Back to CTA
+      document.body.classList.remove('magnify-mode');
+      
+      gsap.to(magnifyGlass, { opacity: 0, duration: 0.12, ease: "power2.in" });
+      gsap.set(zoomCta, { x: e.clientX, y: e.clientY });
+      gsap.to(zoomCta, { opacity: 1, duration: 0.22, ease: "power2.out" });
     }
-    
-    // Animate zoom level transition smoothly
-    gsap.to(currentZoomLevel, {
-      value: targetZoom,
-      duration: 0.18,
-      ease: "power2.out",
-      onUpdate: () => {
-        // Continuously update the canvas during the zoom transition
-        updateMagnifyingGlass(e.clientX, e.clientY);
-      }
-    });
   });
   
   photo.addEventListener("mousemove", (e) => {
@@ -405,14 +447,38 @@ function setupPhotoHover(photo, media) {
     currentLargePhoto.lastMouseX = e.clientX;
     currentLargePhoto.lastMouseY = e.clientY;
     
-    // Update magnifying glass position and content
-    if (!magnifyRafId) {
-      magnifyRafId = requestAnimationFrame(() => {
-        updateMagnifyingGlass(e.clientX, e.clientY);
-        magnifyRafId = null;
-      });
+    if (isMagnifyActive) {
+      // Magnify glass is active: update its position and canvas
+      if (!magnifyRafId) {
+        magnifyRafId = requestAnimationFrame(() => {
+          updateMagnifyingGlass(e.clientX, e.clientY);
+          magnifyRafId = null;
+        });
+      }
+    } else {
+      // CTA mode: move the zoom circle with eased lag (mirrors base cursor)
+      zoomCtaPendingMove = { x: e.clientX, y: e.clientY };
+      if (!zoomCtaRafId) {
+        zoomCtaRafId = requestAnimationFrame(processZoomCtaMove);
+      }
     }
   }, { passive: true });
+}
+
+/**
+ * Process pending zoom CTA move with eased lag — same pattern as base cursor
+ */
+function processZoomCtaMove() {
+  zoomCtaRafId = null;
+  if (!zoomCtaPendingMove || !zoomCta) return;
+  gsap.to(zoomCta, {
+    duration: 1.4,
+    ease: cursorEase,
+    x: zoomCtaPendingMove.x,
+    y: zoomCtaPendingMove.y,
+    overwrite: "auto"
+  });
+  zoomCtaPendingMove = null;
 }
 
 // Global scroll handler for magnifying glass updates
@@ -462,8 +528,9 @@ window.addEventListener("scroll", () => {
         }
 
         for (const container of cachedLargeMedia) {
-          // Skip if disconnected
+          // Skip if disconnected or not yet revealed
           if (!container.isConnected) continue;
+          if (!container.classList.contains('active')) continue;
 
           const rect = container.getBoundingClientRect();
           
@@ -471,16 +538,12 @@ window.addEventListener("scroll", () => {
           if (mouseX >= rect.left && mouseX <= rect.right &&
               mouseY >= rect.top && mouseY <= rect.bottom) {
               
-              // Trigger entrance
               // Dispatch mouseenter to trigger setupPhotoHover logic
               container.dispatchEvent(new MouseEvent('mouseenter', {
                  clientX: mouseX,
                  clientY: mouseY,
                  bubbles: true
               }));
-
-              // Force update immediately to ensure canvas shows new content (avoids 1-frame glitch)
-              updateMagnifyingGlass(mouseX, mouseY);
               
               // Only activate one, then break
               break; 
@@ -512,7 +575,7 @@ function updateMagnifyingGlass(mouseX, mouseY) {
   // Get media and canvas dimensions
   const mediaRect = media.getBoundingClientRect();
   const canvasSize = canvas.width; // Already 2x for retina
-  const displaySize = parseInt(canvas.style.width); // Actual display size
+  const displaySize = Math.round(canvas.getBoundingClientRect().width) || 280; // actual rendered size
   
   // Calculate mouse position relative to media
   const relativeX = mouseX - mediaRect.left;
