@@ -25,7 +25,7 @@ function handleResize() {
   const newViewportHeight = window.innerHeight;
   const newViewportWidth = window.innerWidth;
 
-  if (newViewportWidth === viewportWidth) {
+  if (Math.abs(newViewportWidth - viewportWidth) < 10) {
     // Background resize is handled automatically by BackgroundRenderer
     return;
   } else {

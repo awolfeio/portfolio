@@ -9,6 +9,9 @@ export default function initSmoothScroll() {
   // Register GSAP ScrollTrigger
   gsap.registerPlugin(ScrollTrigger);
 
+  // Configure ScrollTrigger to not recalculate and jump when mobile address bars hide/show
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
   // Make ScrollTrigger globally accessible for recalculation
   window.ScrollTrigger = ScrollTrigger;
 
@@ -45,22 +48,23 @@ export default function initSmoothScroll() {
   // Connect Lenis to ScrollTrigger
   lenis.on("scroll", ScrollTrigger.update);
 
+  // Safely clean up existing ticker logic to prevent stacking RAF calls
+  if (window._lenisRaf) {
+    gsap.ticker.remove(window._lenisRaf);
+  }
+
   // Connect GSAP ticker to Lenis
-  gsap.ticker.add((time) => {
+  window._lenisRaf = (time) => {
     lenis.raf(time * 1000);
-  });
+  };
+  gsap.ticker.add(window._lenisRaf);
 
   // Add ScrollTrigger listener for Lenis
   gsap.ticker.lagSmoothing(0);
 
 
 
-  // Fix for iOS initial scroll position issues
-  if (isTouchDevice) {
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-    }, 100);
-  }
+
 
   return lenis;
 }

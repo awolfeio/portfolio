@@ -36,11 +36,21 @@ class TextFill {
 
     // Set up ResizeObserver for container changes
     if (window.ResizeObserver) {
+      this._containerWidths = new WeakMap();
       this.resizeObserver = new ResizeObserver((entries) => {
         window.requestAnimationFrame(() => {
           entries.forEach((entry) => {
-            // Find elements within resized containers
-            this.recalculateElementsInContainer(entry.target);
+            const newWidth = entry.contentRect.width;
+            const oldWidth = this._containerWidths.get(entry.target) || 0;
+            
+            // Strictly ignore pure-height resizes. During mobile scroll, viewport height 
+            // alters rapidly due to the address bar. Inline font calculation shrinks the 
+            // document and irreversibly clamps the Y-scroll. 
+            if (Math.abs(newWidth - oldWidth) > 1) {
+              this._containerWidths.set(entry.target, newWidth);
+              // Find elements within resized containers
+              this.recalculateElementsInContainer(entry.target);
+            }
           });
         });
       });
@@ -63,9 +73,17 @@ class TextFill {
       subtree: true,
     });
 
+    let lastWindowWidth = window.innerWidth;
+    
     // Window resize handler for viewport-based elements
     this.resizeHandler = this.debounce(() => {
-      this.recalculateAll();
+      const currentWidth = window.innerWidth;
+      // Only run expensive text-recalculating reflows if the width physically changes.
+      // Ignoring vertical height changes directly prevents the mobile scroll-jump bug.
+      if (Math.abs(currentWidth - lastWindowWidth) > 5) {
+        lastWindowWidth = currentWidth;
+        this.recalculateAll();
+      }
     }, this.config.debounceDelay);
     
     window.addEventListener('resize', this.resizeHandler);

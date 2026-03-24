@@ -610,16 +610,32 @@ function handleAfterEnter(data) {
     const pageContent = data.next.container.querySelector(".page");
     if (pageContent && window.ResizeObserver) {
       let resizeTimeout;
+      let prevPageWidth = pageContent.clientWidth;
+      let prevPageHeight = pageContent.clientHeight;
+      
       const resizeObserver = new ResizeObserver((entries) => {
         // Debounce the resize calculations
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
-          console.log("Content size changed, updating scroll calculations");
-          if (window.ScrollTrigger) {
-            window.ScrollTrigger.refresh();
-          }
-          if (window.lenis) {
-            window.lenis.resize();
+          const newPageWidth = pageContent.clientWidth;
+          const newPageHeight = pageContent.clientHeight;
+          
+          const widthChanged = Math.abs(newPageWidth - prevPageWidth) > 5;
+          // 150px threshold ignores mobile browser address bar hide/show
+          const heightChanged = Math.abs(newPageHeight - prevPageHeight) > 150;
+          
+          // Only refresh if it's a structural content change or width change
+          if (widthChanged || heightChanged) {
+            console.log("Content size changed significantly, updating scroll calculations");
+            prevPageWidth = newPageWidth;
+            prevPageHeight = newPageHeight;
+            
+            if (window.ScrollTrigger) {
+              window.ScrollTrigger.refresh();
+            }
+            if (window.lenis) {
+              window.lenis.resize();
+            }
           }
         }, 150);
       });

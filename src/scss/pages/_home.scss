@@ -3,36 +3,33 @@
 
 #index {
     .home-content-wrapper {
-        width:clamp(1200px, 80vw, 1600px);
+        width: clamp(92vw, 92vw, 1600px);
         max-width:100%;
         margin-left: auto;
         margin-right: auto;
-        @media (max-width: $desktop-viewport) {
-            width:92vw;
-        }
     }
     h1 {
         font-size: 140px;
         margin-bottom: 16px;
-        letter-spacing:-6px;
+        //letter-spacing:-6px;
         @media (min-width:1369px) and (max-height:780px) {
-            font-size: 100px;
-            letter-spacing:-4px;
+            //font-size: 100px;
+            //letter-spacing:-4px;
         }
 
         @media (max-width:1368px) {
-            font-size: 70px;
-            letter-spacing:-2px;
+            //font-size: 70px;
+            //letter-spacing:-2px;
         }
 
         @media (max-width: $desktop-viewport) {
-            font-size: 10vw;
-            letter-spacing:0px;
+            //font-size: 10vw;
+            //letter-spacing:0px;
         }
 
         @media (max-width:480px) {
-            font-size: 10vw;
-            letter-spacing:0px;
+            //font-size: 10vw;
+            //letter-spacing:0px;
         }
 
         span.char {
@@ -192,6 +189,7 @@
         max-width: calc(100% - 32px);
         margin: 0 auto;
         text-align: center;
+        text-wrap: pretty;
         @include transition-smooth;
         animation-delay: 0.4s;
 
