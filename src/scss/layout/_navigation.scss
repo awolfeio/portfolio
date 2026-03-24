@@ -104,7 +104,7 @@ header {
         }
     }
 
-    // ===== NAVIGATION =====
+    // ===== NAVIGATION (desktop positioning only) =====
     nav {
         position: fixed;
         top: min(5vw, 56px);
@@ -125,151 +125,155 @@ header {
             top: 4vw;
             right: 4vw;
         }
+    }
+}
 
-        // Mobile: Full-screen overlay
-        @media (max-width: $desktop-viewport) {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 100%;
-            flex-direction: column;
-            padding: 16vw 8vw;
-            background: transparent;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 500;
-            transition: opacity 0.6s ease, background 0.6s ease;
+// ===== NAV — mobile overlay & link styles (top-level so they survive DOM moves) =====
+nav {
+    // Mobile: Full-screen overlay
+    @media (max-width: $desktop-viewport) {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100%;
+        flex-direction: column;
+        padding: 12vh 8vw;
+        background: transparent;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 500;
+        transition: opacity 0.6s ease, background 0.6s ease;
+        display:flex;
+        flex-direction: column;
+        &.fade-in {
+            animation: none;
+        }
+    }
 
-            &.fade-in {
-                animation: none;
+    // ===== NAV LINKS =====
+    a {
+        font-size: 16px;
+        font-weight: 700;
+        margin-right: 74px;
+        position: relative;
+        padding: 8px;
+        user-select: none;
+        @include no-select-highlight;
+
+        // Desktop: Nav primary colors
+        @media (min-width: #{$desktop-viewport + 1px}) {
+            span {
+                color: $nav-primary;
+                background: $nav-primary;
+                @include text-clip;
+
+                html.about & {
+                    color: #fff;
+                    background: #fff;
+                }
+            }
+
+            &:hover span,
+            &.hover span {
+                color: $nav-primary-hover;
+                background: $nav-primary-hover;
+                @include text-clip;
+            }
+
+            &.active span {
+                color: #000;
+                background: #000;
+                @include text-clip;
             }
         }
 
-        // ===== NAV LINKS =====
-        a {
-            font-size: 16px;
-            font-weight: 700;
-            margin-right: 74px;
-            position: relative;
-            padding: 8px;
-            user-select: none;
-            @include no-select-highlight;
+        // Active state
+        &.active {
+            opacity: 1;
+            cursor: default;
+            @include transition-medium;
 
-            // Desktop: Nav primary colors
-            @media (min-width: #{$desktop-viewport + 1px}) {
-                span {
-                    color: $nav-primary;
-                    background: $nav-primary;
-                    @include text-clip;
-
-                    html.about & {
-                        color: #fff;
-                        background: #fff;
-                    }
-                }
-
-                &:hover span,
-                &.hover span {
-                    color: $nav-primary-hover;
-                    background: $nav-primary-hover;
-                    @include text-clip;
-                }
-
-                &.active span {
-                    color: #000;
-                    background: #000;
-                    @include text-clip;
-                }
-            }
-
-            // Active state
-            &.active {
-                opacity: 1;
-                cursor: default;
-                @include transition-medium;
-
-                &:before,
-                &:after {
-                    opacity: 1;
-                }
-
-                @media (max-width: $desktop-viewport) {
-                    color: #fff !important;
-                    background: linear-gradient(0deg, #a675dd, #b3d4fc) !important;
-                    @include text-clip;
-                }
-            }
-
-            // Desktop responsive sizing
-            @media (max-width: 1368px) {
-                font-size: 15px;
-                margin-right: 64px;
-            }
-
-            // Mobile: Large text overlay
-            @media (max-width: $desktop-viewport) {
-                font-size: 12vw;
-                align-self: flex-start;
-                margin-right: 32px;
-                margin-bottom: 5.6vw;
-                color: #fff !important;
-                opacity: 0 !important;
-                pointer-events: none;
-                transition: opacity 0.4s ease, pointer-events 0.1s ease;
-                transition-delay: 0s;
-            }
-            @media (max-width: 480px) {
-                font-size: 14vw;
-                margin-bottom: 8vw;
-            }
-
-            // Staggered mobile menu animation
-            @for $i from 1 through 4 {
-                &:nth-of-type(#{$i}) {
-                    @media (max-width: $desktop-viewport) {
-                        transition-delay: #{0.25 + $i * 0.1}s;
-                    }
-                }
-            }
-
-            &:last-of-type {
-                margin-right: 0;
-            }
-
-            // Pseudo-elements for active indicator
-            &:before {
-                position: absolute;
-                content: '';
-                bottom: -2px;
-                left: 0;
-                right: 0;
-                height: 2px;
-                background: $primary;
-                opacity: 0;
-                display: none;
-                @include transition-smooth;
-            }
-
+            &:before,
             &:after {
-                position: absolute;
-                content: '';
-                top: -2px;
-                left: -2px;
-                right: -2px;
-                bottom: 0;
-                background: rgba(68, 160, 255, 0.72);
-                opacity: 0;
-                z-index: -1;
-                border-radius: 12px;
-                pointer-events: none;
-                backdrop-filter: blur(4px);
-                transition: opacity 0.24s ease;
+                opacity: 1;
+            }
 
+            @media (max-width: $desktop-viewport) {
+                color: #fff !important;
+                background: linear-gradient(0deg, #a675dd, #b3d4fc) !important;
+                @include text-clip;
+            }
+        }
+
+        // Desktop responsive sizing
+        @media (max-width: 1368px) {
+            font-size: 15px;
+            margin-right: 64px;
+        }
+
+        // Mobile: Large text overlay
+        @media (max-width: $desktop-viewport) {
+            font-size: 12vw;
+            align-self: flex-start;
+            margin-right: 32px;
+            margin-bottom: 4vh;
+            color: #fff !important;
+            opacity: 0 !important;
+            pointer-events: none;
+            transition: opacity 0.4s ease, pointer-events 0.1s ease;
+            transition-delay: 0s;
+        }
+        @media (max-width: 480px) {
+            font-size: 14vw;
+            margin-bottom: 8vw;
+        }
+
+        // Staggered mobile menu animation
+        @for $i from 1 through 4 {
+            &:nth-of-type(#{$i}) {
                 @media (max-width: $desktop-viewport) {
-                    background: rgba(117, 135, 221, 0.07);
+                    transition-delay: #{0.25 + $i * 0.1}s;
                 }
+            }
+        }
+
+        &:last-of-type {
+            margin-right: 0;
+        }
+
+        // Pseudo-elements for active indicator
+        &:before {
+            position: absolute;
+            content: '';
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: $primary;
+            opacity: 0;
+            display: none;
+            @include transition-smooth;
+        }
+
+        &:after {
+            position: absolute;
+            content: '';
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: 0;
+            background: rgba(68, 160, 255, 0.72);
+            opacity: 0;
+            z-index: -1;
+            border-radius: 12px;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+            transition: opacity 0.24s ease;
+
+            @media (max-width: $desktop-viewport) {
+                background: rgba(117, 135, 221, 0.07);
             }
         }
     }

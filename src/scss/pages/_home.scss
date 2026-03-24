@@ -3,7 +3,7 @@
 
 #index {
     .home-content-wrapper {
-        width:80vw;
+        width:clamp(1200px, 80vw, 1600px);
         max-width:100%;
         margin-left: auto;
         margin-right: auto;
@@ -92,21 +92,22 @@
 
         &.titles-wrapper {
             position: relative;
-            min-height: 80px;
+            min-height: 140px;
 
             @media (max-width:1368px) {
-                min-height: 40px;
+                min-height: 80px;
             }
 
             @media (max-width: $desktop-viewport) {
-                min-height: 24px;
+                min-height: 40px;
             }
 
             .title {
                 position: absolute;
                 width: 100%;
                 left: 0;
-                top: 0;
+                top: 50%;
+                transform: translateY(-50%);
                 opacity: 0;
                 pointer-events: none;
                 transition: opacity 0.4s ease;
@@ -206,14 +207,8 @@
 
         @media (max-width: $desktop-viewport) {
             width: 560px;
-        }
-
-        @media (max-width: $desktop-viewport) {
             font-size: 18px;
         }
 
-        @media (max-width:480px) {
-            font-size: 16px;
-        }
     }
 }
