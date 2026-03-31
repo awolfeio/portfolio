@@ -9,9 +9,9 @@ function animateChars(chars) {
   // Reset existing animations first
   chars.forEach((char) => {
     char.classList.remove("reveal-char");
-    // Force reflow
-    void char.offsetWidth;
   });
+  // Force reflow once
+  if (chars.length > 0) void chars[0].parentElement.offsetWidth;
 
   // Simple staggered animation without GSAP
   chars.forEach((char, index) => {
@@ -92,10 +92,9 @@ export function rotateTitles(caller = "unknown") {
 
       // Force the before pseudo-element back to starting position
       char.setAttribute("data-reset", "true");
-
-      // Force reflow
-      void char.offsetWidth;
     });
+    // Force reflow once
+    if (chars.length > 0) void chars[0].parentElement.offsetWidth;
   }
 
   // Helper function to show character animations
@@ -288,10 +287,9 @@ export function revealH1Characters() {
 
         // Ensure text content is transparent for pseudo-element reveal
         char.style.color = "transparent";
-
-        // Force reflow
-        void char.offsetWidth;
       });
+      // Force reflow once
+      if (chars.length > 0) void chars[0].parentElement.offsetWidth;
 
       // Ensure parent element is visible before animating characters
       h1.style.opacity = "1";
@@ -316,9 +314,6 @@ export function revealH1Characters() {
           // Add reveal class with staggered delay
           setTimeout(() => {
             char.classList.add("reveal-char");
-
-            // Force a repaint to ensure animation runs smoothly
-            void char.offsetWidth;
           }, staggerDelay); // Longer delay between chars for homepage
         });
 
@@ -400,16 +395,17 @@ export function animateDataSplittingChars() {
     if (chars.length > 0) {
       element.style.opacity = "1";
       element.style.pointerEvents = "auto";
-      // Reset and animate each character
-      chars.forEach((char, index) => {
-        // Reset first
+      // Reset characters
+      chars.forEach((char) => {
         char.classList.remove("reveal-char");
         char.style.visibility = "visible";
         char.style.color = "transparent";
+      });
+      // Force reflow once
+      if (chars.length > 0) void chars[0].parentElement.offsetWidth;
 
-        // Force reflow
-        void char.offsetWidth;
-
+      // Animate each character
+      chars.forEach((char, index) => {
         // Animate with delay
         setTimeout(() => {
           char.classList.add("reveal-char");
