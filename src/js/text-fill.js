@@ -73,15 +73,15 @@ class TextFill {
       subtree: true,
     });
 
-    let lastWindowWidth = window.innerWidth;
+    this.lastWindowWidth = window.innerWidth;
     
     // Window resize handler for viewport-based elements
     this.resizeHandler = this.debounce(() => {
       const currentWidth = window.innerWidth;
       // Only run expensive text-recalculating reflows if the width physically changes.
       // Ignoring vertical height changes directly prevents the mobile scroll-jump bug.
-      if (Math.abs(currentWidth - lastWindowWidth) > 5) {
-        lastWindowWidth = currentWidth;
+      if (Math.abs(currentWidth - this.lastWindowWidth) > 5) {
+        this.lastWindowWidth = currentWidth;
         this.recalculateAll();
       }
     }, this.config.debounceDelay);
@@ -447,6 +447,7 @@ class TextFill {
    * Useful after dynamic content changes
    */
   refresh() {
+    this.lastWindowWidth = window.innerWidth;
     this.scanForElements(document.body);
     this.recalculateAll();
   }

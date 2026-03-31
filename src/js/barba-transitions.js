@@ -12,6 +12,7 @@ import { checkLocationAndRemoveElements } from "./geographic.js";
 import { gsap } from "gsap";
 import SplitType from "split-type";
 import mediaPreloader from "./media-preloader.js";
+import { refreshFill } from "./text-fill.js";
 
 /**
  * Initialize Barba.js and set up page transitions
@@ -572,6 +573,9 @@ function handleAfterEnter(data) {
         window.ScrollTrigger.refresh();
         console.log("ScrollTrigger refreshed after transition");
       }
+
+      // Refresh Textfill to catch any dimensional/viewport changes made during the transition
+      refreshFill();
 
       // Also update Lenis if it exists
       if (window.lenis) {
