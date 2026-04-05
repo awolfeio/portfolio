@@ -7,6 +7,7 @@ import { rotateTitles } from "./type-anim.js";
 import { gsap } from "gsap";
 import { setupEventHandlers, setupMobileMenuHandlers } from "./event-handlers.js";
 import { setupResizeHandlers } from "./resize-handlers.js";
+import { initCustomScrollbar } from "./custom-scrollbar.js";
 
 /**
  * Initialize the application on first load
@@ -73,6 +74,7 @@ function setupVisuals() {
   viewportSize();
   cursorCheck();
   initSmoothScroll();
+  initCustomScrollbar();
 }
 
 /**
