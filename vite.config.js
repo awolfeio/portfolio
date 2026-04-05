@@ -15,6 +15,7 @@ const base = process.env.GITHUB_PAGES === "true" ? "/portfolio/" : "/";
 export default defineConfig({
   root,
   base,
+  publicDir: resolve(__dirname, "public"),
   plugins: [
     glsl(),
     handlebars({
