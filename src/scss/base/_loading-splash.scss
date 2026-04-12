@@ -42,7 +42,10 @@
     left: 0;
     overflow: hidden;
     transform: translateY(0);
-
+    @media (max-width: $desktop-viewport) {
+        height:100vh;
+        top:0;
+    }
     &:before,
     &:after {
         position: absolute;

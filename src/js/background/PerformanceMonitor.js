@@ -189,11 +189,7 @@ export class PerformanceMonitor {
     let grainHold = 1.0;
 
     if (this.renderer) {
-      pixelRatio = window.devicePixelRatio || 1.0;
-      const material = this.renderer.getMaterial();
-      if (material && material.uniforms.u_grainFrameHold) {
-        grainHold = material.uniforms.u_grainFrameHold.value;
-      }
+      pixelRatio = this.renderer.getPixelRatio ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1.0);
     }
 
     // Calculate performance metrics
@@ -212,7 +208,15 @@ export class PerformanceMonitor {
     dom.pixelRatio.textContent = `Pixel Ratio: ${pixelRatio.toFixed(2)}`;
 
     dom.quality.textContent = `Tier: ${currentQuality.toUpperCase()}`;
+    // Grain hold
+    const material = this.renderer?.getMaterial?.();
+    if (material?.uniforms?.u_grainFrameHold) {
+      grainHold = material.uniforms.u_grainFrameHold.value;
+    }
     dom.grain.textContent = `Grain Hold: ${grainHold.toFixed(1)}x`;
+
+    const deviceRatio = (window.devicePixelRatio || 1).toFixed(2);
+    dom.pixelRatio.textContent = `Render PR: ${pixelRatio.toFixed(2)} (device: ${deviceRatio})`;
 
     // Use innerHTML only for the small adaptive section with icons
     const upgradeColor = canUpgrade ? '#0f0' : '#555';

@@ -4,6 +4,7 @@ import { createConfigManager } from "./ConfigManager.js";
 import { createPerformanceMonitor } from "./PerformanceMonitor.js";
 import { createAdaptiveQualityManager } from "./AdaptiveQualityManager.js";
 import { initDevGUI, DevGUI } from "./DevGUI.js"; // Import class to allow manual instantiation
+import { initShaderSync } from "./ShaderSyncClient.js";
 
 /**
  * Main background system entry point
@@ -88,6 +89,9 @@ class BackgroundManager {
 
     // Initialize DevGUI in development mode
     this.devGUI = initDevGUI(this);
+    
+    // Initialize live mirror sync (broadcaster on desktop, receiver on ?mirror=true)
+    this.shaderSync = initShaderSync(this);
     
     // Setup dev mode secret trigger
     this.setupDevModeSecret();

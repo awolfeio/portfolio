@@ -3,6 +3,7 @@ import { resolve } from "path";
 import { defineConfig } from "vite";
 import handlebars from "vite-plugin-handlebars";
 import glsl from "vite-plugin-glsl";
+import { shaderSyncPlugin } from "./vite-plugin-shader-sync.js";
 
 const root = resolve(__dirname, "src");
 const outDir = resolve(__dirname, "dist");
@@ -21,6 +22,7 @@ export default defineConfig({
     handlebars({
       partialDirectory: resolve(__dirname, "src/partials"),
     }),
+    shaderSyncPlugin(),
   ],
   build: {
     outDir,

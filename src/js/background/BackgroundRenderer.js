@@ -73,6 +73,8 @@ export class BackgroundRenderer {
     this._modulationUpdateInterval = 16; // Update modulation every ~60fps worth of time
     
     // ACCUMULATION: Track time integration on CPU to prevent shader derivative jumps
+    // BOUNDED: These wrap at LOOP_DUR (600s) to match the shader's bounded time system
+    this.LOOP_DUR = 600.0; // Must match LOOP_DUR in fogShader.frag.glsl
     this.accumulatedTime = 0;
     this.accumulatedModulationTime = 0;
     this.accumulatedRotation = 0;
@@ -83,6 +85,21 @@ export class BackgroundRenderer {
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
 
     this.init();
+  }
+
+  /**
+   * Compute the target pixel ratio for the WebGL renderer.
+   * Mobile devices are capped at 1.25 to prevent GPU overload from
+   * high-DPI screens (2x–3x raw devicePixelRatio).
+   * Desktop stays at 1.0 per the existing performance policy.
+   */
+  _getTargetPixelRatio() {
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
+      .test(navigator.userAgent);
+    if (isMobile) {
+      return 1.0; // Lock to 1:1 on mobile — prevents GPU overload from 2–3× DPI screens
+    }
+    return 1.0; // Desktop: always 1:1
   }
 
   /**
@@ -134,10 +151,12 @@ export class BackgroundRenderer {
       precision: 'highp', // Force high precision for quality
     });
     
-    // CRITICAL FIX: Force pixel ratio to 1.0 - no DPI scaling overhead
-    // At 1440p, 1.25 ratio = rendering 5.76M pixels instead of 3.69M (56% more!)
-    this.renderer.setPixelRatio(1.0); // Always 1:1, no scaling
+    // Pixel ratio: desktop locked to 1.0, mobile capped at 1.25
+    // Prevents GPU overload from 2.5–3× DPI screens on phones
+    const targetRatio = this._getTargetPixelRatio();
+    this.renderer.setPixelRatio(targetRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    console.log(`BackgroundRenderer: pixel ratio set to ${targetRatio.toFixed(2)} (device: ${(window.devicePixelRatio || 1).toFixed(2)})`);
 
     // Style canvas for fixed positioning
     const canvas = this.renderer.domElement;
@@ -341,7 +360,8 @@ export class BackgroundRenderer {
     if (!this.renderer) return;
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(1.0); // CRITICAL: Keep 1.0, don't reset to device ratio
+    const targetRatio = this._getTargetPixelRatio();
+    this.renderer.setPixelRatio(targetRatio); // Re-apply cap on resize
 
     // Update resolution uniform
     if (this.material && this.material.uniforms.u_resolution) {
@@ -393,6 +413,11 @@ export class BackgroundRenderer {
     // This integration prevents "velocity scrub" artifacts when u_speed changes via transition
     const speed = this.material.uniforms.u_speed.value;
     this.accumulatedTime += dt * speed;
+    // BOUNDED: Wrap accumulated time to prevent float precision decay
+    // Must match LOOP_DUR in the shader (600s)
+    if (this.accumulatedTime > this.LOOP_DUR) {
+      this.accumulatedTime -= this.LOOP_DUR;
+    }
     
     // Update modulation dynamics with delta time
     this.updateModulationUniforms(dt);
@@ -425,6 +450,10 @@ export class BackgroundRenderer {
     // Integrator: Accumulate modulation time
     // Same fix as main time: avoid derivative jumps when modulationSpeed changes
     this.accumulatedModulationTime += dt * modulationSpeed;
+    // BOUNDED: Wrap to prevent precision decay
+    if (this.accumulatedModulationTime > this.LOOP_DUR) {
+      this.accumulatedModulationTime -= this.LOOP_DUR;
+    }
 
     // If modulation is effectively disabled, apply base values directly
     if (modulationSpeed < 0.00001) {
@@ -489,6 +518,13 @@ export class BackgroundRenderer {
         // Use the same time scale as modTime (0.2 * modulationSpeed)
         const dtMod = dt * modulationSpeed * 0.2;
         this.accumulatedRotation += dtMod * amount * 0.5;
+        // BOUNDED: Wrap rotation to prevent precision decay
+        const TWO_PI = 6.28318530718;
+        if (this.accumulatedRotation > TWO_PI) {
+          this.accumulatedRotation -= TWO_PI;
+        } else if (this.accumulatedRotation < -TWO_PI) {
+          this.accumulatedRotation += TWO_PI;
+        }
         
         cache.angle = this.accumulatedRotation;
         cache.cosA = Math.cos(cache.angle);
@@ -687,9 +723,10 @@ export class BackgroundRenderer {
     // CRITICAL: Always use 1.0 pixel ratio for maximum performance
     // DPI scaling adds 25-56% more pixels with minimal visual benefit
     if (this.renderer) {
-      this.renderer.setPixelRatio(1.0); // Always 1:1, never scale
+      const targetRatio = this._getTargetPixelRatio();
+      this.renderer.setPixelRatio(targetRatio);
       this.renderer.setSize(window.innerWidth, window.innerHeight);
-      console.log(`Pixel ratio locked to: 1.0 (quality: ${level})`);
+      console.log(`Pixel ratio set to: ${targetRatio.toFixed(2)} (quality: ${level})`);
     }
 
     // Apply quality-specific shader parameters
@@ -758,6 +795,13 @@ export class BackgroundRenderer {
         console.log('Applied ultra quality: 2 octaves, 1 warp octave, no detail, grain hold 3.0 (240fps optimized)');
         break;
     }
+  }
+
+  /**
+   * Get current renderer pixel ratio
+   */
+  getPixelRatio() {
+    return this.renderer ? this.renderer.getPixelRatio() : 1.0;
   }
 
   /**

@@ -45,6 +45,13 @@ export function setupUnifiedReveals() {
   // repeated forced layout/reflow inside the loop.
   const rects = allRevealElements.map(el => el.getBoundingClientRect());
 
+  // Stagger counter for elements that are already in-viewport at load time.
+  // Each in-viewport element gets a delay = BASE_DELAY + (staggerIndex * STAGGER_STEP)
+  // so they reveal one after another rather than all at once.
+  const STAGGER_BASE  = 0.4;  // seconds (matches the .active CSS base transition-delay)
+  const STAGGER_STEP  = 0.35; // seconds between each sequential element
+  let staggerIndex = 0;
+
   allRevealElements.forEach((element, index) => {
     ScrollTrigger.create({
       trigger: element,
@@ -55,10 +62,19 @@ export function setupUnifiedReveals() {
       markers: false,
     });
 
-    // If no loading screen and element is already in viewport, reveal immediately.
+    // If no loading screen and element is already in viewport, reveal with stagger.
     // Use the pre-batched rect instead of calling getBoundingClientRect() again.
     if (!loadingSplash && rects[index].top <= revealThreshold) {
-      revealElement(element);
+      // data-reveal-delay (ms) hard-overrides the auto-stagger for this element.
+      const manualDelay = element.dataset.revealDelay;
+      if (manualDelay !== undefined) {
+        // Use exact ms value converted to seconds; do NOT consume a stagger slot.
+        revealElement(element, parseFloat(manualDelay) / 1000);
+      } else {
+        const delay = STAGGER_BASE + staggerIndex * STAGGER_STEP;
+        staggerIndex++;
+        revealElement(element, delay);
+      }
     }
   });
 }
@@ -97,9 +113,16 @@ function convertToFadeReveal() {
 }
 
 /**
- * Reveal a single element
+ * Reveal a single element.
+ * @param {HTMLElement} element
+ * @param {number} [delayOverride] - Optional transition-delay in seconds.
+ *   Used during initial page load to stagger elements that are already in
+ *   the viewport (so they don't all fade in simultaneously). The override
+ *   is applied as an inline style and cleaned up after the transition ends
+ *   so that future scroll-triggered reveals and hide/re-reveal cycles use
+ *   the normal CSS-defined delay.
  */
-function revealElement(element) {
+function revealElement(element, delayOverride) {
   // Skip if already active
   if (element.classList.contains('active')) return;
 
@@ -107,6 +130,25 @@ function revealElement(element) {
   // transition takes full control — do this before adding .active so the
   // browser doesn't trigger a synchronous style recalc mid-transition.
   element.style.removeProperty('opacity');
+
+  // Resolve the delay to apply:
+  //   1. data-reveal-delay HTML attribute (ms) always wins — hard override.
+  //   2. delayOverride argument (seconds) — used for auto-stagger on load.
+  //   3. Neither set: CSS class handles the delay, nothing extra to do.
+  const manualDelayMs = element.dataset.revealDelay;
+  const resolvedDelay = manualDelayMs !== undefined
+    ? parseFloat(manualDelayMs) / 1000   // convert ms → s
+    : delayOverride;                      // may still be undefined — that's fine
+
+  if (resolvedDelay !== undefined) {
+    element.style.transitionDelay = `${resolvedDelay}s`;
+    // Clean up the inline delay once the transition finishes so subsequent
+    // reveals (scroll-triggered or after hide) fall back to the CSS value.
+    element.addEventListener('transitionend', function cleanup() {
+      element.style.removeProperty('transition-delay');
+      element.removeEventListener('transitionend', cleanup);
+    });
+  }
 
   // Add the active class (and reveal class for splitting elements)
   const revealType = element.getAttribute("data-reveal-type");

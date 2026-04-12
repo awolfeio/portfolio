@@ -73,10 +73,24 @@ export class AdaptiveQualityManager {
 
   /**
    * Select initial quality and FPS based on detected refresh rate
+   * PERF: Mobile devices start at medium to avoid thermal throttle at page load.
+   * The adaptive system takes 7-15s to react, so starting high on mobile always
+   * triggers a cold-GPU stall before it can downgrade.
    */
   selectInitialQualityFps() {
-    // Find the best quality/FPS combination for the detected refresh rate
-    // Start optimistically (high performance)
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+
+    if (isMobile) {
+      // Start at medium/60fps on mobile — adaptive system can upgrade if headroom exists
+      this.currentCombinationIndex = 6; // medium @ 60fps
+      this.currentQuality = 'medium';
+      this.targetFps = 60;
+      console.log('AdaptiveQualityManager: Mobile device detected — starting at medium quality');
+      return;
+    }
+
+    // Desktop: start optimistically based on detected refresh rate
     for (let i = 0; i < this.qualityFpsCombinations.length; i++) {
       const combo = this.qualityFpsCombinations[i];
       if (this.detectedRefreshRate >= combo.minRefreshRate) {

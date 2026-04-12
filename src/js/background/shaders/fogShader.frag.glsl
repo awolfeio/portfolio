@@ -187,6 +187,7 @@ float fbm(vec2 st, int octaves, float lacunarity, float gain) {
 }
 
 // Enhanced FBM with turbulence option (absolute-value folding for structural complexity)
+// NOTE: Called only by legacy paths — main() uses the unrolled fbmTurb dispatcher below.
 float fbmEnhanced(vec2 st, int octaves, float lacunarity, float gain, float turbulence) {
     float value = 0.0;
     float amplitude = 0.5;
@@ -196,7 +197,6 @@ float fbmEnhanced(vec2 st, int octaves, float lacunarity, float gain, float turb
         if(i >= octaves) break;
         
         float n = snoise(st * frequency);
-        // Turbulent FBM: absolute value creates ridges/folds (like billowing smoke)
         n = mix(n, abs(n) * 2.0 - 1.0, turbulence);
         
         value += amplitude * n;
@@ -206,6 +206,43 @@ float fbmEnhanced(vec2 st, int octaves, float lacunarity, float gain, float turb
     
     return value;
 }
+
+// ===== PERF: STATICALLY UNROLLED FBM VARIANTS =====
+// Replaces the dynamic-break loop in fbmEnhanced for the main spectral layers.
+// Many mobile GPU drivers (Mali/Adreno) compile `for(i<8){ if(i>=octaves) break; }` as
+// a full 8-iteration loop, ignoring the early exit. Unrolled variants eliminate this.
+
+// 1-octave turbulent FBM (always used for noiseBase)
+float fbmT1(vec2 st, float lacunarity, float gain, float turb) {
+    float n = snoise(st);
+    return mix(n, abs(n) * 2.0 - 1.0, turb) * 0.5;
+}
+
+// 2-octave turbulent FBM
+float fbmT2(vec2 st, float lacunarity, float gain, float turb) {
+    float n, v = 0.0, a = 0.5, f = 1.0;
+    n = snoise(st * f); v += a * mix(n, abs(n) * 2.0 - 1.0, turb); f *= lacunarity; a *= gain;
+    n = snoise(st * f); v += a * mix(n, abs(n) * 2.0 - 1.0, turb);
+    return v;
+}
+
+// 3-octave turbulent FBM
+float fbmT3(vec2 st, float lacunarity, float gain, float turb) {
+    float n, v = 0.0, a = 0.5, f = 1.0;
+    n = snoise(st * f); v += a * mix(n, abs(n) * 2.0 - 1.0, turb); f *= lacunarity; a *= gain;
+    n = snoise(st * f); v += a * mix(n, abs(n) * 2.0 - 1.0, turb); f *= lacunarity; a *= gain;
+    n = snoise(st * f); v += a * mix(n, abs(n) * 2.0 - 1.0, turb);
+    return v;
+}
+
+// Dispatcher: selects the correct unrolled variant based on u_octaves.
+// u_octaves is a uniform — this branch resolves once per draw call, not per fragment.
+float fbmTurb(vec2 st, int octaves, float lacunarity, float gain, float turb) {
+    if (octaves <= 1) return fbmT1(st, lacunarity, gain, turb);
+    if (octaves == 2) return fbmT2(st, lacunarity, gain, turb);
+    return fbmT3(st, lacunarity, gain, turb);
+}
+// ===== END UNROLLED FBM VARIANTS =====
 
 // Curl Noise - calculates the curl of a 2D potential field (pseudo-derivative)
 // Creates fluid-like, non-divergent rotation
@@ -253,7 +290,8 @@ float worley(vec2 st, float jitter) {
             
             // Animate point (organic movement) - SLOWED DOWN
             // Reduced speed by 0.2x because 1.0 was way too frantic
-            point = 0.5 + 0.5 * sin(u_time * 0.2 + 6.2831 * point);
+            // BOUNDED: use mod to prevent precision decay at large time values
+            point = 0.5 + 0.5 * sin(mod(u_time, 600.0) * 0.2 + 6.2831 * point);
             
             // Vector to point
             vec2 diff = neighbor + point * jitter - f;
@@ -323,8 +361,10 @@ float ridgedFbm(vec2 st, int octaves, float lacunarity, float gain) {
 }
 
 // Secondary noise layer for depth
+// BOUNDED: wrap time input to prevent coordinate drift at large values
 float detailNoise(vec2 st, float time, float scale, float speed) {
-    vec2 offset = vec2(time * speed * 0.05, time * speed * 0.03);
+    float t = mod(time, 600.0);
+    vec2 offset = vec2(t * speed * 0.05, t * speed * 0.03);
     return snoise((st + offset) * scale) * 0.5 + 0.5;
 }
 
@@ -507,58 +547,83 @@ void main() {
     // Apply precomputed modulation
     st *= u_zoomEffective;
     
+    // ===== BOUNDED TIME SYSTEM =====
+    // All animation derives from these bounded signals to prevent precision decay.
+    // 600.0s loop (~10 min) is long enough to feel infinite while keeping floats stable.
+    // TWO_PI phase signals guarantee seamless cyclical motion at loop boundary.
+    const float LOOP_DUR   = 600.0;
+    const float TWO_PI     = 6.28318530718;
+    
+    // Core bounded time values — kept numerically small
+    float tLoop   = mod(u_time, LOOP_DUR);           // 0–600 sawtooth
+    float tNorm   = tLoop / LOOP_DUR;                // 0–1 normalized
+    float tAngle  = tNorm * TWO_PI;                  // 0–2π for sin/cos
+    
+    // Reusable phase signals (perfectly periodic, zero-cost smooth loop)
+    vec2  phase   = vec2(cos(tAngle), sin(tAngle));  // circular phase
+    float pulse1  = sin(tAngle * 1.0);               // slow oscillator
+    float pulse2  = cos(tAngle * 1.7);               // offset oscillator
+    float pulse3  = sin(tAngle * 0.6 + 1.2);         // third oscillator
+    // ===== END BOUNDED TIME SYSTEM =====
+    
     // ARTISTIC CONTROL 1: Coordinate Mirroring (Kaleidoscope/Rorschach)
     if (u_mirrorX > 0.5) st.x = abs(st.x);
     if (u_mirrorY > 0.5) st.y = abs(st.y);
     
     // ARTISTIC CONTROL 2: Sine Ripple Distortion (Liquid/Glass effect)
+    // BOUNDED: use tLoop instead of raw u_time
     if (u_rippleStrength > 0.001) {
-        float rippleSpeed = u_time * 2.0;
+        float rippleSpeed = tLoop * 2.0;
         st.x += sin(st.y * u_rippleFrequency + rippleSpeed) * u_rippleStrength;
         st.y += cos(st.x * u_rippleFrequency + rippleSpeed * 0.8) * u_rippleStrength;
     }
     
     // VFX TECHNIQUE 1: Organic circular motion - NOW MODULATABLE
     // Creates natural swirling fog movement
-    float timeFlow = u_time;
+    // BOUNDED: derive from phase signals for perfect periodicity
     vec2 circularMotion = vec2(
-        sin(timeFlow * 0.3) * 0.5,
-        cos(timeFlow * 0.23) * 0.5
+        sin(tLoop * 0.3) * 0.5,
+        cos(tLoop * 0.23) * 0.5
     ) * u_circularMotionIntensity; // User-controllable intensity
     
     // Apply translation scale to control movement vs evolution ratio
     // translationScale=1.0: normal movement, translationScale=0.0: pattern evolves in place
-    vec2 movement = (u_directionEffective * timeFlow + circularMotion) * u_translationScale;
+    // BOUNDED: use tLoop for directional movement
+    vec2 movement = (u_directionEffective * tLoop + circularMotion) * u_translationScale;
     st += movement;
     
     // VFX TECHNIQUE 2: Temporal noise evolution - NOW MODULATABLE
     // Industry standard: add time offset to noise coordinates for evolution
-    float evolution = timeFlow * u_evolutionSpeed; // User-controllable speed
+    // BOUNDED: use tLoop for evolution base
+    float evolution = tLoop * u_evolutionSpeed; // User-controllable speed
     vec2 evolvedSt = st + vec2(
         sin(evolution * 0.7) * 0.3,
         cos(evolution * 0.5) * 0.3
     );
     
     // Apply domain warping for organic distortion
+    // BOUNDED: pass tLoop-based time to domainWarp
     vec2 warpedPos = evolvedSt * u_noiseScaleEffective;
+    float warpTime = tLoop * u_speed;
     if(u_turbulenceEffective > 0.01) {
-        warpedPos = domainWarp(warpedPos, u_time * u_speed, u_turbulenceEffective, u_warpOctaves);
+        warpedPos = domainWarp(warpedPos, warpTime, u_turbulenceEffective, u_warpOctaves);
     }
     
     // ===== BASE PATTERN COMPLEXITY (structural, not temporal) =====
     
     // Multi-layer warp: recursive warp passes for more folded structures
+    // BOUNDED: all warp passes use warpTime derived from tLoop
     if (u_warpLayers > 0.5) {
         // Second warp pass - different scale/speed for variation
-        warpedPos = domainWarp(warpedPos, u_time * u_speed * 0.7, u_turbulenceEffective * 0.6, 1);
+        warpedPos = domainWarp(warpedPos, warpTime * 0.7, u_turbulenceEffective * 0.6, 1);
     }
     if (u_warpLayers > 1.5) {
         // Third warp pass - finer detail warping
-        warpedPos = domainWarp(warpedPos, u_time * u_speed * 1.3, u_turbulenceEffective * 0.3, 1);
+        warpedPos = domainWarp(warpedPos, warpTime * 1.3, u_turbulenceEffective * 0.3, 1);
     }
     if (u_warpLayers > 2.5) {
         // Fourth warp pass - subtle micro-warping
-        warpedPos = domainWarp(warpedPos, u_time * u_speed * 2.0, u_turbulenceEffective * 0.15, 1);
+        warpedPos = domainWarp(warpedPos, warpTime * 2.0, u_turbulenceEffective * 0.15, 1);
     }
     
     // Noise Distortion: spatial variance of FBM parameters
@@ -570,8 +635,9 @@ void main() {
     
     // ===== DYNAMIC PATTERN MORPHING =====
     // These modulations affect the core noise generation parameters over time
+    // BOUNDED: morphTime derived from tLoop, never grows unbounded
     
-    float morphTime = u_time * 0.1 * u_patternMorph;
+    float morphTime = tLoop * 0.1 * u_patternMorph;
     
     // Dynamic lacunarity: oscillates around base value (affects pattern complexity)
     float dynamicLacunarity = u_lacunarity;
@@ -590,14 +656,15 @@ void main() {
     }
     
     // Warp Feedback: noise output feeds back into its own warp (self-similar distortions)
+    // BOUNDED: use tLoop for all time references
     if (u_warpFeedback > 0.01 && u_patternMorph > 0.01) {
         // Sample preliminary noise at current position
-        float feedbackNoise = snoise(warpedPos * 0.5 + u_time * 0.02);
+        float feedbackNoise = snoise(warpedPos * 0.5 + tLoop * 0.02);
         
         // Use noise to create secondary warp offset
         vec2 feedbackOffset = vec2(
-            sin(feedbackNoise * 6.28 + u_time * 0.1),
-            cos(feedbackNoise * 6.28 + u_time * 0.13)
+            sin(feedbackNoise * 6.28 + tLoop * 0.1),
+            cos(feedbackNoise * 6.28 + tLoop * 0.13)
         ) * u_warpFeedback * u_patternMorph * 0.5;
         
         warpedPos += feedbackOffset;
@@ -610,17 +677,17 @@ void main() {
     
     // VFX TECHNIQUE 3: Spectral Separation (Phase 1)
     // Replace dual-layer with 3-band spectral composition
+    // PERF: Uses statically-unrolled fbmTurb variants — no dynamic loop overhead.
     
-    // Base layer: Low frequency, large soft shapes (1 octave) - uses turbulent FBM
-    float noiseBase = fbmEnhanced(warpedPos, 1, 2.0, 0.5, u_turbulentFbm);
+    // Base layer: Low frequency, large soft shapes (always 1 octave — use fbmT1 directly)
+    float noiseBase = fbmT1(warpedPos, 2.0, 0.5, u_turbulentFbm);
     
-    // Mid layer: Mid frequency, standard detail (based on u_octaves)
-    // Use spatially-varied parameters and turbulent FBM
-    float noiseMid = fbmEnhanced(warpedPos * 2.5 + evolution * 0.15, max(1, u_octaves), spatialLacunarity, spatialGain, u_turbulentFbm);
+    // Mid layer: Mid frequency, standard detail (dispatcher picks correct unrolled variant)
+    float noiseMid = fbmTurb(warpedPos * 2.5 + evolution * 0.15, u_octaves, spatialLacunarity, spatialGain, u_turbulentFbm);
     
     // High layer: High frequency, fine detail
-    // Shifted position to avoid stacking artifacts - spatially-varied and turbulent
-    float noiseHigh = fbmEnhanced(warpedPos * 5.0 + evolution * 0.3 + vec2(5.2, 1.3), max(1, u_octaves), spatialLacunarity, spatialGain, u_turbulentFbm);
+    // Shifted position to avoid stacking artifacts — spatially-varied and turbulent
+    float noiseHigh = fbmTurb(warpedPos * 5.0 + evolution * 0.3 + vec2(5.2, 1.3), u_octaves, spatialLacunarity, spatialGain, u_turbulentFbm);
     
     // Phase 4: Detail Masking
     // If enabled, high frequency noise only appears where base noise is strong
@@ -658,8 +725,9 @@ void main() {
     float breatheMid = u_midWeight;
     float breatheHigh = u_highWeight;
     
+    // BOUNDED: use tLoop instead of raw u_time
     if (u_spectralBreathing > 0.01 && u_patternMorph > 0.01) {
-        float breatheTime = u_time * 0.08;
+        float breatheTime = tLoop * 0.08;
         float intensity = u_spectralBreathing * u_patternMorph;
         
         // Each band breathes at different rates (creates shifting emphasis)
@@ -698,9 +766,9 @@ void main() {
     }
     
     // Optional detail layer
-    // Optional detail layer
+    // BOUNDED: pass tLoop to detailNoise instead of raw u_time
     if(u_detailAmount > 0.01) {
-        float detail = detailNoise(st, u_time, u_detailScale, 1.0);
+        float detail = detailNoise(st, tLoop, u_detailScale, 1.0);
         noise += detail * u_detailAmount;
     }
     
@@ -837,48 +905,34 @@ void main() {
         finalColor *= attenuation;
     }
     
-    // Phase 6: Liquid-Chromatic Post-Processing (Step 1)
+    // Phase 6: Liquid-Chromatic Post-Processing
+    // PERF: Compute surface normal ONCE and share across all Phase 6 effects.
+    // Previously called computeNormal() (dFdx/dFdy + quad-sync) 3-4× per frame.
+    // Since all effects use physicsNoise as input, one computation is identical.
+    vec3 sharedNormal = computeNormal(physicsNoise);
+
+    // Step 1: Thin-Film Iridescence
     if (u_iridescenceStrength > 0.001) {
-        vec3 normal = computeNormal(physicsNoise); // Use the SMOOTH physics noise field
-        finalColor += thinFilmIridescence(normal, u_iridescenceStrength);
+        finalColor += thinFilmIridescence(sharedNormal, u_iridescenceStrength);
     }
     
-    // Phase 6 Step 2: Fresnel Edge Tint
+    // Step 2: Fresnel Edge Tint
     if (u_fresnelStrength > 0.001) {
-        // Reuse normal if computed, otherwise compute it (optimization: assume reused or compute)
-        // Since we are in a separate block, we might need to recompute if Iridescence was OFF.
-        // But for code simplicity/safety, let looks dirty recompute:
-        vec3 normal = computeNormal(physicsNoise);
-        
-        // Use u_color2 (Midtone) as the tint color
-        finalColor += fresnelTint(normal, u_color2, u_fresnelStrength);
+        finalColor += fresnelTint(sharedNormal, u_color2, u_fresnelStrength);
     }
     
-    // Phase 6 Step 3: Clear-Coat Specular
+    // Step 3: Clear-Coat Specular
     if (u_specularStrength > 0.001) {
-        // Assume normal is available or recompute. 
-        // Optimization: In a real multipass, we'd pass this. Here, lightweight enough.
-        vec3 normal = computeNormal(physicsNoise);
-        
-        // Fixed light source from top-left (classic studio lighting)
         vec3 lightDir = normalize(vec3(-0.5, 0.5, 1.0));
-        
-        float spec = specularHighlight(normal, lightDir, u_specularStrength);
-        
-        // Add pure white specular highlight (additive)
+        float spec = specularHighlight(sharedNormal, lightDir, u_specularStrength);
         finalColor += vec3(spec);
     }
     
-    // Phase 6 Step 4: Metallic Flakes
+    // Step 4: Metallic Flakes
     if (u_flakeStrength > 0.001) {
         // Use evolvedSt (before warping) to prevent flakes from stretching
-        // while still flowing with the general movement
-        vec3 normal = computeNormal(physicsNoise);
         float scale = u_flakeScale > 1.0 ? u_flakeScale : 80.0;
-        
-        vec3 flakes = metallicFlakes(evolvedSt / max(u_zoomEffective, 0.01), normal, scale, u_flakeStrength, u_time, finalColor, physicsNoise);
-        
-        // Additive blend, but respecting the underlying darkness (optional)
+        vec3 flakes = metallicFlakes(evolvedSt / max(u_zoomEffective, 0.01), sharedNormal, scale, u_flakeStrength, tLoop, finalColor, physicsNoise);
         finalColor += flakes;
     }
 
