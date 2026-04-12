@@ -303,7 +303,16 @@ export function initShaderSync(backgroundManager) {
 
   if (isMirror) {
     return new ReceiverSync(backgroundManager);
-  } else {
-    return new BroadcasterSync(backgroundManager);
   }
+
+  // PERF FIX: Don't run the broadcaster on mobile devices.
+  // BroadcasterSync._startPoller() runs setInterval(100ms) and calls JSON.stringify on
+  // 80+ uniforms every 100ms, creating sustained allocation pressure. On mobile Chrome (V8),
+  // this triggers a major GC (mark-compact) every 4–5 seconds with a 150–250ms pause.
+  // Mobile devices should only ever be receivers (?mirror=true), not broadcasters.
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+  if (isMobile) return null;
+
+  return new BroadcasterSync(backgroundManager);
 }

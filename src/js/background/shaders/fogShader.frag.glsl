@@ -909,7 +909,14 @@ void main() {
     // PERF: Compute surface normal ONCE and share across all Phase 6 effects.
     // Previously called computeNormal() (dFdx/dFdy + quad-sync) 3-4× per frame.
     // Since all effects use physicsNoise as input, one computation is identical.
-    vec3 sharedNormal = computeNormal(physicsNoise);
+    //
+    // PERF FIX: Guard the normal computation — dFdx/dFdy require quad-synchronization in
+    // the fragment pipeline (adjacent 2×2 pixel groups must stall to exchange values).
+    // When all Phase 6 effects are zeroed this still ran for every pixel on every frame.
+    // Default to a flat (0,0,1) normal when no Phase 6 effect is active.
+    bool needsNormal = u_iridescenceStrength > 0.001 || u_fresnelStrength > 0.001
+                    || u_specularStrength > 0.001 || u_flakeStrength > 0.001;
+    vec3 sharedNormal = needsNormal ? computeNormal(physicsNoise) : vec3(0.0, 0.0, 1.0);
 
     // Step 1: Thin-Film Iridescence
     if (u_iridescenceStrength > 0.001) {

@@ -104,6 +104,10 @@ export class ShaderController {
       // Handle color transitions
       if (uniform.value instanceof THREE.Color) {
         const targetColor = new THREE.Color(targetValue);
+        // PERF FIX: Kill any in-progress tween for this uniform before creating a new one.
+        // Without killTweensOf(), rapid page transitions create stacked GSAP tweens that
+        // fight each other for the same property. Stale tweens also occupy memory until GC.
+        gsap.killTweensOf(uniform.value);
         gsap.to(uniform.value, {
           r: targetColor.r,
           g: targetColor.g,
@@ -114,6 +118,7 @@ export class ShaderController {
       }
       // Handle numeric values
       else if (typeof uniform.value === "number") {
+        gsap.killTweensOf(uniform); // kill tweens on the uniform wrapper object
         gsap.to(uniform, {
           value: targetValue,
           duration,
@@ -122,6 +127,7 @@ export class ShaderController {
       }
       // Handle Vector2 values (like u_directionEffective)
       else if (uniform.value && typeof uniform.value.x === "number" && typeof uniform.value.y === "number") {
+        gsap.killTweensOf(uniform.value);
         gsap.to(uniform.value, {
           x: targetValue.x !== undefined ? targetValue.x : uniform.value.x,
           y: targetValue.y !== undefined ? targetValue.y : uniform.value.y,

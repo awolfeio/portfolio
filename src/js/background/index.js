@@ -60,7 +60,11 @@ class BackgroundManager {
       
       // Initialize adaptive quality manager for automatic FPS/quality optimization
       this.adaptiveQualityManager = createAdaptiveQualityManager(this.renderer, this.performanceMonitor);
-      
+
+      // PERF FIX: Connect AQM to renderer so tick() runs inside the render loop
+      // instead of a separate concurrent RAF chain.
+      this.renderer.setAdaptiveQualityManager(this.adaptiveQualityManager);
+
       // Connect system references to performance monitor for stats display
       if (this.performanceMonitor) {
         this.performanceMonitor.setRenderer(this.renderer);

@@ -142,17 +142,38 @@ export class DevGUI {
   }
 
   /**
-   * Start live synchronization of GUI with uniforms
+   * Start live synchronization of GUI with uniforms.
+   *
+   * PERF FIX: Throttled to 10fps (was 60fps) and RAF chain fully stops when GUI is hidden.
+   * The original pattern called updateGUIFromUniforms() every frame at 60fps, which performed
+   * Object.entries() on 100+ uniform definitions, generated new hex strings for every color
+   * uniform, and called controller.updateDisplay() on every controller — 100+ DOM mutations
+   * per frame. On mobile this created enough allocation pressure to trigger V8 major GC
+   * (mark-compact) every 4–5 seconds with 150–250ms pauses.
    */
   startLiveSync() {
-    const syncLoop = () => {
-      // Only update if GUI exists and is visible (performance)
-      if (this.gui && !this.gui._hidden) {
+    this._liveSyncRafId = null;
+    this._lastSyncTime = 0;
+    const SYNC_INTERVAL = 100; // 10fps — dev tool doesn't need 60fps controller updates
+
+    const syncLoop = (timestamp) => {
+      if (!this.gui) return; // GUI destroyed — stop the RAF chain entirely
+
+      if (this.gui._hidden) {
+        // GUI is hidden: re-schedule cheaply but do zero work
+        this._liveSyncRafId = requestAnimationFrame(syncLoop);
+        return;
+      }
+
+      if (timestamp - this._lastSyncTime >= SYNC_INTERVAL) {
+        this._lastSyncTime = timestamp;
         this.updateGUIFromUniforms();
       }
-      requestAnimationFrame(syncLoop);
+
+      this._liveSyncRafId = requestAnimationFrame(syncLoop);
     };
-    syncLoop();
+
+    this._liveSyncRafId = requestAnimationFrame(syncLoop);
   }
 
   /**
@@ -252,7 +273,8 @@ export class DevGUI {
       .disable();
     
     // Update current page display periodically
-    setInterval(() => {
+    // PERF FIX: Store ID so destroy() can clear this interval (zombie prevention)
+    this._pageIntervalId = setInterval(() => {
       const current = configManager.getCurrentPage();
       if (current) {
         currentPageState.current = current;
@@ -308,38 +330,42 @@ export class DevGUI {
         minFps: 0,
       };
       
+      // PERF FIX: Removed .listen() from all three controllers.
+      // lil-gui's .listen() creates its own internal requestAnimationFrame polling loop that
+      // checks values every frame and calls updateDisplay() on change. Since the setInterval
+      // below already drives the data updates, and startLiveSync() calls updateDisplay() on
+      // all controllers at 10fps, .listen() is redundant and adds a third concurrent RAF chain.
       const fpsController = folder.add(statsState, 'fps', 0, 120)
         .name('Current FPS')
-        .disable()
-        .listen();
-      
-      const avgController = folder.add(statsState, 'avgFps', 0, 120)
+        .disable();
+
+      folder.add(statsState, 'avgFps', 0, 120)
         .name('Average FPS')
-        .disable()
-        .listen();
-      
-      const minController = folder.add(statsState, 'minFps', 0, 120)
+        .disable();
+
+      folder.add(statsState, 'minFps', 0, 120)
         .name('Min FPS')
-        .disable()
-        .listen();
-      
-      // Update stats periodically
-      setInterval(() => {
+        .disable();
+
+      // PERF FIX: Cache the FPS input DOM element once instead of querying it every 500ms.
+      // querySelector traverses the lil-gui DOM subtree on every interval tick.
+      let _fpsDomInput = null;
+
+      // PERF FIX: Store ID so destroy() can clear this interval (zombie prevention)
+      this._statsIntervalId = setInterval(() => {
         const metrics = performanceMonitor.getMetrics();
         statsState.fps = metrics.currentFps;
         statsState.avgFps = metrics.averageFps;
         statsState.minFps = metrics.minFps;
-        
-        // Color code FPS controller
-        const fpsElement = fpsController.domElement.querySelector('input');
-        if (fpsElement) {
-          if (metrics.currentFps < 30) {
-            fpsElement.style.color = '#ff0000';
-          } else if (metrics.currentFps < 45) {
-            fpsElement.style.color = '#ffff00';
-          } else {
-            fpsElement.style.color = '#00ff00';
-          }
+
+        // Color code FPS controller — query DOM element once and cache
+        if (!_fpsDomInput) {
+          _fpsDomInput = fpsController.domElement.querySelector('input');
+        }
+        if (_fpsDomInput) {
+          _fpsDomInput.style.color =
+            metrics.currentFps < 30 ? '#ff0000' :
+            metrics.currentFps < 45 ? '#ffff00' : '#00ff00';
         }
       }, 500);
       
@@ -631,9 +657,21 @@ export class DevGUI {
   }
 
   /**
-   * Destroy the GUI
+   * Destroy the GUI and clean up all timers/RAF chains.
+   * Previously, the live-sync RAF and both setInterval IDs were never stored,
+   * so destroy() left zombie timers running indefinitely after HMR or page navigation.
    */
   destroy() {
+    // Cancel the live-sync RAF chain
+    cancelAnimationFrame(this._liveSyncRafId);
+    this._liveSyncRafId = null;
+
+    // Clear both interval timers
+    clearInterval(this._pageIntervalId);
+    clearInterval(this._statsIntervalId);
+    this._pageIntervalId = null;
+    this._statsIntervalId = null;
+
     if (this.gui) {
       this.gui.destroy();
       this.gui = null;

@@ -122,30 +122,15 @@ export class AdaptiveQualityManager {
   }
 
   /**
-   * Start performance monitoring loop
-   * OPTIMIZED: Uses requestAnimationFrame instead of setInterval to avoid frame conflicts
+   * Start performance monitoring.
+   * PERF FIX: No longer spawns its own RAF loop. The BackgroundRenderer render loop calls
+   * tick() on every frame instead, eliminating the second concurrent RAF chain that competed
+   * for the 16ms frame budget on mobile.
    */
   startMonitoring() {
-    // PERFORMANCE: Track last check time instead of using setInterval
-    // setInterval can fire in the middle of frame rendering, causing jank
     this._lastPerformanceCheck = 0;
     this._performanceCheckInterval = 500; // Check every 500ms
     this._monitoringActive = true;
-    
-    // Use RAF-aligned monitoring to avoid scheduling conflicts
-    const checkLoop = () => {
-      if (!this._monitoringActive) return;
-      
-      const now = performance.now();
-      if (now - this._lastPerformanceCheck >= this._performanceCheckInterval) {
-        this._lastPerformanceCheck = now;
-        this.checkPerformance();
-      }
-      
-      requestAnimationFrame(checkLoop);
-    };
-    
-    requestAnimationFrame(checkLoop);
   }
 
   /**
@@ -153,6 +138,19 @@ export class AdaptiveQualityManager {
    */
   stopMonitoring() {
     this._monitoringActive = false;
+  }
+
+  /**
+   * Per-frame tick — called by BackgroundRenderer.render() instead of a separate RAF loop.
+   * Performs the 500ms throttled performance check inline with the existing render callback.
+   */
+  tick() {
+    if (!this._monitoringActive) return;
+    const now = performance.now();
+    if (now - this._lastPerformanceCheck >= this._performanceCheckInterval) {
+      this._lastPerformanceCheck = now;
+      this.checkPerformance();
+    }
   }
 
   /**

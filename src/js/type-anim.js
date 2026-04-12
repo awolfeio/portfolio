@@ -10,8 +10,6 @@ function animateChars(chars) {
   chars.forEach((char) => {
     char.classList.remove("reveal-char");
   });
-  // Force reflow once
-  if (chars.length > 0) void chars[0].parentElement.offsetWidth;
 
   // Simple staggered animation without GSAP
   chars.forEach((char, index) => {
@@ -93,8 +91,6 @@ export function rotateTitles(caller = "unknown") {
       // Force the before pseudo-element back to starting position
       char.setAttribute("data-reset", "true");
     });
-    // Force reflow once
-    if (chars.length > 0) void chars[0].parentElement.offsetWidth;
   }
 
   // Helper function to show character animations
@@ -124,9 +120,6 @@ export function rotateTitles(caller = "unknown") {
     // Remove hidden class and ensure proper positioning
     firstTitle.classList.remove("hidden");
     firstTitle.classList.add("active");
-
-    // Force reflow
-    void firstTitle.offsetWidth;
 
     // Animate the characters with a slight delay
     setTimeout(() => {
@@ -168,10 +161,28 @@ export function rotateTitles(caller = "unknown") {
       return;
     }
 
-    const titles = document.querySelectorAll("h2.titles-wrapper .title");
+    const titlesWrapper = document.querySelector("h2.titles-wrapper");
+    if (!titlesWrapper) return;
+
+    const titles = titlesWrapper.querySelectorAll(".title");
     let currentTitle = 0;
+    
+    // Track visibility to pause rotation when out of view (saves CPU & prevents frame drops)
+    let isVisible = true;
+    if ('IntersectionObserver' in window) {
+      if (window.titleAnimationObserver) {
+        window.titleAnimationObserver.disconnect();
+      }
+      window.titleAnimationObserver = new IntersectionObserver((entries) => {
+        isVisible = entries[0].isIntersecting;
+      }, { rootMargin: "100px", threshold: 0.0 });
+      window.titleAnimationObserver.observe(titlesWrapper);
+    }
 
     const rotateToNextTitle = () => {
+      // Skip heavy DOM manipulation if we can't be seen anyway
+      if (!isVisible) return;
+
       // Double check titles still exist in the DOM
       const currentTitles = document.querySelectorAll("h2.titles-wrapper .title");
       if (!currentTitles || currentTitles.length === 0) {
@@ -288,8 +299,6 @@ export function revealH1Characters() {
         // Ensure text content is transparent for pseudo-element reveal
         char.style.color = "transparent";
       });
-      // Force reflow once
-      if (chars.length > 0) void chars[0].parentElement.offsetWidth;
 
       // Ensure parent element is visible before animating characters
       h1.style.opacity = "1";
@@ -401,8 +410,6 @@ export function animateDataSplittingChars() {
         char.style.visibility = "visible";
         char.style.color = "transparent";
       });
-      // Force reflow once
-      if (chars.length > 0) void chars[0].parentElement.offsetWidth;
 
       // Animate each character
       chars.forEach((char, index) => {
