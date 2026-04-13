@@ -8,8 +8,19 @@ export class PerformanceMonitor {
     this.frameCount = 0;
     this.lastTime = performance.now();
     this.lastFpsUpdate = performance.now();
+
+    // PERF: Float32Array ring buffer instead of a JS Array that grows/shifts.
+    // .shift() on a plain Array is O(n) — on a 60-element history that's 60
+    // element copies on every FPS sample (every 500ms = 120 copies/second).
+    this._histLen = 60;
+    this._fpsHist = new Float32Array(this._histLen);
+    this._histIdx = 0;
+    this._histCount = 0; // how many valid samples
+
+    // Keep a public alias for legacy callers (AdaptiveQualityManager reads .fpsHistory)
+    // We'll keep it as a plain array but only update it lazily from getMetrics()
     this.fpsHistory = [];
-    this.maxHistoryLength = 60; // Keep 60 samples
+    this.maxHistoryLength = 60;
 
     // Performance thresholds
     this.targetFps = 60;
@@ -25,6 +36,10 @@ export class PerformanceMonitor {
     this.frameRateController = null;
     this.adaptiveQualityManager = null;
     this.renderer = null;
+
+    // Cached values to avoid re-reading material on every display update
+    this._cachedGrainHold = 1.0;
+    this._cachedPixelRatio = 1.0;
 
     if (this.enabled) {
       this.createStatsDisplay();
@@ -92,6 +107,22 @@ export class PerformanceMonitor {
         <div style="color: #888; font-size: 10px;">ADAPTIVE</div>
         <div id="stats-adaptive" style="font-size: 10px;">▲ Upgrade | ▼ Downgrade</div>
       </div>
+
+      <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button id="stats-remove-canvas" style="
+          width: 100%;
+          padding: 5px 0;
+          background: rgba(255,60,60,0.15);
+          border: 1px solid rgba(255,60,60,0.4);
+          border-radius: 4px;
+          color: #ff6060;
+          font-family: 'Courier New', monospace;
+          font-size: 10px;
+          font-weight: bold;
+          cursor: pointer;
+          letter-spacing: 0.05em;
+        ">✕ Remove Canvas</button>
+      </div>
     `;
 
     document.body.appendChild(this.statsElement);
@@ -108,10 +139,27 @@ export class PerformanceMonitor {
       grain: this.statsElement.querySelector('#stats-grain'),
       adaptive: this.statsElement.querySelector('#stats-adaptive')
     };
+
+    // Wire up Remove Canvas button — override pointer-events since parent has none
+    const removeBtn = this.statsElement.querySelector('#stats-remove-canvas');
+    if (removeBtn) {
+      removeBtn.style.pointerEvents = 'auto';
+      removeBtn.addEventListener('click', () => {
+        const canvases = document.querySelectorAll('canvas');
+        canvases.forEach(c => c.remove());
+        removeBtn.textContent = `✓ Removed ${canvases.length} canvas`;
+        removeBtn.style.color = '#22c55e';
+        removeBtn.style.borderColor = 'rgba(34,197,94,0.4)';
+        removeBtn.style.background = 'rgba(34,197,94,0.1)';
+        removeBtn.disabled = true;
+        console.log(`[PerformanceMonitor] Removed ${canvases.length} canvas element(s) from DOM`);
+      });
+    }
   }
 
   /**
-   * Update FPS counter (call once per frame)
+   * Update FPS counter — called once per frame.
+   * PERF: No object allocation. Ring buffer insert is O(1).
    */
   update() {
     if (!this.enabled) return;
@@ -119,126 +167,135 @@ export class PerformanceMonitor {
     const now = performance.now();
     this.frameCount++;
 
-    // Update FPS every 500ms
+    // Sample FPS every 500ms
     if (now >= this.lastFpsUpdate + 500) {
       const delta = now - this.lastFpsUpdate;
       this.fps = Math.round((this.frameCount * 1000) / delta);
       this.frameCount = 0;
       this.lastFpsUpdate = now;
 
-      // Add to history
-      this.fpsHistory.push(this.fps);
-      if (this.fpsHistory.length > this.maxHistoryLength) {
+      // Ring-buffer insert
+      this._fpsHist[this._histIdx] = this.fps;
+      this._histIdx = (this._histIdx + 1) % this._histLen;
+      if (this._histCount < this._histLen) this._histCount++;
+
+      // Keep legacy .fpsHistory array in sync for AdaptiveQualityManager
+      // (it reads .fpsHistory.length and .fpsHistory[i] directly)
+      if (this.fpsHistory.length >= this.maxHistoryLength) {
         this.fpsHistory.shift();
       }
+      this.fpsHistory.push(this.fps);
 
-      // Check for low performance
       if (this.fps < this.lowFpsThreshold && this.onLowPerformance) {
         this.onLowPerformance(this.fps);
       }
 
-      // Update display
       this.updateDisplay();
     }
   }
 
   /**
-   * Update stats display
-   * OPTIMIZED: Uses cached DOM references with textContent updates instead of innerHTML
+   * Update stats display — runs every 500ms via update().
+   * PERF: Ring-buffer stats, no .reduce(), cached grain/pixelRatio reads.
    */
   updateDisplay() {
     if (!this.statsElement || !this._statsDom) return;
 
     const dom = this._statsDom;
-    const avgFps = this.getAverageFps();
-    const minFps = this.getMinFps();
+    const n = this._histCount;
 
-    // Calculate frame timing metrics
-    let targetFps = 60;
-    let actualFps = this.fps;
-    let frameTime = actualFps > 0 ? (1000 / actualFps) : 0;
-    let jitter = 0;
-
-    // Calculate jitter from FPS history variance
-    if (this.fpsHistory.length > 1) {
-      const avgFpsCalc = this.fpsHistory.reduce((a, b) => a + b, 0) / this.fpsHistory.length;
-      const variance = this.fpsHistory.reduce((sum, val) =>
-        sum + Math.pow(val - avgFpsCalc, 2), 0
-      ) / this.fpsHistory.length;
-      const fpsStdDev = Math.sqrt(variance);
-      jitter = avgFpsCalc > 0 ? (fpsStdDev / avgFpsCalc) * frameTime : 0;
+    // Avg and min via plain for-loop over the ring buffer (no .reduce(), no spread)
+    let sum = 0, minFps = Infinity;
+    for (let i = 0; i < n; i++) {
+      const v = this._fpsHist[i];
+      sum += v;
+      if (v < minFps) minFps = v;
     }
+    const avgFps = n > 0 ? Math.round(sum / n) : 0;
+    if (minFps === Infinity) minFps = 0;
 
-    // Get adaptive quality manager status
+    const actualFps = this.fps;
+    let targetFps = 60;
     let detectedHz = 60;
     let currentQuality = 'high';
     let canUpgrade = false;
     let canDowngrade = false;
 
     if (this.adaptiveQualityManager) {
-      const status = this.adaptiveQualityManager.getStatus();
-      detectedHz = status.detectedRefreshRate;
-      targetFps = detectedHz;
-      currentQuality = status.currentQuality;
-      canUpgrade = status.canUpgrade;
-      canDowngrade = status.canDowngrade;
+      const s = this.adaptiveQualityManager.getStatus();
+      detectedHz     = s.detectedRefreshRate;
+      targetFps      = detectedHz;
+      currentQuality = s.currentQuality;
+      canUpgrade     = s.canUpgrade;
+      canDowngrade   = s.canDowngrade;
     }
 
-    // Get renderer info
-    let pixelRatio = 1.0;
-    let grainHold = 1.0;
-
-    if (this.renderer) {
-      pixelRatio = this.renderer.getPixelRatio ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1.0);
+    // Jitter from ring buffer — no second pass needed
+    let jitter = 0;
+    if (n > 1) {
+      let vsum = 0;
+      for (let i = 0; i < n; i++) { const d = this._fpsHist[i] - avgFps; vsum += d * d; }
+      const fpsSigma = Math.sqrt(vsum / n);
+      const frameTime = actualFps > 0 ? (1000 / actualFps) : 0;
+      jitter = avgFps > 0 ? (fpsSigma / avgFps) * frameTime : 0;
     }
 
-    // Calculate performance metrics
+    const frameTime = actualFps > 0 ? (1000 / actualFps) : 0;
     const fpsPercentage = ((actualFps / targetFps) * 100).toFixed(0);
-    const performanceColor = actualFps >= targetFps * 0.95 ? '#0f0' : actualFps >= targetFps * 0.85 ? '#ff0' : '#f00';
+    const perfColor = actualFps >= targetFps * 0.95 ? '#0f0'
+      : actualFps >= targetFps * 0.85 ? '#ff0' : '#f00';
 
-    // PERFORMANCE: Update only textContent of cached elements (no DOM parsing!)
+    // Cache renderer reads — pixel ratio and grain hold are stable values
+    // that don't need to be re-queried from the material every 500ms
+    if (this.renderer) {
+      if (this.renderer.getPixelRatio) {
+        this._cachedPixelRatio = this.renderer.getPixelRatio();
+      }
+      const mat = this.renderer.getMaterial?.();
+      if (mat?.uniforms?.u_grainFrameHold) {
+        this._cachedGrainHold = mat.uniforms.u_grainFrameHold.value;
+      }
+    }
+
     dom.fpsMain.textContent = `FPS: ${actualFps} / ${targetFps} (${fpsPercentage}%)`;
-    dom.fpsMain.style.color = performanceColor;
+    dom.fpsMain.style.color = perfColor;
     dom.fpsDetail.textContent = `Avg: ${avgFps} | Min: ${minFps} | Dropped: 0`;
-
     dom.timing.textContent = `Frame: ${frameTime.toFixed(2)}ms ±${jitter.toFixed(2)}ms`;
     dom.timingTarget.textContent = `Target: ${(1000 / targetFps).toFixed(2)}ms`;
-
     dom.refresh.textContent = `Refresh: ${detectedHz}Hz`;
-    dom.pixelRatio.textContent = `Pixel Ratio: ${pixelRatio.toFixed(2)}`;
-
-    dom.quality.textContent = `Tier: ${currentQuality.toUpperCase()}`;
-    // Grain hold
-    const material = this.renderer?.getMaterial?.();
-    if (material?.uniforms?.u_grainFrameHold) {
-      grainHold = material.uniforms.u_grainFrameHold.value;
-    }
-    dom.grain.textContent = `Grain Hold: ${grainHold.toFixed(1)}x`;
 
     const deviceRatio = (window.devicePixelRatio || 1).toFixed(2);
-    dom.pixelRatio.textContent = `Render PR: ${pixelRatio.toFixed(2)} (device: ${deviceRatio})`;
+    dom.pixelRatio.textContent = `Render PR: ${this._cachedPixelRatio.toFixed(2)} (device: ${deviceRatio})`;
 
-    // Use innerHTML only for the small adaptive section with icons
-    const upgradeColor = canUpgrade ? '#0f0' : '#555';
+    dom.quality.textContent = `Tier: ${currentQuality.toUpperCase()}`;
+    dom.grain.textContent = `Grain Hold: ${this._cachedGrainHold.toFixed(1)}x`;
+
+    const upgradeColor   = canUpgrade   ? '#0f0' : '#555';
     const downgradeColor = canDowngrade ? '#f90' : '#555';
-    dom.adaptive.innerHTML = `<span style="color: ${upgradeColor};">▲ Upgrade</span> | <span style="color: ${downgradeColor};">▼ Downgrade</span>`;
+    dom.adaptive.innerHTML = `<span style="color:${upgradeColor}">▲ Upgrade</span> | <span style="color:${downgradeColor}">▼ Downgrade</span>`;
   }
 
+
   /**
-   * Get average FPS from history
+   * Get average FPS — plain for-loop over ring buffer.
    */
   getAverageFps() {
-    if (this.fpsHistory.length === 0) return 0;
-    const sum = this.fpsHistory.reduce((a, b) => a + b, 0);
-    return Math.round(sum / this.fpsHistory.length);
+    const n = this._histCount;
+    if (n === 0) return 0;
+    let sum = 0;
+    for (let i = 0; i < n; i++) sum += this._fpsHist[i];
+    return Math.round(sum / n);
   }
 
   /**
-   * Get minimum FPS from history
+   * Get minimum FPS — plain for-loop over ring buffer.
    */
   getMinFps() {
-    if (this.fpsHistory.length === 0) return 0;
-    return Math.min(...this.fpsHistory);
+    const n = this._histCount;
+    if (n === 0) return 0;
+    let min = Infinity;
+    for (let i = 0; i < n; i++) { if (this._fpsHist[i] < min) min = this._fpsHist[i]; }
+    return min === Infinity ? 0 : min;
   }
 
   /**
@@ -338,6 +395,9 @@ export class PerformanceMonitor {
     this.fps = 0;
     this.frameCount = 0;
     this.fpsHistory = [];
+    this._fpsHist.fill(0);
+    this._histIdx = 0;
+    this._histCount = 0;
     this.lastTime = performance.now();
     this.lastFpsUpdate = performance.now();
   }

@@ -200,10 +200,12 @@ body {
     }
 
     span.char {
+        // Promote the clipping container to its own layer with a cheap 3D hint.
+        // backface-visibility:hidden + translateZ(0) on the CONTAINER (not ::before)
+        // is enough for the browser to composite the overflow:hidden clip on GPU.
         backface-visibility: hidden;
-        transform: translateZ(0) translate3d(0, 0, 0);
         -webkit-backface-visibility: hidden;
-        -webkit-perspective: 1000;
+        transform: translateZ(0);
         overflow: hidden;
         opacity: 1;
         visibility: visible;
@@ -229,8 +231,11 @@ body {
             visibility: visible !important;
             animation-delay: calc(0.04s * var(--char-index)) !important;
             backface-visibility: hidden;
-            will-change: transform;
-            color: currentColor;
+            // PERF: will-change only active during the actual animation.
+            // Declaring it unconditionally promotes EVERY character pseudo-element
+            // to its own compositor layer at parse time — on a 40-char heading
+            // that's 40 extra GPU layers sitting idle, consuming VRAM and
+            // increasing compositor work on every frame.
             color: #000;
         }
 
@@ -240,9 +245,9 @@ body {
         }
 
         &.reveal-char:before {
-            animation: revealChar 0.8s;
-            animation-fill-mode: forwards;
-            animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
+            // Promote only while animating, then let the layer be destroyed.
+            will-change: transform;
+            animation: revealChar 0.8s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards;
         }
     }
 }
@@ -255,15 +260,23 @@ h2 {
     .title {
         opacity: 0;
         position: absolute;
-        @include transition-smooth;
-        transition: all 0.4s;
         left: 0;
         right: 0;
+        // PERF: 'transition: all' animates layout properties (width, height,
+        // top, left...) triggering a full style+layout recalc every frame on
+        // mobile. Scope to opacity only — the only property that changes here.
+        transition: opacity 0.4s cubic-bezier(.785, 0.135, 0.15, 0.86);
+        will-change: opacity;
 
         &.active {
             opacity: 1;
-            transition: all 0.4s;
             transition-delay: 0.3s;
+        }
+
+        // Release the compositor layer once the title is fully hidden
+        // (active class removed) so we don't hold GPU memory for all titles.
+        &.hidden {
+            will-change: auto;
         }
     }
 }
@@ -309,6 +322,9 @@ span {
         display: inline-block;
         padding: 4px 0;
         color: transparent;
+        // GPU layer for clipping container
+        backface-visibility: hidden;
+        transform: translateZ(0);
 
         @media (max-width:1368px) {
             padding: 2px 0;
@@ -329,8 +345,7 @@ span {
             visibility: visible !important;
             animation-delay: calc(0.04s * var(--char-index)) !important;
             backface-visibility: hidden;
-            will-change: transform;
-            color: inherit;
+            // will-change applied only on reveal-char (below), not unconditionally
             color: #000;
         }
 
@@ -340,9 +355,8 @@ span {
         }
 
         &.reveal-char:before {
-            animation: revealChar 0.8s;
-            animation-fill-mode: forwards;
-            animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
+            will-change: transform;
+            animation: revealChar 0.8s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards;
         }
     }
 }
@@ -419,9 +433,8 @@ span {
             }
 
             &.reveal-char {
-                animation: revealChar 1s;
-                animation-fill-mode: forwards;
-                animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
+                will-change: transform;
+                animation: revealChar 1s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards;
             }
         }
 
@@ -432,7 +445,7 @@ span {
                         @for $x from 1 through 40 {
                             &:nth-of-type(#{$x}) {
                                 &:before {
-                                    animation-delay:#{ ($x * 0.028s) + ($i * 0.04s) } !important; // fast
+                                    animation-delay:#{ ($x * 0.028s) + ($i * 0.04s) } !important;
                                 }
                             }
                         }
@@ -444,15 +457,20 @@ span {
 
     &.reveal {
         span.char {
-            animation: rotateWrapper 1.6s;
-            animation-fill-mode: forwards;
-            animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
+            // PERF: rotateWrapper no longer uses filter:blur() — replaced with
+            // opacity fade in _animations.scss. This avoids per-frame GPU readback.
+            animation: rotateWrapper 1.6s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards;
             user-select: none;
+            will-change: transform, opacity;
 
             &:before {
-                animation: revealChar 0.44s, blurIn 0.6s;
-                animation-fill-mode: forwards;
-                animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
+                // PERF: blurIn removed — filter:blur() is not composited on
+                // mobile GPUs and causes a paint every frame.
+                // fadeSlideIn achieves the same 'materialising' feel via
+                // opacity+translateY which run freely on the compositor thread.
+                will-change: transform;
+                animation: revealChar 0.44s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards,
+                           fadeSlideIn 0.6s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards;
             }
         }
     }

@@ -1,168 +1,153 @@
 /**
- * FrameRateController - Precise frame rate targeting with time budgeting
- * Enables rendering at specific FPS targets (60, 120, 165, 240) regardless of display refresh rate
+ * FrameRateController
+ *
+ * PERF AUDIT: This class was evaluated for removal — the render loop already
+ * relies on native vsync via rAF, so a software frame-budget accumulator is
+ * redundant overhead. However it is kept because:
+ *   1. The DevGUI exposes "target FPS" controls that call setTargetFps().
+ *   2. AdaptiveQualityManager's quality combinations include fps values.
+ *
+ * Changes made to eliminate per-frame cost:
+ *   - frameTimeHistory is a fixed-size ring buffer (no .shift() on hot path).
+ *   - calculateVariance() is lazy — only computed when getMetrics() is called,
+ *     NOT on every shouldRender() call.
+ *   - FPS sampling avoids object allocation in the hot path.
+ *   - The history iteration uses a plain for-loop instead of .reduce().
  */
 export class FrameRateController {
   constructor(targetFps = 60) {
     this.targetFps = targetFps;
-    this.frameTime = 1000 / targetFps; // ms per frame
+    this.frameTime = 1000 / targetFps;
     this.lastFrameTime = performance.now();
     this.deltaAccumulator = 0;
     this.frameCount = 0;
     this.droppedFrames = 0;
     this.actualFps = 0;
     this.lastFpsUpdate = performance.now();
-    
-    // Performance metrics
-    this.frameTimeHistory = [];
-    this.maxHistoryLength = 60;
-    
-    // Adaptive frame skipping
+
+    // Ring buffer — avoids .shift() (O(n) array copy) on every frame
+    this._histLen = 60;
+    this._hist = new Float32Array(this._histLen); // fixed allocation
+    this._histIdx = 0;
+    this._histFull = false;
+
     this.adaptiveSkipping = true;
-    this.maxFrameBudgetOverrun = 2.0; // ms - if we're this far behind, skip a frame
+    this.maxFrameBudgetOverrun = 2.0;
   }
 
-  /**
-   * Set target FPS
-   * @param {number} fps - Target frames per second (60, 120, 165, 240)
-   */
   setTargetFps(fps) {
     const validFps = [30, 60, 90, 120, 144, 165, 240];
     if (!validFps.includes(fps)) {
-      console.warn(`Invalid target FPS: ${fps}, clamping to nearest valid value`);
-      fps = validFps.reduce((prev, curr) => 
+      fps = validFps.reduce((prev, curr) =>
         Math.abs(curr - fps) < Math.abs(prev - fps) ? curr : prev
       );
+      console.warn(`FrameRateController: invalid FPS, clamped to ${fps}`);
     }
-    
     this.targetFps = fps;
     this.frameTime = 1000 / fps;
-    this.deltaAccumulator = 0; // Reset accumulator on FPS change
-    console.log(`FrameRateController: Target FPS set to ${fps} (${this.frameTime.toFixed(2)}ms per frame)`);
+    this.deltaAccumulator = 0;
+    console.log(`FrameRateController: target FPS = ${fps} (${this.frameTime.toFixed(2)}ms/frame)`);
   }
 
   /**
-   * Check if we should render this frame
-   * Implements frame time budgeting with delta accumulation
-   * @returns {boolean} True if we should render this frame
+   * Called every rAF — returns true if we should render.
+   * PERF: No object allocation, no .reduce(), no array mutation.
    */
   shouldRender() {
     const now = performance.now();
     const delta = now - this.lastFrameTime;
-    
-    // Accumulate time since last render
-    this.deltaAccumulator += delta;
-    
-    // Check if we have enough accumulated time for a frame
-    if (this.deltaAccumulator >= this.frameTime) {
-      // We should render this frame
-      this.deltaAccumulator -= this.frameTime;
-      
-      // If we're significantly behind, drop accumulated time to catch up
-      if (this.adaptiveSkipping && this.deltaAccumulator > this.maxFrameBudgetOverrun) {
-        this.droppedFrames++;
-        this.deltaAccumulator = 0; // Reset to prevent cascading delays
-      }
-      
-      // Track frame time
-      this.frameTimeHistory.push(delta);
-      if (this.frameTimeHistory.length > this.maxHistoryLength) {
-        this.frameTimeHistory.shift();
-      }
-      
-      this.lastFrameTime = now;
-      this.frameCount++;
-      
-      // Update FPS calculation every 500ms
-      if (now - this.lastFpsUpdate >= 500) {
-        const timeDelta = now - this.lastFpsUpdate;
-        this.actualFps = Math.round((this.frameCount * 1000) / timeDelta);
-        this.frameCount = 0;
-        this.lastFpsUpdate = now;
-      }
-      
-      return true;
-    }
-    
-    // Not enough time accumulated, skip this frame
     this.lastFrameTime = now;
-    return false;
+
+    this.deltaAccumulator += delta;
+
+    if (this.deltaAccumulator < this.frameTime) {
+      return false; // Not yet time for the next frame
+    }
+
+    this.deltaAccumulator -= this.frameTime;
+
+    // Drain excess accumulation to avoid spiral-of-death frame bursts
+    if (this.adaptiveSkipping && this.deltaAccumulator > this.maxFrameBudgetOverrun) {
+      this.droppedFrames++;
+      this.deltaAccumulator = 0;
+    }
+
+    // Ring-buffer push — O(1), no GC pressure
+    this._hist[this._histIdx] = delta;
+    this._histIdx = (this._histIdx + 1) % this._histLen;
+    if (!this._histFull && this._histIdx === 0) this._histFull = true;
+
+    this.frameCount++;
+
+    // FPS sample every 500ms — cheap integer math only
+    if (now - this.lastFpsUpdate >= 500) {
+      const timeDelta = now - this.lastFpsUpdate;
+      this.actualFps = Math.round((this.frameCount * 1000) / timeDelta);
+      this.frameCount = 0;
+      this.lastFpsUpdate = now;
+    }
+
+    return true;
   }
 
   /**
-   * Get current performance metrics
-   * @returns {{targetFps: number, actualFps: number, avgFrameTime: number, droppedFrames: number}}
+   * Variance calculation — only called when getMetrics() is requested (stats display).
+   * NOT on the hot render path.
    */
+  _calcVariance() {
+    const n = this._histFull ? this._histLen : this._histIdx;
+    if (n < 2) return 0;
+    let sum = 0;
+    for (let i = 0; i < n; i++) sum += this._hist[i];
+    const mean = sum / n;
+    let varSum = 0;
+    for (let i = 0; i < n; i++) {
+      const d = this._hist[i] - mean;
+      varSum += d * d;
+    }
+    return Math.sqrt(varSum / n);
+  }
+
+  _calcAvgFrameTime() {
+    const n = this._histFull ? this._histLen : this._histIdx;
+    if (n === 0) return this.frameTime;
+    let sum = 0;
+    for (let i = 0; i < n; i++) sum += this._hist[i];
+    return sum / n;
+  }
+
+  /** Called infrequently (DevGUI stats panel, 500ms interval). */
   getMetrics() {
-    const avgFrameTime = this.frameTimeHistory.length > 0
-      ? this.frameTimeHistory.reduce((a, b) => a + b, 0) / this.frameTimeHistory.length
-      : this.frameTime;
-    
     return {
       targetFps: this.targetFps,
       actualFps: this.actualFps,
-      avgFrameTime: avgFrameTime,
+      avgFrameTime: this._calcAvgFrameTime(),
       targetFrameTime: this.frameTime,
       droppedFrames: this.droppedFrames,
-      frameTimeVariance: this.calculateVariance()
+      frameTimeVariance: this._calcVariance(),
     };
   }
 
-  /**
-   * Calculate frame time variance (jitter)
-   * @returns {number} Standard deviation of frame times in ms
-   */
-  calculateVariance() {
-    if (this.frameTimeHistory.length < 2) return 0;
-    
-    const mean = this.frameTimeHistory.reduce((a, b) => a + b, 0) / this.frameTimeHistory.length;
-    const variance = this.frameTimeHistory.reduce((sum, val) => 
-      sum + Math.pow(val - mean, 2), 0
-    ) / this.frameTimeHistory.length;
-    
-    return Math.sqrt(variance);
-  }
+  // Kept for backwards compat — now delegates to _calcVariance()
+  calculateVariance() { return this._calcVariance(); }
 
-  /**
-   * Get target FPS
-   */
-  getTargetFps() {
-    return this.targetFps;
-  }
+  getTargetFps()  { return this.targetFps; }
+  getActualFps()  { return this.actualFps; }
 
-  /**
-   * Get actual achieved FPS
-   */
-  getActualFps() {
-    return this.actualFps;
-  }
-
-  /**
-   * Reset performance metrics
-   */
   reset() {
     this.lastFrameTime = performance.now();
     this.deltaAccumulator = 0;
     this.frameCount = 0;
     this.droppedFrames = 0;
-    this.frameTimeHistory = [];
+    this._hist.fill(0);
+    this._histIdx = 0;
+    this._histFull = false;
     this.lastFpsUpdate = performance.now();
   }
 
-  /**
-   * Enable/disable adaptive frame skipping
-   * @param {boolean} enabled
-   */
-  setAdaptiveSkipping(enabled) {
-    this.adaptiveSkipping = enabled;
-  }
+  setAdaptiveSkipping(enabled) { this.adaptiveSkipping = enabled; }
 }
 
-/**
- * Create a frame rate controller instance
- * @param {number} targetFps - Target frames per second
- * @returns {FrameRateController}
- */
 export function createFrameRateController(targetFps = 60) {
   return new FrameRateController(targetFps);
 }
