@@ -318,7 +318,7 @@ export function revealH1Characters() {
           char.classList.remove("reveal-char");
 
           // Use a longer delay for first few characters to make it more noticeable
-          const staggerDelay = index < 3 ? 45 * (index + 1) : 45 + index * 35;
+          const staggerDelay = index < 3 ? 56 * (index + 1) : 56 + index * 44;
 
           // Add reveal class with staggered delay
           setTimeout(() => {
@@ -348,7 +348,7 @@ export function revealH1Characters() {
         chars.forEach((char, index) => {
           setTimeout(() => {
             char.classList.add("reveal-char");
-          }, 50 + index * 50); // Increased stagger for project pages
+          }, 63 + index * 63); // Increased stagger for project pages
         });
       }
     } else {
