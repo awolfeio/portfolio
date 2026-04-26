@@ -55,6 +55,10 @@
         display: none; // Hide completely instead of opacity animation
     }
 
+    * {
+        pointer-events:none;
+    }
+    
     &.logo {
         // Intentionally empty - remove filter changes on hover
     }
