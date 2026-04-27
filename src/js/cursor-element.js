@@ -302,7 +302,7 @@ function createZoomCta() {
 
   const textEl = zoomCta.querySelector(".zoom-cta__text");
   if (textEl) {
-    const RADIUS = 46;
+    const RADIUS = 36;
     const unit = "Zoom\u00A0\u2022\u00A0"; // "Zoom • " with non-breaking spaces
 
     // Measure one unit's rendered width to calculate exact repetitions needed
@@ -313,7 +313,7 @@ function createZoomCta() {
 
     // Build the full string with the exact count and init CircleType
     textEl.textContent = unit.repeat(count);
-    new CircleType(textEl).radius(RADIUS);
+    new CircleType(textEl).radius(RADIUS + 10.5);
   }
 
   // Position off-screen initially, centered on cursor via xPercent/yPercent
