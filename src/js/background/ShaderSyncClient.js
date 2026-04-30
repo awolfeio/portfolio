@@ -296,25 +296,21 @@ export function initShaderSync(backgroundManager) {
     location.hostname === '127.0.0.1' ||
     isIp
   );
-
-  if (!isLanOrLocal) return null; // don't run on deployed prod domain
+  if (!isLanOrLocal) return null;
 
   const isMirror = new URLSearchParams(location.search).get('mirror') === 'true';
 
-  if (isMirror) {
-    return new ReceiverSync(backgroundManager);
-  }
-
-  // PERF FIX: Don't run the broadcaster on mobile devices or narrow viewports.
-  // BroadcasterSync._startPoller() runs setInterval(100ms) and calls JSON.stringify on
-  // 80+ uniforms every 100ms, creating sustained allocation pressure. On mobile Chrome (V8),
-  // this triggers a major GC (mark-compact) every 4–5 seconds with a 150–250ms pause.
-  // The guard covers real devices (UA/touch) AND DevTools responsive mode (viewport width),
-  // since DevTools emulation leaves the desktop UA and maxTouchPoints=0 by default.
+  // Mobile without ?mirror=true: don't initialize anything.
+  // BroadcasterSync runs setInterval(100ms) + JSON.stringify on 80+ uniforms →
+  // sustained GC pressure → 150-250ms pauses every 4-5 seconds on mobile V8.
+  // Covers real devices (UA/touch) and DevTools responsive mode (viewport width).
   const isMobile = window.innerWidth < 1024
     || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     || navigator.maxTouchPoints > 1;
-  if (isMobile) return null;
+
+  if (isMobile && !isMirror) return null;
+
+  if (isMirror) return new ReceiverSync(backgroundManager);
 
   return new BroadcasterSync(backgroundManager);
 }

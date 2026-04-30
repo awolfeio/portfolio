@@ -14,14 +14,11 @@ export class AdaptiveQualityManager {
     this.targetFps = 60;
     this.currentQuality = 'high';
     
-    // Performance monitoring — ring buffer avoids O(n) .shift() and .reduce() allocation
+    // Float32Array ring buffer — O(1) insert, no allocation in the check path
     this._fpsHistLen = 120; // 2 seconds at 60fps
     this._fpsHistBuf = new Float32Array(this._fpsHistLen);
     this._fpsHistIdx = 0;
     this._fpsHistCount = 0;
-    // Legacy alias kept for getStatus() avgFps calculation (replaced below)
-    this.fpsHistory = []; // unused path — kept for external callers only
-    this.fpsHistoryMaxLength = 120;
     this.lastQualityDowngrade = 0;
     this.lastQualityUpgrade = 0;
     
@@ -83,8 +80,9 @@ export class AdaptiveQualityManager {
    * triggers a cold-GPU stall before it can downgrade.
    */
   selectInitialQualityFps() {
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-      || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+    const isMobile = window.innerWidth < 1024
+      || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      || navigator.maxTouchPoints > 1;
 
     if (isMobile) {
       // Start at medium/60fps on mobile — adaptive system can upgrade if headroom exists
@@ -154,34 +152,33 @@ export class AdaptiveQualityManager {
     const now = performance.now();
     if (now - this._lastPerformanceCheck >= this._performanceCheckInterval) {
       this._lastPerformanceCheck = now;
-      this.checkPerformance();
+      this.checkPerformance(now);
     }
   }
 
   /**
-   * Check performance and adjust quality if needed
+   * Check performance and adjust quality if needed.
+   * @param {number} now - Timestamp from tick() — avoids a second performance.now() call.
    */
-  checkPerformance() {
+  checkPerformance(now) {
     if (!this.performanceMonitor) return;
 
     const currentFps = this.performanceMonitor.getFps();
     if (currentFps <= 0) return;
 
-    // Ring buffer insert — O(1), no .shift() copy, no GC pressure
+    // Ring buffer insert — O(1), no allocation
     this._fpsHistBuf[this._fpsHistIdx] = currentFps;
     this._fpsHistIdx = (this._fpsHistIdx + 1) % this._fpsHistLen;
     if (this._fpsHistCount < this._fpsHistLen) this._fpsHistCount++;
 
     if (this._fpsHistCount < 30) return;
 
-    // Average via plain for-loop — no .reduce() closure allocation
+    // Average via plain for-loop — no .reduce() closure
     let sum = 0;
     for (let i = 0; i < this._fpsHistCount; i++) sum += this._fpsHistBuf[i];
     const avgFps = sum / this._fpsHistCount;
     const fpsRatio = avgFps / this.targetFps;
-    
-    const now = performance.now();
-    
+
     // Check for downgrade conditions
     if (fpsRatio < this.severeDowngradeThreshold) {
       // Severe performance issues - downgrade immediately

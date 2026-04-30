@@ -6,24 +6,15 @@ export class PerformanceMonitor {
     this.enabled = enabled;
     this.fps = 0;
     this.frameCount = 0;
-    this.lastTime = performance.now();
     this.lastFpsUpdate = performance.now();
 
-    // PERF: Float32Array ring buffer instead of a JS Array that grows/shifts.
-    // .shift() on a plain Array is O(n) — on a 60-element history that's 60
-    // element copies on every FPS sample (every 500ms = 120 copies/second).
+    // Float32Array ring buffer — O(1) insert, no GC pressure
     this._histLen = 60;
     this._fpsHist = new Float32Array(this._histLen);
     this._histIdx = 0;
-    this._histCount = 0; // how many valid samples
-
-    // Keep a public alias for legacy callers (AdaptiveQualityManager reads .fpsHistory)
-    // We'll keep it as a plain array but only update it lazily from getMetrics()
-    this.fpsHistory = [];
-    this.maxHistoryLength = 60;
+    this._histCount = 0;
 
     // Performance thresholds
-    this.targetFps = 60;
     this.lowFpsThreshold = 30;
 
     // Stats element
@@ -33,7 +24,6 @@ export class PerformanceMonitor {
     this.onLowPerformance = null;
 
     // References to other systems (set after initialization)
-    this.frameRateController = null;
     this.adaptiveQualityManager = null;
     this.renderer = null;
 
@@ -105,7 +95,9 @@ export class PerformanceMonitor {
 
       <div>
         <div style="color: #888; font-size: 10px;">ADAPTIVE</div>
-        <div id="stats-adaptive" style="font-size: 10px;">▲ Upgrade | ▼ Downgrade</div>
+        <div id="stats-adaptive" style="font-size: 10px;">
+          <span id="stats-upgrade">▲ Upgrade</span> | <span id="stats-downgrade">▼ Downgrade</span>
+        </div>
       </div>
 
       <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
@@ -127,17 +119,18 @@ export class PerformanceMonitor {
 
     document.body.appendChild(this.statsElement);
 
-    // Cache DOM references for efficient updates
+    // Cache DOM references for efficient updates — no querySelector in the hot path
     this._statsDom = {
-      fpsMain: this.statsElement.querySelector('#stats-fps-main'),
-      fpsDetail: this.statsElement.querySelector('#stats-fps-detail'),
-      timing: this.statsElement.querySelector('#stats-timing'),
+      fpsMain:    this.statsElement.querySelector('#stats-fps-main'),
+      fpsDetail:  this.statsElement.querySelector('#stats-fps-detail'),
+      timing:     this.statsElement.querySelector('#stats-timing'),
       timingTarget: this.statsElement.querySelector('#stats-timing-target'),
-      refresh: this.statsElement.querySelector('#stats-refresh'),
+      refresh:    this.statsElement.querySelector('#stats-refresh'),
       pixelRatio: this.statsElement.querySelector('#stats-pixel-ratio'),
-      quality: this.statsElement.querySelector('#stats-quality'),
-      grain: this.statsElement.querySelector('#stats-grain'),
-      adaptive: this.statsElement.querySelector('#stats-adaptive')
+      quality:    this.statsElement.querySelector('#stats-quality'),
+      grain:      this.statsElement.querySelector('#stats-grain'),
+      upgrade:    this.statsElement.querySelector('#stats-upgrade'),
+      downgrade:  this.statsElement.querySelector('#stats-downgrade'),
     };
 
     // Wire up Remove Canvas button — override pointer-events since parent has none
@@ -182,17 +175,10 @@ export class PerformanceMonitor {
       this.frameCount = 0;
       this.lastFpsUpdate = now;
 
-      // Ring-buffer insert
+      // Ring-buffer insert — O(1), no allocation
       this._fpsHist[this._histIdx] = this.fps;
       this._histIdx = (this._histIdx + 1) % this._histLen;
       if (this._histCount < this._histLen) this._histCount++;
-
-      // Keep legacy .fpsHistory array in sync for AdaptiveQualityManager
-      // (it reads .fpsHistory.length and .fpsHistory[i] directly)
-      if (this.fpsHistory.length >= this.maxHistoryLength) {
-        this.fpsHistory.shift();
-      }
-      this.fpsHistory.push(this.fps);
 
       if (this.fps < this.lowFpsThreshold && this.onLowPerformance) {
         this.onLowPerformance(this.fps);
@@ -278,9 +264,8 @@ export class PerformanceMonitor {
     dom.quality.textContent = `Tier: ${currentQuality.toUpperCase()}`;
     dom.grain.textContent = `Grain Hold: ${this._cachedGrainHold.toFixed(1)}x`;
 
-    const upgradeColor   = canUpgrade   ? '#0f0' : '#555';
-    const downgradeColor = canDowngrade ? '#f90' : '#555';
-    dom.adaptive.innerHTML = `<span style="color:${upgradeColor}">▲ Upgrade</span> | <span style="color:${downgradeColor}">▼ Downgrade</span>`;
+    dom.upgrade.style.color   = canUpgrade   ? '#0f0' : '#555';
+    dom.downgrade.style.color = canDowngrade ? '#f90' : '#555';
   }
 
 
@@ -323,13 +308,6 @@ export class PerformanceMonitor {
       minFps: this.getMinFps(),
       isLowPerformance: this.fps < this.lowFpsThreshold,
     };
-  }
-
-  /**
-   * Set frame rate controller reference for stats display
-   */
-  setFrameRateController(controller) {
-    this.frameRateController = controller;
   }
 
   /**
@@ -402,11 +380,9 @@ export class PerformanceMonitor {
   reset() {
     this.fps = 0;
     this.frameCount = 0;
-    this.fpsHistory = [];
     this._fpsHist.fill(0);
     this._histIdx = 0;
     this._histCount = 0;
-    this.lastTime = performance.now();
     this.lastFpsUpdate = performance.now();
   }
 
