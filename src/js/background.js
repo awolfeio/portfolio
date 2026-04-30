@@ -2,6 +2,16 @@ import * as THREE from "three";
 import { gsap } from "gsap";
 import FOG from "vanta/dist/vanta.fog.min";
 
+/**
+ * Live site uses Background (`src/js/background/BackgroundRenderer.js`), not this file.
+ * FPS caps for the shader: import `backgroundFrameRateCap` from `./background/index.js`
+ * (or `./background/frameRateCap.js`) and set `maxFpsDesktop` / `maxFpsMobile`.
+ */
+export {
+  backgroundFrameRateCap,
+  getActiveBackgroundFrameRateCap,
+} from "./background/frameRateCap.js";
+
 const fogBG = FOG({
   el: "#viewport",
   THREE: THREE, // use a custom THREE when initializing

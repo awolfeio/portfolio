@@ -717,8 +717,16 @@ export function initExtrudedLogo() {
   }
 
   // Animation loop
+  // PERF: Track rAF id + disposed flag so dispose() can cancel cleanly.
+  // Without this the loop keeps recursing forever after the loading splash is
+  // removed, calling cubeCamera.update() / renderer.render() against a disposed
+  // renderer every frame — silent CPU/GPU work that compounds every other hitch.
+  let logoRafId = null;
+  let logoDisposed = false;
+
   function animate() {
-    requestAnimationFrame(animate);
+    if (logoDisposed) return;
+    logoRafId = requestAnimationFrame(animate);
 
     if (group && group.children.length > 0) {
       // Initialize animation state if it's the first frame
@@ -844,6 +852,12 @@ export function initExtrudedLogo() {
   return {
     dispose: () => {
       console.log("Disposing 3D logo");
+
+      logoDisposed = true;
+      if (logoRafId !== null) {
+        cancelAnimationFrame(logoRafId);
+        logoRafId = null;
+      }
 
       // Clean up function to remove Three.js elements
       if (container && rendererElement && container.contains(rendererElement)) {

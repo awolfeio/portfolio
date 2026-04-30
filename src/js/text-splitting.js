@@ -53,6 +53,7 @@ export default function splitText() {
       splitInstance.chars.forEach((char, index) => {
         char.setAttribute("data-char", char.textContent);
         char.setAttribute("data-index", index);
+        char.style.setProperty("--char-index", index);
 
         // Apply transparent color to base text
         char.style.color = "transparent";

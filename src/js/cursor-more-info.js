@@ -12,6 +12,8 @@ let currentProjectElement = null;
 let activeProjectElementForScroll = null;
 let isBubbleActive = false;
 let scrollRafId = null;
+let ctaTextMoreEl = null;
+let ctaTextHideEl = null;
 
 export function initMoreInfoLogic() {
   createMoreInfoCta();
@@ -40,32 +42,49 @@ function createMoreInfoCta() {
         </svg>
       </div>
       <div class="zoom-cta__ring">
-        <span class="zoom-cta__text"></span>
+        <span class="zoom-cta__text zoom-cta__text--more"></span>
+        <span class="zoom-cta__text zoom-cta__text--hide"></span>
       </div>
     </div>
   `;
   document.body.insertAdjacentHTML("beforeend", ctaHtml);
   moreInfoCta = document.querySelector(".more-info-cta");
 
-  const textEl = moreInfoCta.querySelector(".zoom-cta__text");
-  if (textEl) {
-    const RADIUS = 36;
-    const unit = "More Info\u00A0\u2022\u00A0"; // "More Info • "
+  ctaTextMoreEl = moreInfoCta.querySelector(".zoom-cta__text--more");
+  ctaTextHideEl = moreInfoCta.querySelector(".zoom-cta__text--hide");
 
-    textEl.textContent = unit;
-    const unitWidth = textEl.getBoundingClientRect().width;
+  // Build both CircleType instances now, while the ring is stationary.
+  // Reinitializing after the CSS spin animation starts causes getBoundingClientRect
+  // to measure from a rotating coordinate frame, producing a different effective
+  // radius on every toggle. Building both upfront and swapping display avoids this.
+  const RADIUS = 36;
+  function buildCircleText(el, label, radiusOffset) {
+    el.textContent = label;
+    const unitWidth = el.getBoundingClientRect().width;
     const circumference = 2 * Math.PI * RADIUS;
-    const count = Math.round(circumference / unitWidth);
-
-    textEl.textContent = unit.repeat(count);
-    new CircleType(textEl).radius(RADIUS + 5);
+    const count = unitWidth > 0 ? Math.round(circumference / unitWidth) : 3;
+    el.textContent = label.repeat(count);
+    new CircleType(el).radius(RADIUS + radiusOffset);
   }
+
+  buildCircleText(ctaTextMoreEl, "More Info  •  ", 15);
+  buildCircleText(ctaTextHideEl, "Hide Info  •  ", 12);
+
+  // Start with "Hide Info" invisible
+  ctaTextHideEl.style.display = "none";
 
   gsap.set(moreInfoCta, { opacity: 0, xPercent: -50, yPercent: -50, x: -200, y: -200, scale: 0.88 });
 }
 
-function createRpgBubble() {
+// Toggle between the two pre-built CircleType elements — no reinit, no measurement.
+function setCursorLabel(showHide) {
+  if (!ctaTextMoreEl || !ctaTextHideEl) return;
+  ctaTextMoreEl.style.display = showHide ? "none" : "";
+  ctaTextHideEl.style.display = showHide ? "" : "none";
+  moreInfoCta?.classList.toggle("more-info-cta--hide", showHide);
+}
 
+function createRpgBubble() {
   const bubbleHtml = `
     <div class="rpg-bubble">
       <button class="rpg-bubble__close" aria-label="Close">
@@ -79,7 +98,7 @@ function createRpgBubble() {
   document.body.insertAdjacentHTML("beforeend", bubbleHtml);
   rpgBubble = document.querySelector(".rpg-bubble");
   rpgBubbleTextEl = rpgBubble.querySelector(".rpg-bubble__text");
-  
+
   const closeBtn = rpgBubble.querySelector(".rpg-bubble__close");
   closeBtn.addEventListener("click", () => {
     hideRpgBubble();
@@ -88,19 +107,19 @@ function createRpgBubble() {
 
 export function setupMoreInfo() {
   if (!moreInfoCta) return;
-  
+
   const projectElements = document.querySelectorAll(".project-element, .large-photo:not(.project-element .large-photo)");
-  
+
   projectElements.forEach((element) => {
     if (element.dataset.moreInfoBound) return;
     element.dataset.moreInfoBound = "true";
-    
+
     // If it's a legacy large-photo without a parent project-element, use it directly
     // but the preferred DOM structure is .project-element > .large-photo + .more-info-message
-    const hitArea = element.classList.contains("project-element") 
-      ? (element.querySelector(".large-photo") || element) 
+    const hitArea = element.classList.contains("project-element")
+      ? (element.querySelector(".large-photo") || element)
       : element;
-      
+
     setupElementHover(hitArea, element);
   });
 }
@@ -111,30 +130,28 @@ function setupElementHover(hitArea, containerElement) {
     const messageEl = containerElement.querySelector(".more-info-message");
     if (!messageEl) return;
 
-    // Hide regular cursor and set to pointer
-    cursorEl?.classList.add("magnify-active"); 
+    cursorEl?.classList.add("magnify-active");
     hitArea.style.cursor = "pointer";
-    
+
     currentProjectElement = containerElement;
-    
+
     gsap.set(moreInfoCta, { x: e.clientX, y: e.clientY });
     gsap.to(moreInfoCta, { opacity: 1, duration: 0.22, ease: "power2.out" });
   });
-  
+
   hitArea.addEventListener("mouseleave", () => {
     hitArea.style.cursor = "";
     currentProjectElement = null;
     cursorEl?.classList.remove("magnify-active");
     gsap.to(moreInfoCta, { opacity: 0, duration: 0.12, ease: "power2.in" });
   });
-  
+
   hitArea.addEventListener("click", (e) => {
     if (!currentProjectElement) return;
-    
+
     const messageEl = currentProjectElement.querySelector(".more-info-message");
     if (!messageEl) return;
-    
-    // Extract text from <p> tags if present, to preserve paragraph structure
+
     const pTags = messageEl.querySelectorAll("p");
     let textContent = "";
     if (pTags.length > 0) {
@@ -142,9 +159,9 @@ function setupElementHover(hitArea, containerElement) {
     } else {
       textContent = messageEl.textContent.trim();
     }
-    
+
     if (!textContent) return;
-    
+
     // Toggle bubble: close if clicking same element, switch text if clicking different element
     if (isBubbleActive && rpgBubbleTextEl.dataset.currentText === textContent) {
       hideRpgBubble();
@@ -154,10 +171,10 @@ function setupElementHover(hitArea, containerElement) {
       currentProjectElement.dataset.rpgSeen = "true";
     }
   });
-  
+
   hitArea.addEventListener("mousemove", (e) => {
     if (!currentProjectElement) return;
-    
+
     moreInfoCtaPendingMove = { x: e.clientX, y: e.clientY };
     if (!moreInfoCtaRafId) {
       moreInfoCtaRafId = requestAnimationFrame(processMoreInfoCtaMove);
@@ -182,12 +199,12 @@ function showRpgBubble(text, isSeen = false) {
   isBubbleActive = true;
   activeProjectElementForScroll = currentProjectElement;
   rpgBubbleTextEl.dataset.currentText = text;
-  
-  // Clear any existing typing animation
+
+  setCursorLabel(true);
+
   if (typewriterInterval) clearInterval(typewriterInterval);
   rpgBubbleTextEl.innerHTML = "";
-  
-  // Show bubble
+
   gsap.to(rpgBubble, {
     opacity: 1,
     y: 0,
@@ -195,17 +212,14 @@ function showRpgBubble(text, isSeen = false) {
     duration: 0.4,
     ease: "power3.out"
   });
-  
+
   if (isSeen) {
-    // Render text instantly if it has been opened before
     rpgBubbleTextEl.innerHTML = text.replace(/\n/g, '<br>');
   } else {
-    // Typewriter effect for first view
     let i = 0;
     let currentHTML = "";
     typewriterInterval = setInterval(() => {
       if (i < text.length) {
-        // Handle simple formatting if needed (like line breaks)
         if (text.charAt(i) === '\n') {
           currentHTML += '<br>';
         } else {
@@ -216,10 +230,9 @@ function showRpgBubble(text, isSeen = false) {
       } else {
         clearInterval(typewriterInterval);
       }
-    }, 20); // Slightly faster (20ms) for better feel
+    }, 20);
   }
-  
-  // Automatically hide if clicking anywhere else
+
   document.addEventListener("click", handleOutsideClick);
 }
 
@@ -227,7 +240,9 @@ function hideRpgBubble() {
   isBubbleActive = false;
   activeProjectElementForScroll = null;
   if (typewriterInterval) clearInterval(typewriterInterval);
-  
+
+  setCursorLabel(false);
+
   gsap.to(rpgBubble, {
     opacity: 0,
     y: 16,
@@ -239,13 +254,11 @@ function hideRpgBubble() {
       rpgBubbleTextEl.dataset.currentText = "";
     }
   });
-  
+
   document.removeEventListener("click", handleOutsideClick);
 }
 
 function handleOutsideClick(e) {
-  // If clicking on a project element that has a message, the hitArea click handler will toggle it.
-  // We just want to make sure we hide the bubble if clicking the background or closing it.
   const isProjectElement = e.target.closest('.project-element') || e.target.closest('.large-photo');
   if (!isProjectElement && !e.target.closest('.rpg-bubble')) {
     hideRpgBubble();
@@ -254,14 +267,13 @@ function handleOutsideClick(e) {
 
 window.addEventListener("scroll", () => {
   if (!isBubbleActive || !activeProjectElementForScroll) return;
-  
+
   if (!scrollRafId) {
     scrollRafId = requestAnimationFrame(() => {
       if (activeProjectElementForScroll) {
         const rect = activeProjectElementForScroll.getBoundingClientRect();
         const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-        
-        // If the element has scrolled completely out of view (either above or below)
+
         if (rect.bottom < 0 || rect.top > windowHeight) {
           hideRpgBubble();
         }

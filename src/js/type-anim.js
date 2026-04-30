@@ -2,26 +2,20 @@ import CircleType from "circletype";
 import gsap from "gsap";
 import { applyFadeReveal } from "./scroll-triggers";
 
-// Helper function to animate characters with staggered timing
-function animateChars(chars) {
-  if (!chars || chars.length === 0) return;
-
-  // Reset existing animations first
-  chars.forEach((char) => {
-    char.classList.remove("reveal-char");
-  });
-
-  // Simple staggered animation without GSAP
-  chars.forEach((char, index) => {
-    setTimeout(() => {
-      char.classList.add("reveal-char");
-    }, index * 25);
-  });
-}
-
 /**
- * Rotates through title elements in the homepage
- * @param {string} caller - Identifier for debugging purposes
+ * Rotates through title elements on the homepage.
+ *
+ * PERF: Previously each 5s tick spawned ~30 staggered setTimeouts (one per .char)
+ * that each toggled an attribute + class on a separate task, producing a 1.2s wave
+ * of style/layout/paint work and a periodic frame hitch on mobile. Now per-char
+ * mutations are batched into a single requestAnimationFrame and the visual stagger
+ * is driven by inline `animation-delay` (one CSS animation start per cycle, all
+ * delayed in the compositor — the browser handles the timing without waking JS).
+ *
+ * The interval is also fully cleared (not just no-op'd) when the wrapper goes
+ * offscreen, the tab is hidden, or `prefers-reduced-motion: reduce` is active.
+ *
+ * @param {string} caller - Identifier for debugging purposes.
  */
 export function rotateTitles(caller = "unknown") {
   // Homepage guard — bail immediately if the titles wrapper isn't in the DOM
@@ -47,159 +41,159 @@ export function rotateTitles(caller = "unknown") {
     }
   }
 
-  // Clear any existing animation loops
-  if (window.titleAnimationInterval) {
-    clearInterval(window.titleAnimationInterval);
-    window.titleAnimationInterval = null;
-  }
+  // Tear down any prior loop so we never end up with stacked intervals/observers
+  stopTitleRotation();
+
+  // Honor reduced-motion: render the first title and stop. No animation work.
+  const reduceMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Get all titles
   const allTitles = document.querySelectorAll("h2.titles-wrapper .title");
   if (!allTitles || allTitles.length === 0) return;
 
-  // Reset all titles to initial state
+  // Reset all titles to initial state — single batched pass
   allTitles.forEach((title) => {
     title.style.position = "absolute";
     title.style.display = "block";
     title.classList.remove("active");
     title.classList.add("hidden");
-
-    // Reset characters
     resetCharacters(title.querySelectorAll(".char"));
   });
 
-  // Helper function to reset character positions
-  function resetCharacters(chars) {
-    if (!chars || chars.length === 0) return;
-
-    chars.forEach((char) => {
-      // Remove animation class
-      char.classList.remove("reveal-char");
-
-      // Force the before pseudo-element back to starting position
-      char.setAttribute("data-reset", "true");
-    });
-  }
-
-  // Helper function to show character animations
-  function animateChars(chars) {
-    if (!chars || chars.length === 0) return null;
-
-    // Reset all characters first
-    resetCharacters(chars);
-
-    // Add reveal animation with staggered timing
-    chars.forEach((char, index) => {
-      setTimeout(() => {
-        // Remove the reset attribute before animating
-        char.removeAttribute("data-reset");
-        // Now add the animation class
-        char.classList.add("reveal-char");
-      }, index * 40); // Staggered delay
-    });
-
-    // Return the last char for animation completion tracking
-    return chars[chars.length - 1];
-  }
-
   // Initialize with first title
   const firstTitle = allTitles[0];
-  if (firstTitle) {
-    // Remove hidden class and ensure proper positioning
-    firstTitle.classList.remove("hidden");
-    firstTitle.classList.add("active");
+  if (!firstTitle) return;
 
-    // Animate the characters with a slight delay
-    setTimeout(() => {
-      const chars = firstTitle.querySelectorAll(".char");
+  firstTitle.classList.remove("hidden");
+  firstTitle.classList.add("active");
 
-      // Start rotation immediately if no chars to animate
-      if (!chars || chars.length === 0) {
-        startTitleRotation();
-        return;
-      }
+  setTimeout(() => {
+    const chars = firstTitle.querySelectorAll(".char");
+    if (chars.length > 0) animateChars(chars);
+    if (!reduceMotion) startTitleRotation(titlesWrapper, allTitles);
+  }, 300);
+}
 
-      const lastChar = animateChars(chars);
-
-      if (lastChar) {
-        // Listen for animation completion
-        lastChar.addEventListener("animationend", function onAnimEnd() {
-          startTitleRotation();
-          lastChar.removeEventListener("animationend", onAnimEnd);
-        });
-
-        // Fallback timer in case the animation event doesn't fire
-        setTimeout(() => {
-          if (!window.titleAnimationInterval) {
-            startTitleRotation();
-          }
-        }, 2000);
-      } else {
-        // Start rotation if no last char
-        startTitleRotation();
-      }
-    }, 300);
+/**
+ * Reset all chars in one batched DOM pass (style invalidation: 1, not N).
+ * Inline animation-delay is set up-front so subsequent class flips inherit it.
+ */
+function resetCharacters(chars) {
+  if (!chars || chars.length === 0) return;
+  for (let i = 0; i < chars.length; i++) {
+    const char = chars[i];
+    char.classList.remove("reveal-char");
+    char.setAttribute("data-reset", "true");
+    if (!char._animDelayApplied) {
+      char.style.animationDelay = `${i * 40}ms`;
+      char._animDelayApplied = true;
+    }
   }
+}
 
-  function startTitleRotation() {
-    if (window.titleAnimationInterval) return;
-
-    const titles = titlesWrapper.querySelectorAll(".title");
-    let currentTitle = 0;
-
-    // Track visibility to pause rotation when out of view or tab is backgrounded
-    let isVisible = true;
-
-    if ("IntersectionObserver" in window) {
-      if (window.titleAnimationObserver) {
-        window.titleAnimationObserver.disconnect();
-      }
-      window.titleAnimationObserver = new IntersectionObserver(
-        (entries) => { isVisible = entries[0].isIntersecting && !document.hidden; },
-        { rootMargin: "100px", threshold: 0.0 }
-      );
-      window.titleAnimationObserver.observe(titlesWrapper);
+/**
+ * Trigger the per-char reveal animation. All N mutations happen inside one
+ * requestAnimationFrame so the browser does a single style/layout/paint pass
+ * instead of N scattered ones. CSS `animation-delay` (set in resetCharacters)
+ * handles the visual stagger on the compositor.
+ */
+function animateChars(chars) {
+  if (!chars || chars.length === 0) return;
+  resetCharacters(chars);
+  requestAnimationFrame(() => {
+    for (let i = 0; i < chars.length; i++) {
+      const char = chars[i];
+      char.removeAttribute("data-reset");
+      char.classList.add("reveal-char");
     }
+  });
+}
 
-    // Pause when the tab is hidden
-    if (window.titleVisibilityHandler) {
-      document.removeEventListener("visibilitychange", window.titleVisibilityHandler);
-    }
-    window.titleVisibilityHandler = () => { isVisible = !document.hidden; };
-    document.addEventListener("visibilitychange", window.titleVisibilityHandler);
+/** Fully tear down any active rotation loop, observer, and visibility handler. */
+function stopTitleRotation() {
+  if (window.titleAnimationInterval) {
+    clearInterval(window.titleAnimationInterval);
+    window.titleAnimationInterval = null;
+  }
+  if (window.titleAnimationObserver) {
+    window.titleAnimationObserver.disconnect();
+    window.titleAnimationObserver = null;
+  }
+  if (window.titleVisibilityHandler) {
+    document.removeEventListener("visibilitychange", window.titleVisibilityHandler);
+    window.titleVisibilityHandler = null;
+  }
+}
 
-    const rotateToNextTitle = () => {
-      if (!isVisible) return;
+/**
+ * Start the rotation interval. Pauses (clears the interval) whenever the wrapper
+ * goes offscreen or the tab is hidden — no firing-and-bailing wake-ups.
+ */
+function startTitleRotation(titlesWrapper, titles) {
+  if (window.titleAnimationInterval) return;
 
-      // Use tracked index — no DOM scan for .active needed
-      const activeTitle = titles[currentTitle];
-      if (!activeTitle) return;
+  let currentTitle = 0;
+  let inView = true;
+  let docVisible = !document.hidden;
 
-      activeTitle.classList.add("hidden");
-      activeTitle.classList.remove("active");
+  const tick = () => {
+    if (!inView || !docVisible) return; // shouldn't reach — interval is cleared
+
+    const activeTitle = titles[currentTitle];
+    if (!activeTitle) return;
+
+    activeTitle.classList.add("hidden");
+    activeTitle.classList.remove("active");
+
+    setTimeout(() => {
+      resetCharacters(activeTitle.querySelectorAll(".char"));
+      currentTitle = (currentTitle + 1) % titles.length;
+      const nextTitle = titles[currentTitle];
+      if (!nextTitle) return;
+      resetCharacters(nextTitle.querySelectorAll(".char"));
 
       setTimeout(() => {
-        resetCharacters(activeTitle.querySelectorAll(".char"));
-
-        currentTitle = (currentTitle + 1) % titles.length;
-        const nextTitle = titles[currentTitle];
-        if (!nextTitle) return;
-
-        resetCharacters(nextTitle.querySelectorAll(".char"));
-
+        nextTitle.classList.remove("hidden");
+        nextTitle.classList.add("active");
         setTimeout(() => {
-          nextTitle.classList.remove("hidden");
-          nextTitle.classList.add("active");
+          animateChars(nextTitle.querySelectorAll(".char"));
+        }, 300);
+      }, 100);
+    }, 400);
+  };
 
-          setTimeout(() => {
-            animateChars(nextTitle.querySelectorAll(".char"));
-          }, 300);
-        }, 100);
-      }, 400);
-    };
+  const startInterval = () => {
+    if (window.titleAnimationInterval) return;
+    window.titleAnimationInterval = setInterval(tick, 5000);
+  };
+  const stopInterval = () => {
+    if (!window.titleAnimationInterval) return;
+    clearInterval(window.titleAnimationInterval);
+    window.titleAnimationInterval = null;
+  };
 
-    window.titleAnimationInterval = setInterval(rotateToNextTitle, 5000);
+  if ("IntersectionObserver" in window) {
+    window.titleAnimationObserver = new IntersectionObserver(
+      (entries) => {
+        inView = entries[0].isIntersecting;
+        if (inView && docVisible) startInterval();
+        else stopInterval();
+      },
+      { rootMargin: "100px", threshold: 0.0 }
+    );
+    window.titleAnimationObserver.observe(titlesWrapper);
   }
+
+  window.titleVisibilityHandler = () => {
+    docVisible = !document.hidden;
+    if (inView && docVisible) startInterval();
+    else stopInterval();
+  };
+  document.addEventListener("visibilitychange", window.titleVisibilityHandler);
+
+  if (inView && docVisible) startInterval();
 }
 
 /**

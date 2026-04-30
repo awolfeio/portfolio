@@ -469,3 +469,9 @@ body:has(.next-project-banner:hover) {
         position: relative; // CircleType needs relative positioning context
     }
 }
+
+////
+/// 
+.more-info-cta--hide .zoom-cta__text--hide {
+    transform:scale(1.0455)!important;
+}

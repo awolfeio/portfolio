@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { getActiveBackgroundFrameRateCap } from "./frameRateCap.js";
 import vertexShader from "./shaders/fogShader.vert.glsl";
 import fragmentShader from "./shaders/fogShader.frag.glsl";
 
@@ -91,6 +92,9 @@ export class BackgroundRenderer {
     // by ~56px every few seconds. Without debouncing, each event triggers setSize() and a
     // GPU framebuffer reallocation (150–300ms stall). 150ms settles the animation completely.
     this._resizeDebounceTimer = null;
+
+    /** @see frameRateCap.js — last time updateUniforms + GPU render ran when capped */
+    this._lastCapDrawAt = 0;
 
     // PERFORMANCE: Bind render once to avoid per-frame allocation
     this.render = this.render.bind(this);
@@ -659,28 +663,35 @@ export class BackgroundRenderer {
   }
 
   /**
-   * Render loop - OPTIMIZED: No frame rate controller, let vsync handle pacing
+   * Render loop. Optional cap in `frameRateCap.js` throttles CPU uniform work and GPU draws;
+   * rAF still runs every vsync so the tab stays awake. Adaptive quality ticks every rAF
+   * (cheap); performance stats count only real draws when capped.
    */
   render() {
     if (!this.renderer || !this.scene || !this.camera) return;
 
-    // Simple, direct render - no artificial frame limiting
-    this.updateUniforms();
-    this.renderer.render(this.scene, this.camera);
+    this.animationId = requestAnimationFrame(this.render);
 
-    // Update performance monitor
-    if (this.performanceMonitor) {
-      this.performanceMonitor.update();
-    }
-
-    // PERF FIX: Tick adaptive quality manager from within the render loop instead of
-    // maintaining a second concurrent RAF chain. This removes the extra RAF callback
-    // that ran every frame solely to check if 500ms had elapsed.
     if (this.adaptiveQualityManager) {
       this.adaptiveQualityManager.tick();
     }
 
-    this.animationId = requestAnimationFrame(this.render);
+    const cap = getActiveBackgroundFrameRateCap();
+    const now = performance.now();
+    if (cap > 0) {
+      const minMs = 1000 / cap;
+      if (this._lastCapDrawAt > 0 && now - this._lastCapDrawAt < minMs) {
+        return;
+      }
+      this._lastCapDrawAt = now;
+    }
+
+    this.updateUniforms();
+    this.renderer.render(this.scene, this.camera);
+
+    if (this.performanceMonitor) {
+      this.performanceMonitor.update();
+    }
   }
 
   /**

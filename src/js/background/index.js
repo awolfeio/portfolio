@@ -431,6 +431,10 @@ class BackgroundManager {
 const backgroundManager = new BackgroundManager();
 
 // Export for use in other modules
+export {
+  backgroundFrameRateCap,
+  getActiveBackgroundFrameRateCap,
+} from "./frameRateCap.js";
 export { backgroundManager };
 export default backgroundManager;
 

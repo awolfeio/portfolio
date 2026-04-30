@@ -308,7 +308,6 @@ body span.char:before {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   -webkit-perspective: 1000;
-  will-change: transform;
   transform: translateY(102%) translateZ(0) translate3d(0, 0, 0);
 }
 
