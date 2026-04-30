@@ -2,7 +2,7 @@ import { setupUnifiedReveals, playVideosOnEnter, autoScrollContainer } from "./s
 import initSmoothScroll from "./smooth-scroll.js";
 import splitText from "./text-splitting.js";
 import { circleText, revealH1Characters, rotateTitles, animateDataSplittingChars } from "./type-anim.js";
-import { setupMagnifyingGlass } from "./cursor-element.js";
+import { setupMoreInfo } from "./cursor-element.js";
 import { removeSpecificElements, checkLocationAndRemoveElements } from "./geographic.js";
 import { preventAnimationRefire } from "./animation-helpers.js";
 import { gsap } from "gsap";
@@ -389,7 +389,7 @@ export function loadingSplash() {
                 // to prevent premature reveals
                 tl.call(
                   () => {
-                    setupMagnifyingGlass();
+                    setupMoreInfo();
                     playVideosOnEnter();
                     autoScrollContainer();
                     initSmoothScroll();

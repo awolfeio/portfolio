@@ -53,11 +53,19 @@ export function setupUnifiedReveals() {
   let staggerIndex = 0;
 
   allRevealElements.forEach((element, index) => {
+    // Trigger to reveal the element when scrolling down
     ScrollTrigger.create({
       trigger: element,
       start: "top 85%",
-      end: "bottom 15%",
       onEnter: () => revealElement(element),
+      markers: false,
+    });
+
+    // Trigger to hide the element when scrolling back up
+    // start: "top 100%" ensures it only hides when completely out of view
+    ScrollTrigger.create({
+      trigger: element,
+      start: "top 100%",
       onLeaveBack: () => hideElement(element),
       markers: false,
     });
@@ -221,8 +229,13 @@ function startSequentialReveal(elements, groupKey) {
       isSequential = siblings.length > 1 && elementIndex >= 0;
     }
     
+    const manualDelayMs = element.dataset.revealDelay;
     let delay = 0;
-    if (isSequential && elementIndex > 0) {
+    
+    if (manualDelayMs !== undefined) {
+      // If a specific delay is set via HTML attribute, use it as an absolute delay
+      delay = parseFloat(manualDelayMs) / 1000;
+    } else if (isSequential && elementIndex > 0) {
       delay = ">-0.2";
     } else {
       delay = getRevealDelay(revealType, index);

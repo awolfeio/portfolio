@@ -6,7 +6,7 @@ import backgroundManager from "./background/index.js";
 import splitText from "./text-splitting.js";
 import { setupUnifiedReveals, playVideosOnEnter, autoScrollContainer } from "./scroll-triggers.js";
 import { rotateTitles, circleText, revealH1Characters, animateDataSplittingChars } from "./type-anim.js";
-import { cursorCheck, setupMagnifyingGlass } from "./cursor-element.js";
+import { cursorCheck, setupMoreInfo } from "./cursor-element.js";
 import { setupEventHandlers } from "./event-handlers.js";
 import { checkLocationAndRemoveElements } from "./geographic.js";
 import { gsap } from "gsap";
@@ -544,8 +544,8 @@ function handleAfterEnter(data) {
     // Set up unified reveal system for all elements
     setupUnifiedReveals();
 
-    // Set up magnifying glass for .large-photo elements
-    setupMagnifyingGlass();
+    // Set up More Info for .project-element elements
+    setupMoreInfo();
 
     // Enable video autoplay on scroll
     playVideosOnEnter();
