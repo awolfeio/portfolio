@@ -305,13 +305,15 @@ export function initShaderSync(backgroundManager) {
     return new ReceiverSync(backgroundManager);
   }
 
-  // PERF FIX: Don't run the broadcaster on mobile devices.
+  // PERF FIX: Don't run the broadcaster on mobile devices or narrow viewports.
   // BroadcasterSync._startPoller() runs setInterval(100ms) and calls JSON.stringify on
   // 80+ uniforms every 100ms, creating sustained allocation pressure. On mobile Chrome (V8),
   // this triggers a major GC (mark-compact) every 4–5 seconds with a 150–250ms pause.
-  // Mobile devices should only ever be receivers (?mirror=true), not broadcasters.
-  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+  // The guard covers real devices (UA/touch) AND DevTools responsive mode (viewport width),
+  // since DevTools emulation leaves the desktop UA and maxTouchPoints=0 by default.
+  const isMobile = window.innerWidth < 1024
+    || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || navigator.maxTouchPoints > 1;
   if (isMobile) return null;
 
   return new BroadcasterSync(backgroundManager);

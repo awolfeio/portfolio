@@ -134,6 +134,21 @@ export function initializeBarba() {
   // Hook that executes when the next container has been fetched but before it's added to the DOM
   barba.hooks.beforeLeave((data) => {
     console.log("Barba beforeLeave: preparing transition");
+
+    // Stop title rotation immediately when leaving any page
+    if (window.titleAnimationInterval) {
+      clearInterval(window.titleAnimationInterval);
+      window.titleAnimationInterval = null;
+    }
+    if (window.titleAnimationObserver) {
+      window.titleAnimationObserver.disconnect();
+      window.titleAnimationObserver = null;
+    }
+    if (window.titleVisibilityHandler) {
+      document.removeEventListener("visibilitychange", window.titleVisibilityHandler);
+      window.titleVisibilityHandler = null;
+    }
+
     // Ensure the current container is visible before starting leave animation
     gsap.set(data.current.container, {
       visibility: "visible",

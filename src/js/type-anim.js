@@ -24,7 +24,9 @@ function animateChars(chars) {
  * @param {string} caller - Identifier for debugging purposes
  */
 export function rotateTitles(caller = "unknown") {
-  console.log(`rotateTitles called from ${caller} at ${new Date().toISOString()}`);
+  // Homepage guard — bail immediately if the titles wrapper isn't in the DOM
+  const titlesWrapper = document.querySelector("h2.titles-wrapper");
+  if (!titlesWrapper) return;
 
   // Check if we're in loading-screen initial page load
   const isInitialLoad = document.querySelector("#loading-splash") !== null;
@@ -38,36 +40,22 @@ export function rotateTitles(caller = "unknown") {
     ) {
       // Limit retry count to prevent infinite recursion
       const retryCount = (caller.match(/-retry/g) || []).length;
-      if (retryCount > 5) {
-        console.log("GIVING UP on title rotation after multiple retries");
-        return;
-      }
+      if (retryCount > 5) return;
 
-      console.log("SKIPPING TITLE ROTATION - Transition still active, will retry later");
-
-      // Try again in a bit
       setTimeout(() => rotateTitles(caller + "-retry"), 100);
       return;
     }
-  } else {
-    console.log("Initial page load - running title rotation immediately");
   }
-
-  console.log("RUNNING TITLE ROTATION - transition completed or initial load");
 
   // Clear any existing animation loops
   if (window.titleAnimationInterval) {
-    console.log(`Clearing existing titleAnimationInterval from ${caller}`);
     clearInterval(window.titleAnimationInterval);
     window.titleAnimationInterval = null;
   }
 
   // Get all titles
   const allTitles = document.querySelectorAll("h2.titles-wrapper .title");
-  if (!allTitles || allTitles.length === 0) {
-    console.warn("No title elements found for rotation");
-    return;
-  }
+  if (!allTitles || allTitles.length === 0) return;
 
   // Reset all titles to initial state
   allTitles.forEach((title) => {
@@ -154,89 +142,63 @@ export function rotateTitles(caller = "unknown") {
   }
 
   function startTitleRotation() {
-    console.log("Starting title rotation");
-
-    // Don't start a new interval if one already exists
-    if (window.titleAnimationInterval) {
-      return;
-    }
-
-    const titlesWrapper = document.querySelector("h2.titles-wrapper");
-    if (!titlesWrapper) return;
+    if (window.titleAnimationInterval) return;
 
     const titles = titlesWrapper.querySelectorAll(".title");
     let currentTitle = 0;
-    
-    // Track visibility to pause rotation when out of view (saves CPU & prevents frame drops)
+
+    // Track visibility to pause rotation when out of view or tab is backgrounded
     let isVisible = true;
-    if ('IntersectionObserver' in window) {
+
+    if ("IntersectionObserver" in window) {
       if (window.titleAnimationObserver) {
         window.titleAnimationObserver.disconnect();
       }
-      window.titleAnimationObserver = new IntersectionObserver((entries) => {
-        isVisible = entries[0].isIntersecting;
-      }, { rootMargin: "100px", threshold: 0.0 });
+      window.titleAnimationObserver = new IntersectionObserver(
+        (entries) => { isVisible = entries[0].isIntersecting && !document.hidden; },
+        { rootMargin: "100px", threshold: 0.0 }
+      );
       window.titleAnimationObserver.observe(titlesWrapper);
     }
 
+    // Pause when the tab is hidden
+    if (window.titleVisibilityHandler) {
+      document.removeEventListener("visibilitychange", window.titleVisibilityHandler);
+    }
+    window.titleVisibilityHandler = () => { isVisible = !document.hidden; };
+    document.addEventListener("visibilitychange", window.titleVisibilityHandler);
+
     const rotateToNextTitle = () => {
-      // Skip heavy DOM manipulation if we can't be seen anyway
       if (!isVisible) return;
 
-      // Double check titles still exist in the DOM
-      const currentTitles = document.querySelectorAll("h2.titles-wrapper .title");
-      if (!currentTitles || currentTitles.length === 0) {
-        if (window.titleAnimationInterval) {
-          clearInterval(window.titleAnimationInterval);
-          window.titleAnimationInterval = null;
-        }
-        return;
-      }
-
-      // Get current active title
-      const activeTitle = document.querySelector("h2.titles-wrapper .title.active");
+      // Use tracked index — no DOM scan for .active needed
+      const activeTitle = titles[currentTitle];
       if (!activeTitle) return;
 
-      // Add hidden class to trigger fade-out
       activeTitle.classList.add("hidden");
       activeTitle.classList.remove("active");
 
-      // After fade-out animation completes
       setTimeout(() => {
-        // Reset characters
         resetCharacters(activeTitle.querySelectorAll(".char"));
 
-        // Increment to next title
         currentTitle = (currentTitle + 1) % titles.length;
-
-        // Get the next title
         const nextTitle = titles[currentTitle];
-        if (!nextTitle) return; // Guard against missing title
+        if (!nextTitle) return;
 
-        nextTitle.style.position = "absolute";
-        nextTitle.style.display = "block";
-
-        // Reset characters in the next title
         resetCharacters(nextTitle.querySelectorAll(".char"));
 
-        // Fade in the next title
         setTimeout(() => {
           nextTitle.classList.remove("hidden");
           nextTitle.classList.add("active");
 
-          // Animate characters
           setTimeout(() => {
-            const chars = nextTitle.querySelectorAll(".char");
-            animateChars(chars);
+            animateChars(nextTitle.querySelectorAll(".char"));
           }, 300);
         }, 100);
       }, 400);
     };
 
-    // Create a scheduled interval to rotate titles
-    window.titleAnimationInterval = setInterval(() => {
-      rotateToNextTitle();
-    }, 5000);
+    window.titleAnimationInterval = setInterval(rotateToNextTitle, 5000);
   }
 }
 

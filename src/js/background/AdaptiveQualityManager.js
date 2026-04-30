@@ -14,9 +14,14 @@ export class AdaptiveQualityManager {
     this.targetFps = 60;
     this.currentQuality = 'high';
     
-    // Performance monitoring
-    this.fpsHistory = [];
-    this.fpsHistoryMaxLength = 120; // 2 seconds at 60fps
+    // Performance monitoring — ring buffer avoids O(n) .shift() and .reduce() allocation
+    this._fpsHistLen = 120; // 2 seconds at 60fps
+    this._fpsHistBuf = new Float32Array(this._fpsHistLen);
+    this._fpsHistIdx = 0;
+    this._fpsHistCount = 0;
+    // Legacy alias kept for getStatus() avgFps calculation (replaced below)
+    this.fpsHistory = []; // unused path — kept for external callers only
+    this.fpsHistoryMaxLength = 120;
     this.lastQualityDowngrade = 0;
     this.lastQualityUpgrade = 0;
     
@@ -158,21 +163,21 @@ export class AdaptiveQualityManager {
    */
   checkPerformance() {
     if (!this.performanceMonitor) return;
-    
+
     const currentFps = this.performanceMonitor.getFps();
-    if (currentFps <= 0) return; // Not enough data yet
-    
-    // Add to history
-    this.fpsHistory.push(currentFps);
-    if (this.fpsHistory.length > this.fpsHistoryMaxLength) {
-      this.fpsHistory.shift();
-    }
-    
-    // Need enough samples for reliable decisions
-    if (this.fpsHistory.length < 30) return;
-    
-    // Calculate average FPS over recent history
-    const avgFps = this.fpsHistory.reduce((a, b) => a + b, 0) / this.fpsHistory.length;
+    if (currentFps <= 0) return;
+
+    // Ring buffer insert — O(1), no .shift() copy, no GC pressure
+    this._fpsHistBuf[this._fpsHistIdx] = currentFps;
+    this._fpsHistIdx = (this._fpsHistIdx + 1) % this._fpsHistLen;
+    if (this._fpsHistCount < this._fpsHistLen) this._fpsHistCount++;
+
+    if (this._fpsHistCount < 30) return;
+
+    // Average via plain for-loop — no .reduce() closure allocation
+    let sum = 0;
+    for (let i = 0; i < this._fpsHistCount; i++) sum += this._fpsHistBuf[i];
+    const avgFps = sum / this._fpsHistCount;
     const fpsRatio = avgFps / this.targetFps;
     
     const now = performance.now();
@@ -219,7 +224,7 @@ export class AdaptiveQualityManager {
     console.log(`AdaptiveQualityManager: Downgrading ${oldCombo.quality}@${oldCombo.fps}fps → ${newCombo.quality}@${newCombo.fps}fps`);
     
     this.applySettings();
-    this.fpsHistory = []; // Reset history after change
+    this._fpsHistIdx = 0; this._fpsHistCount = 0; // Reset ring buffer after quality change
   }
 
   /**
@@ -248,16 +253,19 @@ export class AdaptiveQualityManager {
     console.log(`AdaptiveQualityManager: Upgrading ${oldCombo.quality}@${oldCombo.fps}fps → ${newCombo.quality}@${newCombo.fps}fps`);
     
     this.applySettings();
-    this.fpsHistory = []; // Reset history after change
+    this._fpsHistIdx = 0; this._fpsHistCount = 0; // Reset ring buffer after quality change
   }
 
   /**
    * Get current status
    */
   getStatus() {
-    const avgFps = this.fpsHistory.length > 0
-      ? Math.round(this.fpsHistory.reduce((a, b) => a + b, 0) / this.fpsHistory.length)
-      : 0;
+    let avgFps = 0;
+    if (this._fpsHistCount > 0) {
+      let sum = 0;
+      for (let i = 0; i < this._fpsHistCount; i++) sum += this._fpsHistBuf[i];
+      avgFps = Math.round(sum / this._fpsHistCount);
+    }
     
     return {
       detectedRefreshRate: this.detectedRefreshRate,
@@ -276,7 +284,7 @@ export class AdaptiveQualityManager {
     this.currentQuality = quality;
     this.targetFps = fps;
     this.applySettings();
-    this.fpsHistory = []; // Reset history
+    this._fpsHistIdx = 0; this._fpsHistCount = 0;
     console.log(`AdaptiveQualityManager: Manual override to ${quality}@${fps}fps`);
   }
 }

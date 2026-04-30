@@ -145,14 +145,22 @@ export class PerformanceMonitor {
     if (removeBtn) {
       removeBtn.style.pointerEvents = 'auto';
       removeBtn.addEventListener('click', () => {
-        const canvases = document.querySelectorAll('canvas');
-        canvases.forEach(c => c.remove());
-        removeBtn.textContent = `✓ Removed ${canvases.length} canvas`;
+        // Stop the renderer properly — cancels rAF, disposes GPU context, removes event listeners.
+        // Just removing the canvas DOM element leaves the rAF loop and all setIntervals running,
+        // which means the GC pressure and per-frame JS work continue even without a visible canvas.
+        if (this.renderer && typeof this.renderer.stop === 'function') {
+          this.renderer.stop();
+          removeBtn.textContent = '✓ Renderer stopped';
+        } else {
+          // Fallback: at minimum remove the DOM elements
+          const canvases = document.querySelectorAll('canvas');
+          canvases.forEach(c => c.remove());
+          removeBtn.textContent = `✓ Removed ${canvases.length} canvas`;
+        }
         removeBtn.style.color = '#22c55e';
         removeBtn.style.borderColor = 'rgba(34,197,94,0.4)';
         removeBtn.style.background = 'rgba(34,197,94,0.1)';
         removeBtn.disabled = true;
-        console.log(`[PerformanceMonitor] Removed ${canvases.length} canvas element(s) from DOM`);
       });
     }
   }
