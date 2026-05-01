@@ -9,6 +9,7 @@
     max-width:100%;
     @media (max-width: $desktop-viewport) {
         width:92vw;
+        margin-bottom:12vh;
     }
     a {
         position: relative;
@@ -20,8 +21,11 @@
         align-self: flex-start;
         opacity: 0.6;
         letter-spacing: clamp(-4px, -0.3vw, -1px);
+        text-transform: uppercase;
         @include transition-smooth;
-
+        @media (max-width:$desktop-viewport) {
+            -webkit-text-stroke: 1px #000;
+        }
         // Pseudo-element with solid font that reveals on hover
         &::before {
             content: attr(data-text);
