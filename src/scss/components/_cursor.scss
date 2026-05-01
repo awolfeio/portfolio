@@ -468,7 +468,7 @@ body:has(.next-project-banner:hover) {
     }
 
     .zoom-cta__icon, .zoom-cta__ring > span {
-        transition: transform 0.32s cubic-bezier(0.2, 0, 0.2, 1);
+        transition: transform 0.32s cubic-bezier(0.2, 0, 0.2, 1)!important;
     }
 
     &.pressing {
@@ -482,7 +482,7 @@ body:has(.next-project-banner:hover) {
 }
 
 .more-info-cta--hide {
-    filter:hue-rotate(114deg);
+    filter:hue-rotate(64deg);
 }
 .more-info-cta--hide .zoom-cta__text--hide {
     transform:scale(1.0455)!important;

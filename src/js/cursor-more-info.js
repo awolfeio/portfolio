@@ -14,6 +14,8 @@ let isBubbleActive = false;
 let scrollRafId = null;
 let ctaTextMoreEl = null;
 let ctaTextHideEl = null;
+let lastToggleTime = 0;
+const TOGGLE_DEBOUNCE = 320;
 
 export function initMoreInfoLogic() {
   createMoreInfoCta();
@@ -26,19 +28,9 @@ function createMoreInfoCta() {
     <div class="zoom-cta more-info-cta">
       <div class="zoom-cta__icon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 16V12H10" stroke="currentColor" stroke-width="2" stroke-miterlimit="10" stroke-linecap="square"/>
-          <path d="M12 8.01V8" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M4 6V6.01" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M6 4V4.01" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M20.01 6H20" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M18.01 4H18" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M20.01 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M18.01 20H18" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M22 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M2 8V14" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M4 16V18" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M8 2H16" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-          <path d="M16 22H2V20" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
+          <path d="M22 12C22 17.5228 17.5228 22 12 22C10.1786 22 8.47087 21.513 7 20.6622L2.5 22L2 21.5L3.33782 17C2.48697 15.5291 2 13.8214 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="currentColor" stroke-width="2" stroke-miterlimit="10" stroke-linecap="square" fill="none"/>
+          <path d="M12 16V12H10" stroke="currentColor" stroke-width="2" stroke-miterlimit="10" stroke-linecap="square" fill="none"/>
+          <path d="M12 8.01V8" stroke="currentColor" stroke-width="2" stroke-linecap="square" fill="none"/>
         </svg>
       </div>
       <div class="zoom-cta__ring">
@@ -101,6 +93,9 @@ function createRpgBubble() {
 
   const closeBtn = rpgBubble.querySelector(".rpg-bubble__close");
   closeBtn.addEventListener("click", () => {
+    const now = Date.now();
+    if (now - lastToggleTime < TOGGLE_DEBOUNCE) return;
+    lastToggleTime = now;
     hideRpgBubble();
   });
 }
@@ -159,6 +154,10 @@ function setupElementHover(hitArea, containerElement) {
 
   hitArea.addEventListener("click", (e) => {
     if (!currentProjectElement) return;
+
+    const now = Date.now();
+    if (now - lastToggleTime < TOGGLE_DEBOUNCE) return;
+    lastToggleTime = now;
 
     const messageEl = currentProjectElement.querySelector(".more-info-message");
     if (!messageEl) return;
