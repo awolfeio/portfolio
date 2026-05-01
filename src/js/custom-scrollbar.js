@@ -1,7 +1,9 @@
 export function initCustomScrollbar() {
-  // Hide on touch/mobile devices — the native OS scrollbar is already hidden on
-  // mobile browsers and a custom one adds no value while wasting event budget.
+  // Hide on touch/mobile — native OS scrollbar is already invisible there
   if (window.matchMedia('(pointer: coarse)').matches) return;
+
+  // Guard against double-init on Barba re-entry
+  if (document.querySelector('.custom-scrollbar')) return;
 
   const scrollbar = document.createElement('div');
   scrollbar.className = 'custom-scrollbar';
@@ -13,154 +15,159 @@ export function initCustomScrollbar() {
   document.body.appendChild(scrollbar);
 
   let isScrolling = false;
-  let scrollTimeout;
   let isHovering = false;
   let isDragging = false;
+  let scrollTimeout = null;
+  let tickRafId = null;
   let startY = 0;
   let startScroll = 0;
 
-  // Cached layout values — updated only when content size changes (ResizeObserver)
-  // or the window resizes. Reading scrollHeight on every scroll frame forces a
-  // layout flush; caching it here removes that cost from the hot path.
+  // Cached layout values — updated only by ResizeObserver and window resize,
+  // never read from the DOM in the hot path.
   let cachedDocumentHeight = document.documentElement.scrollHeight;
   let cachedWindowHeight = window.innerHeight;
 
-  const updateThumb = () => {
-    if (cachedDocumentHeight <= cachedWindowHeight) {
-      scrollbar.style.display = 'none';
-      return;
-    }
-    scrollbar.style.display = 'block';
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
-    const thumbHeight = Math.min(
-      Math.max((cachedWindowHeight / cachedDocumentHeight) * cachedWindowHeight, 40),
-      256,
-    );
+  const getScrollPos = () => (window.lenis ? window.lenis.scroll : window.scrollY);
+
+  const getThumbHeight = () =>
+    Math.min(Math.max((cachedWindowHeight / cachedDocumentHeight) * cachedWindowHeight, 40), 256);
+
+  // ── Thumb position ───────────────────────────────────────────────────────
+
+  const updateThumb = () => {
+    const scrollable = cachedDocumentHeight > cachedWindowHeight;
+    scrollbar.classList.toggle('custom-scrollbar--scrollable', scrollable);
+    if (!scrollable) return;
+
+    const thumbHeight = getThumbHeight();
     thumb.style.height = `${thumbHeight}px`;
 
     const maxScroll = cachedDocumentHeight - cachedWindowHeight;
-    const currentScroll = window.lenis ? window.lenis.scroll : window.scrollY;
-
-    const scrollPercentage = currentScroll / maxScroll;
     const maxThumbTranslate = cachedWindowHeight - thumbHeight;
-    thumb.style.transform = `translateY(${scrollPercentage * maxThumbTranslate}px)`;
+    const pct = maxScroll > 0 ? Math.min(getScrollPos() / maxScroll, 1) : 0;
+    thumb.style.transform = `translateY(${pct * maxThumbTranslate}px)`;
   };
+
+  // ── Visibility ───────────────────────────────────────────────────────────
 
   const updateVisibility = () => {
     if (isScrolling || isHovering || isDragging) {
-      scrollbar.classList.add('visible');
+      scrollbar.classList.add('custom-scrollbar--visible');
     } else {
-      scrollbar.classList.remove('visible');
+      scrollbar.classList.remove('custom-scrollbar--visible');
     }
   };
 
-  // Drag logic
-  thumb.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    startY = e.clientY;
-    startScroll = window.lenis ? window.lenis.scroll : window.scrollY;
-    document.body.style.userSelect = 'none';
-    updateVisibility();
-    e.preventDefault();
-  });
+  // ── Scroll tracking ───────────────────────────────────────────────────────
+  // Uses wheel + native scroll events rather than lenis.on('scroll'), because:
+  // 1. wheel events always fire regardless of Lenis intercepting the native scroll
+  // 2. Lenis instances are recreated on Barba transitions, invalidating any .on() registration
+  // Thumb position is ticked via rAF while scrolling so it tracks Lenis's eased position.
 
-  window.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-
-    const maxScroll = cachedDocumentHeight - cachedWindowHeight;
-    const thumbHeight = Math.min(
-      Math.max((cachedWindowHeight / cachedDocumentHeight) * cachedWindowHeight, 40),
-      256,
-    );
-    const maxThumbTranslate = cachedWindowHeight - thumbHeight;
-
-    const deltaY = e.clientY - startY;
-    const scrollFraction = deltaY / maxThumbTranslate;
-    let targetScroll = Math.max(0, Math.min(startScroll + scrollFraction * maxScroll, maxScroll));
-
-    if (window.lenis) {
-      window.lenis.scrollTo(targetScroll, { immediate: true });
-    } else {
-      window.scrollTo({ top: targetScroll });
+  const stopScrollTick = () => {
+    if (tickRafId) {
+      cancelAnimationFrame(tickRafId);
+      tickRafId = null;
     }
-  });
+  };
 
-  window.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      document.body.style.userSelect = '';
-      updateVisibility();
+  const startScrollTick = () => {
+    stopScrollTick();
+    const tick = () => {
+      updateThumb();
+      if (isScrolling || isDragging) {
+        tickRafId = requestAnimationFrame(tick);
+      } else {
+        tickRafId = null;
+      }
+    };
+    tickRafId = requestAnimationFrame(tick);
+  };
 
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        isScrolling = false;
-        updateVisibility();
-      }, 800);
-    }
-  });
-
-  const handleScroll = () => {
-    updateThumb();
+  const onScrollActivity = () => {
     isScrolling = true;
     updateVisibility();
+    startScrollTick();
 
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
       isScrolling = false;
       updateVisibility();
+      stopScrollTick();
+      updateThumb(); // final position sync
     }, 800);
   };
 
-  // Attach to exactly ONE scroll source. If Lenis is present, use its scroll
-  // event (which fires on every Lenis tick with the virtual scroll position).
-  // If Lenis arrives after init, swap in the Lenis listener and drop the native
-  // one so we never fire handleScroll twice per frame.
-  let usingNativeScroll = false;
+  // wheel covers mouse wheel / trackpad (always fires even when Lenis is active)
+  window.addEventListener('wheel', onScrollActivity, { passive: true });
 
-  const attachLenis = () => {
-    if (usingNativeScroll) {
-      window.removeEventListener('scroll', handleScroll);
-      usingNativeScroll = false;
-    }
-    window.lenis.on('scroll', handleScroll);
-  };
+  // native scroll covers keyboard navigation (Page Up/Down, arrow keys, Home/End)
+  window.addEventListener('scroll', onScrollActivity, { passive: true });
 
-  if (window.lenis) {
-    attachLenis();
-  } else {
-    // Fall back to native until Lenis is ready
-    window.addEventListener('scroll', handleScroll);
-    usingNativeScroll = true;
+  // ── Hover: right-edge zone ───────────────────────────────────────────────
 
-    const lenisCheck = setInterval(() => {
-      if (window.lenis) {
-        clearInterval(lenisCheck);
-        attachLenis();
-      }
-    }, 100);
-  }
+  const HOVER_ZONE = 48; // px from right edge
 
-  // Mouse near the right edge reveals the scrollbar
   window.addEventListener('mousemove', (e) => {
-    isHovering = window.innerWidth - e.clientX <= 100;
-    updateVisibility();
+    if (isDragging) {
+      const maxScroll = cachedDocumentHeight - cachedWindowHeight;
+      const maxThumbTranslate = cachedWindowHeight - getThumbHeight();
+      const deltaY = e.clientY - startY;
+      const targetScroll = Math.max(0, Math.min(startScroll + (deltaY / maxThumbTranslate) * maxScroll, maxScroll));
+
+      if (window.lenis) {
+        window.lenis.scrollTo(targetScroll, { immediate: true });
+      } else {
+        window.scrollTo({ top: targetScroll });
+      }
+      return;
+    }
+
+    const nearEdge = window.innerWidth - e.clientX <= HOVER_ZONE;
+    if (nearEdge !== isHovering) {
+      isHovering = nearEdge;
+      updateVisibility();
+    }
+  }, { passive: true });
+
+  // ── Thumb drag ───────────────────────────────────────────────────────────
+
+  thumb.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startY = e.clientY;
+    startScroll = getScrollPos();
+    document.body.style.userSelect = 'none';
+    scrollbar.classList.add('custom-scrollbar--visible');
+    startScrollTick();
+    e.preventDefault();
   });
 
-  // Re-cache layout dimensions on resize (window or content)
+  window.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    document.body.style.userSelect = '';
+
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      isScrolling = false;
+      updateVisibility();
+      stopScrollTick();
+    }, 800);
+  });
+
+  // ── Dimension cache ──────────────────────────────────────────────────────
+
   const refreshDimensions = () => {
     cachedWindowHeight = window.innerHeight;
     cachedDocumentHeight = document.documentElement.scrollHeight;
     updateThumb();
   };
 
-  window.addEventListener('resize', refreshDimensions);
+  window.addEventListener('resize', refreshDimensions, { passive: true });
+  new ResizeObserver(refreshDimensions).observe(document.body);
 
-  // ResizeObserver watches content height changes (dynamic content, Barba page
-  // transitions, etc.). documentHeight is re-read here and nowhere else in the
-  // hot scroll path.
-  const resizeObserver = new ResizeObserver(refreshDimensions);
-  resizeObserver.observe(document.body);
-
-  // Initial paint — give the page one tick to settle before measuring
+  // Initial paint — one tick for the page to settle
   setTimeout(updateThumb, 100);
 }

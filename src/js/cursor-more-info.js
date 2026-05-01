@@ -143,7 +143,18 @@ function setupElementHover(hitArea, containerElement) {
     hitArea.style.cursor = "";
     currentProjectElement = null;
     cursorEl?.classList.remove("magnify-active");
+    moreInfoCta?.classList.remove("pressing");
     gsap.to(moreInfoCta, { opacity: 0, duration: 0.12, ease: "power2.in" });
+  });
+
+  hitArea.addEventListener("mousedown", () => {
+    if (currentProjectElement) {
+      moreInfoCta?.classList.add("pressing");
+    }
+  });
+
+  hitArea.addEventListener("mouseup", () => {
+    moreInfoCta?.classList.remove("pressing");
   });
 
   hitArea.addEventListener("click", (e) => {

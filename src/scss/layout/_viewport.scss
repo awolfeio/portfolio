@@ -74,9 +74,14 @@ body.portrait {
     z-index: 999999;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.4s ease;
-    
-    &.visible {
+    transition: opacity 0.35s ease;
+
+    // Only rendered when page content overflows
+    &:not(.custom-scrollbar--scrollable) {
+        visibility: hidden;
+    }
+
+    &--visible {
         opacity: 1;
     }
 
@@ -90,5 +95,10 @@ body.portrait {
         border: 1px solid rgba(0, 0, 0, 0.1);
         backdrop-filter: blur(4px);
         pointer-events: auto;
+        cursor: grab;
+
+        &:active {
+            cursor: grabbing;
+        }
     }
 }

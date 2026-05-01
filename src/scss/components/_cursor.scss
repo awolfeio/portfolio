@@ -410,7 +410,7 @@ body:has(.next-project-banner:hover) {
     to   { transform: rotate(360deg) scale(0.84) }
 }
 
-.zoom-cta {
+.zoom-cta, .more-info-cta {
     position: fixed;
     left: 0;
     top: 0;
@@ -424,8 +424,6 @@ body:has(.next-project-banner:hover) {
     display: flex;
     align-items: center;
     justify-content: center;
-    //backdrop-filter: blur(4px);
-    //filter: brightness(1.2) contrast(1.5);
 
     @media (max-width: $desktop-viewport) {
         display: none;
@@ -468,10 +466,24 @@ body:has(.next-project-banner:hover) {
         white-space: nowrap;
         position: relative; // CircleType needs relative positioning context
     }
+
+    .zoom-cta__icon, .zoom-cta__ring > span {
+        transition: transform 0.32s cubic-bezier(0.2, 0, 0.2, 1);
+    }
+
+    &.pressing {
+        .zoom-cta__ring > span {
+            transform: scale(0.94)!important;
+        }
+        .zoom-cta__icon {
+            transform: scale(0.88)!important;
+        }
+    }
 }
 
-////
-/// 
+.more-info-cta--hide {
+    filter:hue-rotate(114deg);
+}
 .more-info-cta--hide .zoom-cta__text--hide {
     transform:scale(1.0455)!important;
 }
