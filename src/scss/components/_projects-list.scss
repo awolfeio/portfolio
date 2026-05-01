@@ -14,12 +14,12 @@
         position: relative;
         color: #000;
         font-family: "MADE Outer Sans Outline", sans-serif;
-        font-size: 120px;
+        font-size: clamp(40px, 10vw, 120px);
         font-weight:900;
-        margin: 32px auto;
+        margin: clamp(16px, 2.5vh, 32px) auto;
         align-self: flex-start;
         opacity: 0.6;
-        letter-spacing: -4px;
+        letter-spacing: clamp(-4px, -0.3vw, -1px);
         @include transition-smooth;
 
         // Pseudo-element with solid font that reveals on hover
@@ -40,22 +40,6 @@
             clip-path: polygon(0% 100%, 100% 160%, 100% 160%, 0% 100%);
             @include transition-smooth;
         }
-
-        @media (max-width:1368px) {
-            font-size: 80px;
-            letter-spacing: -2px;
-        }
-
-        @media (max-width: $desktop-viewport) {
-            font-size: 12vw;
-            margin: 2vh auto;
-            letter-spacing: -0.5vw;
-        }
-
-        @media (max-width:480px) {
-            font-size: 14vw;
-        }
-
         &:hover {
             opacity: 1;
 

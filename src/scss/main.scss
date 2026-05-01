@@ -4,6 +4,8 @@
 @use "pages" as *;
 
 html {
+
+    -webkit-tap-highlight-color: transparent;
     .dg.ac {
         z-index: 9999999999999;
         display: none;
