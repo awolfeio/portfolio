@@ -231,7 +231,7 @@ nav {
         }
 
         // Staggered mobile menu animation
-        @for $i from 1 through 4 {
+        @for $i from 1 through 5 {
             &:nth-of-type(#{$i}) {
                 @media (max-width: $desktop-viewport) {
                     transition-delay: #{0.25 + $i * 0.1}s;

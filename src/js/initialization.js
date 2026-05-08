@@ -139,6 +139,8 @@ function detectFirstPage() {
     document.querySelector("nav a.about")?.classList.add("active");
   } else if (firstPage === "works") {
     document.querySelector("nav a.works")?.classList.add("active");
+  } else if (firstPage === "labs") {
+    document.querySelector("nav a.labs")?.classList.add("active");
   } else if (firstPage === "contact") {
     document.querySelector("nav a.contact")?.classList.add("active");
   }
