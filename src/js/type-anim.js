@@ -381,21 +381,53 @@ export function animateDataSplittingChars() {
 }
 
 /**
- * Creates a circular text effect
+ * Creates a circular text effect for every .circular-text element on the page.
+ *
+ * Strategy:
+ *  1. A short timeout lets the barba container fully enter the DOM.
+ *  2. A single requestAnimationFrame ensures the browser has committed layout
+ *     so getBoundingClientRect() returns real pixel values (not zeros).
+ *     CircleType relies on these measurements for radius calculation — reading
+ *     them before layout is committed produces a wrong circumference.
+ *  3. Each element starts as `opacity:0 / pointer-events:none` (set in CSS).
+ *     After CircleType has run we reveal it so the CSS transition plays cleanly
+ *     and the user never sees the un-laid-out text.
+ *  4. Any previous scroll handler is torn down before adding a new one so
+ *     barba navigations don't stack duplicate listeners.
  */
 export function circleText() {
-  setTimeout(() => {
-    const circleTextEl = document.querySelector(".circular-text");
-    if (circleTextEl) {
-      // Make the text circular with CircleType
-      const rotate = new CircleType(circleTextEl).radius(120);
+  // Tear down any scroll handler from a previous page visit
+  if (window._circleTextScrollHandler) {
+    window.removeEventListener("scroll", window._circleTextScrollHandler);
+    window._circleTextScrollHandler = null;
+  }
 
-      // Rotate based on scroll position
-      window.addEventListener("scroll", function () {
-        circleTextEl.style.transform = `rotate(${window.scrollY * -0.15}deg)`;
+  setTimeout(() => {
+    // Wait one rAF so layout is fully committed before CircleType measures
+    requestAnimationFrame(() => {
+      const circleTextEls = document.querySelectorAll(".circular-text");
+      if (!circleTextEls.length) return;
+
+      circleTextEls.forEach((el) => {
+        // CircleType measures getBoundingClientRect() on each character span.
+        // The element must be in the layout flow (opacity:0 is fine; visibility:hidden
+        // suppresses layout and would return zero sizes).
+        new CircleType(el).radius(120);
+
+        // Reveal now that CircleType has positioned everything correctly
+        el.style.opacity = "1";
+        el.style.pointerEvents = "auto";
       });
-    }
-  }, 1000);
+
+      // Single shared scroll listener — rotate the first circular-text element
+      // (extend to forEach if multiple need independent scroll rotation)
+      const primaryEl = circleTextEls[0];
+      window._circleTextScrollHandler = function () {
+        primaryEl.style.transform = `rotate(${window.scrollY * -0.15}deg)`;
+      };
+      window.addEventListener("scroll", window._circleTextScrollHandler, { passive: true });
+    });
+  }, 300);
 }
 
 /**

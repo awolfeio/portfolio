@@ -193,6 +193,15 @@ export function initializeBarba() {
       immediateRender: true,
     });
 
+    // Guarantee .circular-text elements are hidden before CircleType runs.
+    // CSS already sets opacity:0 / pointer-events:none as the pre-init state,
+    // but an explicit reset here covers any FOUC on barba container paint.
+    const circleTextEls = data.next.container.querySelectorAll(".circular-text");
+    circleTextEls.forEach((el) => {
+      el.style.opacity = "0";
+      el.style.pointerEvents = "none";
+    });
+
     // Add a class to old container for better targeting during transitions
     if (data.current.container) {
       data.current.container.classList.add("barba-old-container");

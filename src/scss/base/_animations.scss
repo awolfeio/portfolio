@@ -88,9 +88,6 @@ $transition-slow: 1s;
 
     &.active {
         opacity: 1;
-        transition-delay: 0.4s;
-        // NOTE: do NOT change will-change here — resetting it causes a
-        // compositor layer flush that skips the CSS transition visually.
     }
 
     @for $i from 1 through 20 {

@@ -23,6 +23,14 @@ export default defineConfig({
       partialDirectory: resolve(__dirname, "src/partials"),
     }),
     shaderSyncPlugin(),
+    {
+      name: "watch-scss",
+      handleHotUpdate({ file, server }) {
+        if (file.endsWith(".scss")) {
+          server.ws.send({ type: "full-reload", path: "*" });
+        }
+      },
+    },
   ],
   build: {
     outDir,
