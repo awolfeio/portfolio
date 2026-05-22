@@ -464,7 +464,7 @@ export const backgroundPresets = {
       u_highWeight: 0.3,
       
       // Phase 2: Advanced Distortion & Flow
-      u_warpScale: 1.9,
+      u_warpScale: 1.2,
       u_flowType: 1.0,
       
       // Phase 3: Texture & Structure (Worley)

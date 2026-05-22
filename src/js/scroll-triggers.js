@@ -52,6 +52,13 @@ export function setupUnifiedReveals() {
   const STAGGER_STEP  = 0.35; // seconds between each sequential element
   let staggerIndex = 0;
 
+  // Prevent duplicate triggers: Kill any existing ScrollTriggers on these elements
+  ScrollTrigger.getAll().forEach(st => {
+    if (allRevealElements.includes(st.trigger)) {
+      st.kill();
+    }
+  });
+
   allRevealElements.forEach((element, index) => {
     // Trigger to reveal the element when scrolling down
     ScrollTrigger.create({
@@ -131,6 +138,12 @@ function convertToFadeReveal() {
  *   the normal CSS-defined delay.
  */
 function revealElement(element, delayOverride) {
+  // Always kill any ongoing hide animations to prevent conflicts
+  gsap.killTweensOf(element);
+  
+  // Clean up any inline transition styles added by hideElement
+  element.style.removeProperty('transition');
+
   // Skip if already active
   if (element.classList.contains('active')) return;
 
@@ -175,7 +188,13 @@ function revealElement(element, delayOverride) {
 function hideElement(element) {
   if (!element.classList.contains('active')) return;
 
+  // Kill any existing tweens just in case
+  gsap.killTweensOf(element);
+
   const revealType = element.getAttribute("data-reveal-type");
+
+  // Disable CSS transitions so GSAP can animate smoothly without fighting the browser
+  element.style.transition = 'none';
 
   gsap.to(element, {
     opacity: 0,
@@ -184,9 +203,10 @@ function hideElement(element) {
     overwrite: 'auto',
     onComplete: () => {
       element.classList.remove('active', 'reveal');
-      // Clear GSAP's inline opacity so the CSS hidden state takes over cleanly
+      // Clear GSAP's inline styles so the CSS hidden state takes over cleanly
       // for any subsequent re-reveals.
       element.style.removeProperty('opacity');
+      element.style.removeProperty('transition');
       element.style.pointerEvents = 'none';
     }
   });

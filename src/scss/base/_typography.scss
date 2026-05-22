@@ -144,17 +144,20 @@ body {
     h3.display {
         font-family: 'MADE Outer Sans', 'Evolve', 'Helvetica', 'Arial', sans-serif;
         font-weight: bold;
-        letter-spacing:-6px;
+        letter-spacing: -6px;
+
         @media (max-width:1366px) {
-            letter-spacing:-2px;
+            letter-spacing: -2px;
         }
+
         span.word,
         span.word:before,
         span.word:after,
         span.char,
         span.char:before,
         span.char:after {
-            color: #000;font-family: 'MADE Outer Sans', 'Evolve', 'Helvetica', 'Arial', sans-serif;
+            color: #000;
+            font-family: 'MADE Outer Sans', 'Evolve', 'Helvetica', 'Arial', sans-serif;
         }
     }
 
@@ -214,7 +217,7 @@ body {
         user-select: none;
 
         @media (max-width:1368px) {
-            padding: 2px 4px;
+            padding: 4px;
         }
 
         &:before {
@@ -311,6 +314,11 @@ h2 {
 }
 
 span {
+    &.word {
+        display: inline-block;
+        white-space: nowrap;
+    }
+
     &.char {
         overflow: hidden;
         opacity: 1;
@@ -384,6 +392,7 @@ span {
             animation-fill-mode: forwards;
             animation-timing-function: cubic-bezier(.785, 0.135, 0.15, 0.86);
             position: relative;
+
             @for $i from 1 through 20 {
                 &[data-line-index="#{$i - 1}"] {
                     animation-delay: calc(0.1s * #{$i} + 0.2s);
@@ -467,14 +476,14 @@ span {
                 // opacity+translateY which run freely on the compositor thread.
                 will-change: transform;
                 animation: revealChar 0.44s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards,
-                           fadeSlideIn 0.6s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards;
+                    fadeSlideIn 0.6s cubic-bezier(.785, 0.135, 0.15, 0.86) forwards;
             }
         }
     }
 }
 
 .fill-container {
-    width:100%;
-    margin-left:0;
-    margin-right:0;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
 }

@@ -41,7 +41,7 @@ export default function splitText() {
 
     // Create new split instance
     const splitInstance = new SplitType(element, {
-      types: "chars",
+      types: "words, chars",
       tagName: "span",
     });
 

@@ -251,9 +251,22 @@ export function initializeBarba() {
       },
       {
         namespace: "about",
-        beforeEnter() {
-          // About page specific code
+        beforeEnter(data) {
+          // Move .self-image to be the element right after the <main> container
+          const container = data.next.container;
+          const selfImage = container.querySelector('.self-image');
+          if (selfImage) {
+            container.insertAdjacentElement('afterend', selfImage);
+            gsap.killTweensOf(selfImage);
+            selfImage.style.removeProperty('opacity');
+            selfImage.style.removeProperty('pointer-events');
+          }
         },
+        beforeLeave() {
+          // Clean up the .self-image that was moved outside the container when leaving the about page
+          const selfImages = document.querySelectorAll('#viewport > .self-image');
+          selfImages.forEach(img => img.remove());
+        }
       },
       {
         namespace: "works",

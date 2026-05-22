@@ -211,8 +211,8 @@ export class ConfigManager {
       },
       about: {
         u_color1: 0xe4751b,
-        u_color2: 0x8218c9,
-        u_color3: 0x252ab6,
+        u_color2: 0xbc58fe,
+        u_color3: 0x181eb4,
         u_baseColor: 0xffd500
       }
     };

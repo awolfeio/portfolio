@@ -97,7 +97,7 @@ function detectFirstPage() {
     gsap.set(pageElement, { opacity: 0, y: 30 });
 
     // Also set initial state for children
-    const contentElements = pageElement.children;
+    const contentElements = Array.from(pageElement.children).filter(el => !el.classList.contains('self-image'));
     if (contentElements.length > 0) {
       gsap.set(contentElements, { opacity: 0, y: 30 });
     }
