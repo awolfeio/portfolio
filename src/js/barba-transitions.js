@@ -13,6 +13,7 @@ import { gsap } from "gsap";
 import SplitType from "split-type";
 import mediaPreloader from "./media-preloader.js";
 import { refreshFill } from "./text-fill.js";
+import portfolioAuth from "./portfolio-auth.js";
 
 /**
  * Initialize Barba.js and set up page transitions
@@ -280,6 +281,12 @@ export function initializeBarba() {
       },
       // Project page namespaces
       {
+        namespace: "american-chemical-society",
+        beforeEnter() {
+          // American Chemical Society project page specific code
+        },
+      },
+      {
         namespace: "scholastic",
         beforeEnter() {
           // Scholastic project page specific code
@@ -463,6 +470,10 @@ function handleEnter(data) {
  */
 function handleAfterEnter(data) {
   console.log("Barba afterEnter: preparing animations");
+
+  // Inject and apply auth mode on the new page
+  portfolioAuth.injectAuthUI();
+  portfolioAuth.applyMode();
 
   // Make sure old containers are completely hidden
   document.querySelectorAll(".barba-old-container").forEach((oldContainer) => {

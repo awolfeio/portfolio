@@ -6,6 +6,7 @@
 html {
 
     -webkit-tap-highlight-color: transparent;
+
     .dg.ac {
         z-index: 9999999999999;
         display: none;
@@ -19,11 +20,12 @@ html {
         scroll-behavior: auto;
     }
 
-    main + canvas {
-        filter:brightness(1.2);
-        height:100lvh!important;
+    main+canvas {
+        filter: brightness(1.2);
+        height: 100lvh !important;
+
         @media (min-width: $desktop-viewport) {
-            height:calc(100vh + 40px)!important;
+            height: calc(100vh + 40px) !important;
         }
     }
 }
@@ -32,9 +34,11 @@ body {
     overflow-x: hidden;
     min-height: 100vh;
     margin: 0;
+
     @media (max-width:$desktop-viewport) {
-        min-height:100lvh;
+        min-height: 100lvh;
     }
+
     &.lenis {
         height: auto;
     }
@@ -62,7 +66,7 @@ body {
     }
 
     ::selection {
-        background: rgba(0,0,0,0.66);
+        background: rgba(0, 0, 0, 0.66);
         color: $primary;
     }
 

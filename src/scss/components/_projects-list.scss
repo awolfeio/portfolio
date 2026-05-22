@@ -5,26 +5,31 @@
     flex-direction: column;
     margin-left: auto;
     margin-right: auto;
-    width:80vw;
-    max-width:100%;
+    width: 80vw;
+    max-width: 100%;
+
     @media (max-width: $desktop-viewport) {
-        width:92vw;
-        margin-bottom:12vh;
+        width: 92vw;
+        margin-bottom: 12vh;
     }
+
     a {
         position: relative;
         color: #000;
         font-family: "MADE Outer Sans Outline", sans-serif;
         font-size: clamp(40px, 10vw, 120px);
-        font-weight:900;
+        font-weight: 900;
         margin: clamp(16px, 2.5vh, 32px) auto;
         align-self: flex-start;
         opacity: 0.6;
         letter-spacing: clamp(-4px, -0.3vw, -1px);
+        padding-right: 2px;
         @include transition-smooth;
+
         @media (max-width:$desktop-viewport) {
             -webkit-text-stroke: 1px #000;
         }
+
         // Pseudo-element with solid font that reveals on hover
         &::before {
             content: attr(data-text);
@@ -43,6 +48,7 @@
             clip-path: polygon(0% 100%, 100% 160%, 100% 160%, 0% 100%);
             @include transition-smooth;
         }
+
         &:hover {
             opacity: 1;
 
@@ -51,9 +57,11 @@
                 clip-path: polygon(0% -60%, 100% 0%, 100% 100%, 0% 100%);
             }
         }
+
         &:active {
-            transform:scale(0.95);
+            transform: scale(0.95);
         }
+
         &:nth-child(1) {
             margin-top: 0;
         }
@@ -62,11 +70,21 @@
             margin-bottom: 0;
         }
 
+        max-height: 200px;
+        overflow: hidden;
+        transition: opacity 0.8s ease,
+        max-height 1.2s ease,
+        margin 1.2s ease,
+        filter 0.8s ease,
+        transform 0.3s ease;
+
         &[disabled] {
-            opacity: 0.12;
+            opacity: 0;
             pointer-events: none;
             filter: blur(12px);
-            display: none;
+            max-height: 0;
+            margin-top: 0;
+            margin-bottom: 0;
         }
     }
 }

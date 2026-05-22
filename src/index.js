@@ -19,6 +19,7 @@ import { initializeBarba } from "./js/barba-transitions.js";
 import { setupVideoControls } from "./js/media-handlers.js";
 import { setupEventHandlers } from "./js/event-handlers.js";
 import "./js/text-fill.js"; // Auto-initializes text fill for .fill-container and .fill-viewport elements
+import portfolioAuth from "./js/portfolio-auth.js";
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", init);
@@ -67,4 +68,7 @@ function init() {
 
   // Setup video controls
   setupVideoControls();
+
+  // Initialize portfolio auth (password-gated modes)
+  portfolioAuth.init();
 }

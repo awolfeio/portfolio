@@ -11,7 +11,7 @@
         width: 100%;
         z-index: 50;
         background: #6ba7fb;
-        background:#1789D2;
+        background: #1789D2;
         transition: background 0.8s ease-in-out;
         overflow: visible;
 
@@ -33,7 +33,6 @@
 body.portrait {
     #works.page {
         .projects {
-            height: 68vh;
             justify-content: center;
             padding-bottom: 0;
         }

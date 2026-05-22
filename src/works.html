@@ -1,31 +1,34 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Adrain Wolfe | Works</title>
-  </head>
-  {{> meta }}
-  <body data-barba="wrapper">
-    {{> loadingsplash }}
-    <div id="stage">
-      <div id="viewport">
-        <header>{{> nav }}</header>
-        <main data-barba="container" data-barba-namespace="works">
-          <div class="page" id="works">
-            <div class="projects">
-              <a class="" href="/projects/wabash.html" data-project="wabash" data-text="Wabash">Wabash</a>
-              <a class="" href="/projects/scholastic.html" data-project="scholastic" data-text="Scholastic">Scholastic</a>
-              <a class="" href="/projects/jpplus.html" data-project="jpplus" data-text="JPPlus">JPPlus</a>
-              <a class="" href="/projects/rowmark.html" data-project="rowmark" data-text="Rowmark">Rowmark</a>
-              <a class="" href="/projects/ipi.html" data-project="ipi" data-text="IPI">IPI</a>
-              <!--<a href="/projects/rentaru.html">Rentaru</a>
+
+<head>
+  <title>Adrain Wolfe | Works</title>
+</head>
+{{> meta }}
+
+<body data-barba="wrapper">
+  {{> loadingsplash }}
+  <div id="stage">
+    <div id="viewport">
+      <header>{{> nav }}</header>
+      <main data-barba="container" data-barba-namespace="works">
+        <div class="page" id="works">
+          <div class="portfolio-auth"></div>
+          <div class="projects">
+            <a class="" href="/projects/scholastic.html" data-project="scholastic" data-text="Scholastic" data-auth-group="all">Scholastic</a>
+            <a class="" href="/projects/jpplus.html" data-project="jpplus" data-text="JPPlus" data-auth-group="all">JPPlus</a>
+            <a class="" href="/projects/rowmark.html" data-project="rowmark" data-text="Rowmark" data-auth-group="all">Rowmark</a>
+            <a class="" href="/projects/ipi.html" data-project="ipi" data-text="IPI" data-auth-group="all">IPI</a>
+            <!--<a href="/projects/rentaru.html">Rentaru</a>
                     <a href="/projects/healpool.html">Healpool</a>
                     <a href="/projects/payla.html">Payla</a>-->
-            </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
+  </div>
 
-    <script type="module" src="./index.js"></script>
-  </body>
+  <script type="module" src="./index.js"></script>
+</body>
+
 </html>

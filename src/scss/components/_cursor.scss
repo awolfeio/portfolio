@@ -6,9 +6,11 @@
         opacity: 0;
         transform: translate(-50%, -50%) scale(0.5);
     }
+
     30% {
         opacity: 0.8;
     }
+
     100% {
         opacity: 0;
         transform: translate(-50%, -50%) scale(2.5);
@@ -19,9 +21,11 @@
     0% {
         transform: scale(1) translate(-50%, -50%);
     }
+
     15% {
         transform: scale(0.2) translate(-50%, -50%);
     }
+
     100% {
         transform: scale(1) translate(-50%, -50%);
     }
@@ -34,20 +38,20 @@
     border-radius: 100%;
     pointer-events: none;
     mix-blend-mode: difference;
-    
+
     // PERFORMANCE: Moved filter to a will-change layer and simplified
     // Combining sepia+saturate+hue-rotate on a blend-mode element is very expensive
     // Use a simpler filter that achieves similar effect
     filter: sepia(1) saturate(10) hue-rotate(310deg);
-    
-    z-index: 999;
+
+    z-index: 999999;
     opacity: 0;
-    
+
     // PERFORMANCE: Promote to compositor layer for GPU acceleration
     // This is critical for smooth animation with mix-blend-mode
     will-change: transform, opacity;
     transform: translateZ(0); // Force GPU layer
-    
+
     // PERFORMANCE: Single simple transition instead of multiple
     transition: opacity 0.6s ease-out;
 
@@ -56,9 +60,9 @@
     }
 
     * {
-        pointer-events:none;
+        pointer-events: none;
     }
-    
+
     &.logo {
         // Intentionally empty - remove filter changes on hover
     }
@@ -72,7 +76,7 @@
             width: 88px;
             height: 88px;
 
-            + span {
+            +span {
                 background: #fff;
                 opacity: 1;
                 width: 88px;
@@ -91,14 +95,14 @@
         left: 50%;
         transform: scale(1) translateX(-50%) translateY(-50%);
         transform-origin: top left;
-        
+
         // PERFORMANCE: Promote to GPU layer
         will-change: transform;
-        
+
         // PERFORMANCE: Simplified transition
         transition: transform 0.5s cubic-bezier(.19, .58, .58, .93),
-                    width 0.5s ease-out,
-                    height 0.5s ease-out;
+            width 0.5s ease-out,
+            height 0.5s ease-out;
     }
 
     .cursor-effect {
@@ -114,18 +118,18 @@
         left: 50%;
         transform: translateX(-50%) translateY(-50%);
         transform-origin: top left;
-        
+
         // PERFORMANCE: Static blur instead of transitioning blur
         // Transitioning filter: blur() causes severe frame drops
         filter: blur(12px);
-        
+
         // PERFORMANCE: GPU layer promotion
         will-change: opacity, width, height;
-        
+
         // PERFORMANCE: Simplified transition - NO blur transition
         transition: opacity 0.4s ease-out,
-                    width 0.4s ease-out,
-                    height 0.4s ease-out;
+            width 0.4s ease-out,
+            height 0.4s ease-out;
 
         &.active {
             // PERFORMANCE: Removed blur transition - use static blur
@@ -134,7 +138,7 @@
             height: 88px;
             opacity: 0;
 
-            + span {
+            +span {
                 background: #faffe6;
                 opacity: 1;
                 width: 88px;
@@ -162,16 +166,16 @@
         left: 50%;
         transform: translateX(-50%) translateY(-50%);
         transform-origin: top left;
-        
+
         // PERFORMANCE: GPU layer
         will-change: transform, width, height, opacity;
-        
+
         // PERFORMANCE: Simplified transition
         transition: transform 0.4s cubic-bezier(.19, .58, .58, .93),
-                    width 0.4s ease-out,
-                    height 0.4s ease-out,
-                    opacity 0.3s ease-out,
-                    background 0.3s ease-out;
+            width 0.4s ease-out,
+            height 0.4s ease-out,
+            opacity 0.3s ease-out,
+            background 0.3s ease-out;
 
         &:before {
             content: 'Hover Title';
@@ -265,6 +269,7 @@ body:has(.next-project-banner:hover) {
         filter: sepia(1) saturate(10) hue-rotate(223deg);
     }
 }
+
 // Touch device - completely hide
 .touch-device .cursor-element {
     display: none;
@@ -278,29 +283,30 @@ body:has(.next-project-banner:hover) {
     border-radius: 50%;
     pointer-events: none;
     z-index: 9999;
-    box-shadow:0px 8px 24px rgba(0,0,0,0.24);
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.24);
     // Liquid glass effect with refraction
     //background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(4px) saturate(1.2);
 
     // Glass border with gradient for refraction
     //border: 2px solid rgba(255, 255, 255, 0.4);
-    
+
     // GPU acceleration
     will-change: transform, opacity;
     transform-origin: center center;
-    
+
     // Smooth transitions
     transition: width $transition-smooth, height $transition-smooth, opacity 0.18s ease;
-    
+
     @media (max-width: $desktop-viewport) {
         display: none;
     }
-    
+
     canvas {
-        width:calc(100% - 6px)!important;
-        height:calc(100% - 6px)!important;
+        width: calc(100% - 6px) !important;
+        height: calc(100% - 6px) !important;
     }
+
     // Liquid glass refraction overlay
     &::before {
         content: '';
@@ -310,18 +316,16 @@ body:has(.next-project-banner:hover) {
         right: 0;
         bottom: 0;
         border-radius: 50%;
-        background: radial-gradient(
-            circle at 30% 30%,
-            rgba(255, 255, 255, 0.4) 0%,
-            rgba(255, 255, 255, 0.2) 30%,
-            rgba(255, 255, 255, 0.05) 50%,
-            transparent 70%
-        );
+        background: radial-gradient(circle at 30% 30%,
+                rgba(255, 255, 255, 0.4) 0%,
+                rgba(255, 255, 255, 0.2) 30%,
+                rgba(255, 255, 255, 0.05) 50%,
+                transparent 70%);
         pointer-events: none;
         mix-blend-mode: overlay;
-        z-index:2;
+        z-index: 2;
     }
-    
+
     // Darkening effect for bottom-right depth
     &::after {
         content: '';
@@ -331,32 +335,30 @@ body:has(.next-project-banner:hover) {
         right: 0;
         bottom: 0;
         border-radius: 50%;
-        background: radial-gradient(
-            circle at 70% 70%,
-            rgba(0, 0, 0, 0.25) 0%,
-            rgba(0, 0, 0, 0.12) 30%,
-            rgba(0, 0, 0, 0.06) 50%,
-            transparent 70%
-        );
+        background: radial-gradient(circle at 70% 70%,
+                rgba(0, 0, 0, 0.25) 0%,
+                rgba(0, 0, 0, 0.12) 30%,
+                rgba(0, 0, 0, 0.06) 50%,
+                transparent 70%);
         pointer-events: none;
         mix-blend-mode: multiply;
-        z-index:1;
+        z-index: 1;
     }
-    
+
     .magnify-canvas {
         position: absolute;
-        pointer-events:none;
-        z-index:3;
+        pointer-events: none;
+        z-index: 3;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         border-radius: 50%;
         transition: width 0.18s ease, height 0.18s ease;
         // Subtle inner shadow for depth
-        box-shadow: 
+        box-shadow:
             inset 0 0 30px rgba(0, 0, 0, 0.15),
             inset 0 0 15px rgba(0, 0, 0, 0.1);
-        
+
         // Slight border to separate from glass edge
         //border: 1px solid rgba(0, 0, 0, 0.1);
     }
@@ -366,6 +368,7 @@ body:has(.next-project-banner:hover) {
 
 // Hide regular cursor when magnifying glass is active
 .cursor-element.magnify-active {
+
     .cursor-wrapper,
     .cursor-effect,
     span {
@@ -377,24 +380,22 @@ body:has(.next-project-banner:hover) {
 .magnify-glass.zoomed {
     width: 480px;
     height: 480px;
-    
+
     canvas {
-        width:calc(100% - 12px)!important;
-        height:calc(100% - 12px)!important;
+        width: calc(100% - 12px) !important;
+        height: calc(100% - 12px) !important;
     }
-    
+
     // Stronger backdrop blur when zoomed for better focus
     backdrop-filter: blur(6px) saturate(1.3);
-    
+
     // Subtle blue tint to indicate zoomed state
     &::before {
-        background: radial-gradient(
-            circle at 30% 30%,
-            rgba(150, 200, 255, 0.2) 0%,
-            rgba(255, 255, 255, 0.1) 30%,
-            rgba(255, 255, 255, 0.05) 50%,
-            transparent 70%
-        );
+        background: radial-gradient(circle at 30% 30%,
+                rgba(150, 200, 255, 0.2) 0%,
+                rgba(255, 255, 255, 0.1) 30%,
+                rgba(255, 255, 255, 0.05) 50%,
+                transparent 70%);
     }
 }
 
@@ -406,11 +407,17 @@ body:has(.next-project-banner:hover) {
 
 // Zoom CTA circle — follows cursor before magnify is activated
 @keyframes zoom-cta-spin {
-    from { transform: rotate(0deg) scale(0.84) }
-    to   { transform: rotate(360deg) scale(0.84) }
+    from {
+        transform: rotate(0deg) scale(0.84)
+    }
+
+    to {
+        transform: rotate(360deg) scale(0.84)
+    }
 }
 
-.zoom-cta, .more-info-cta {
+.zoom-cta,
+.more-info-cta {
     position: fixed;
     left: 0;
     top: 0;
@@ -467,23 +474,26 @@ body:has(.next-project-banner:hover) {
         position: relative; // CircleType needs relative positioning context
     }
 
-    .zoom-cta__icon, .zoom-cta__ring > span {
-        transition: transform 0.32s cubic-bezier(0.2, 0, 0.2, 1)!important;
+    .zoom-cta__icon,
+    .zoom-cta__ring>span {
+        transition: transform 0.32s cubic-bezier(0.2, 0, 0.2, 1) !important;
     }
 
     &.pressing {
-        .zoom-cta__ring > span {
-            transform: scale(0.94)!important;
+        .zoom-cta__ring>span {
+            transform: scale(0.94) !important;
         }
+
         .zoom-cta__icon {
-            transform: scale(0.88)!important;
+            transform: scale(0.88) !important;
         }
     }
 }
 
 .more-info-cta--hide {
-    filter:hue-rotate(64deg);
+    filter: hue-rotate(64deg);
 }
+
 .more-info-cta--hide .zoom-cta__text--hide {
-    transform:scale(1.0455)!important;
+    transform: scale(1.0455) !important;
 }

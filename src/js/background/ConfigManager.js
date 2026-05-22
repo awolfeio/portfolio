@@ -140,6 +140,7 @@ export class ConfigManager {
 
       // Individual project pages - align with initial load defaults
       'scholastic': rendererBaseParams(),
+      'american-chemical-society': rendererBaseParams(),
       'jpplus': rendererBaseParams(),
       'rowmark': rendererBaseParams(),
       'aave': rendererBaseParams(),

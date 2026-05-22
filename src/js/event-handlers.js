@@ -1,4 +1,5 @@
 import { cursorCheck } from "./cursor-element.js";
+import portfolioAuth from "./portfolio-auth.js";
 
 /**
  * Handle all general event handlers on every page load
@@ -81,14 +82,22 @@ function handleBarbaLinks(e) {
   const link = e.target.closest("a");
   if (!link) return;
 
-  // Check for resume link specifically, ensuring it opens in a new tab
+  // Check for resume link specifically
   if (
     link.id === "resume-nav-link" ||
     link.classList.contains("resume") ||
     (link.getAttribute("href") && link.getAttribute("href").includes("Resume"))
   ) {
-    // Let the default browser behavior handle the resume - don't interfere
-    console.log("Resume link clicked - letting browser handle it");
+    const mode = portfolioAuth.getMode();
+    if (!mode) {
+      // No password entered — show password modal instead of opening resume
+      e.preventDefault();
+      console.log("Resume link clicked without auth — showing password modal");
+      portfolioAuth.showPasswordModal();
+      return;
+    }
+    // Mode is set — let the browser open the resume (href already set by applyMode)
+    console.log(`Resume link clicked with mode ${mode} — opening resume`);
     return;
   }
 

@@ -13,7 +13,19 @@ const outDir = resolve(__dirname, "dist");
 // For custom domain or local dev: use '/'
 const base = process.env.GITHUB_PAGES === "true" ? "/portfolio/" : "/";
 
-export default defineConfig({
+const gatedProjects = [
+  { slug: 'american-chemical-society', group: 'B', href: '/projects/american-chemical-society.html', text: 'ACS' },
+  { slug: 'wabash', group: 'A', href: '/projects/wabash.html', text: 'Wabash' }
+];
+
+export default defineConfig(({ command }) => {
+  const isBuild = command === 'build';
+  const gatedProjectsStr = JSON.stringify(gatedProjects);
+  const gatedProjectsRaw = isBuild 
+    ? Buffer.from(gatedProjectsStr).toString('base64')
+    : gatedProjectsStr;
+
+  return {
   root,
   base,
   publicDir: resolve(__dirname, "public"),
@@ -42,6 +54,7 @@ export default defineConfig({
         works: resolve(root, "works.html"),
         contact: resolve(root, "contact.html"),
         "projects/scholastic": resolve(root, "projects/scholastic.html"),
+        "projects/american-chemical-society": resolve(root, "projects/american-chemical-society.html"),
         "projects/rowmark": resolve(root, "projects/rowmark.html"),
         "projects/aave": resolve(root, "projects/aave.html"),
         "projects/bright-future": resolve(root, "projects/bright-future.html"),
@@ -71,4 +84,9 @@ export default defineConfig({
       usePolling: true,
     },
   },
+  define: {
+    __GATED_PROJECTS_RAW__: JSON.stringify(gatedProjectsRaw),
+    __IS_BUILD_MODE__: isBuild
+  }
+  };
 });
