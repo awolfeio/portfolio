@@ -120,7 +120,7 @@
         transition: none; // Show immediately so children can transition in
 
         .password-modal-backdrop {
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.18);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         }
