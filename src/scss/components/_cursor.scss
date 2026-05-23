@@ -44,7 +44,7 @@
     // Use a simpler filter that achieves similar effect
     filter: sepia(1) saturate(10) hue-rotate(310deg);
 
-    z-index: 999999;
+    z-index: 9999;
     opacity: 0;
 
     // PERFORMANCE: Promote to compositor layer for GPU acceleration

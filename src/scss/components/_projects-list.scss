@@ -23,7 +23,7 @@
         align-self: flex-start;
         opacity: 0.6;
         letter-spacing: clamp(-4px, -0.3vw, -1px);
-        padding-right: 2px;
+        padding: 0 4px 6px 4px;
         @include transition-smooth;
 
         @media (max-width:$desktop-viewport) {
@@ -47,6 +47,7 @@
             // Angular skewed reveal - starts hidden at bottom with dramatic diagonal edge
             clip-path: polygon(0% 100%, 100% 160%, 100% 160%, 0% 100%);
             @include transition-smooth;
+            padding: 0 4px 6px 4px;
         }
 
         &:hover {

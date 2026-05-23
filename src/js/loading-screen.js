@@ -238,6 +238,24 @@ export function loadingSplash() {
                 // Get container and content elements
                 const mainContainer = document.querySelector("[data-barba='container']");
                 const mainContent = document.querySelector("main .page");
+                
+                // For the About page, move .self-image out of container so it doesn't get swept up in generic page animations
+                if (mainContainer) {
+                  const selfImage = mainContainer.querySelector('.self-image');
+                  if (selfImage) {
+                    mainContainer.insertAdjacentElement('afterend', selfImage);
+                    gsap.set(selfImage, { opacity: 0 });
+                    
+                    // Slowly fade in, delaying slightly to let background shader transition
+                    gsap.to(selfImage, {
+                      opacity: 1,
+                      duration: 2.5,
+                      delay: 0.8,
+                      ease: "power2.inOut"
+                    });
+                  }
+                }
+                
                 const contentElements = mainContent ? mainContent.children : [];
 
                 // Check location restrictions

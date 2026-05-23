@@ -258,7 +258,18 @@ export function initializeBarba() {
           if (selfImage) {
             container.insertAdjacentElement('afterend', selfImage);
             gsap.killTweensOf(selfImage);
-            selfImage.style.removeProperty('opacity');
+            
+            // Start hidden
+            gsap.set(selfImage, { opacity: 0 });
+            
+            // Slowly fade in, delaying slightly to let background shader transition
+            gsap.to(selfImage, {
+              opacity: 1,
+              duration: 2.5,
+              delay: 0.8,
+              ease: "power2.inOut"
+            });
+            
             selfImage.style.removeProperty('pointer-events');
           }
         },

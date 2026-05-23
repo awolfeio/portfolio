@@ -4,17 +4,17 @@
  * Manages password-gated portfolio modes that control which projects
  * and resume are visible. Three modes:
  * - default (no password): Only "all"-flagged projects visible
- * - "A" (password: portfolioA): "all" + "A" projects, Resume1
- * - "B" (password: portfolioB): "all" + "B" projects, Resume2
+ * - "A" (password: letsdesign): "all" + "A" projects, Resume1
+ * - "B" (password: UXEngineering): "all" + "B" projects, Resume2
  */
 
 const STORAGE_KEY = 'portfolio-auth-mode';
 
 // Password → mode mapping
 const PASSWORD_MAP = {
-  'portfolioA': 'A',
-  'portfolioB': 'B',
-  'portfolioAll': 'all',
+  'letsdesign': 'A',
+  'UXEngineering': 'B',
+  'letscreate': 'all',
 };
 
 // __GATED_PROJECTS_RAW__ and __IS_BUILD_MODE__ are injected automatically by vite.config.js during build
@@ -33,8 +33,9 @@ const PROJECTS = [
 
 // Resume URLs per mode
 const RESUME_URLS = {
-  'A': '/assets/documents/AdrainWolfe_Resume1.pdf',
-  'B': '/assets/documents/AdrainWolfe_Resume2.pdf',
+  'A': '/assets/documents/AdrainWolfe_Resume.pdf',
+  'B': '/assets/documents/AdrainWolfe-UIDeveloper-Resume.pdf',
+  'all': '/assets/documents/AdrainWolfe-DesignEngineer-Resume.pdf',
   'default': '/assets/documents/AdrainWolfe_Resume.pdf',
 };
 
@@ -144,6 +145,20 @@ export function getResumeUrl(mode) {
 }
 
 /**
+ * Recalculate the page dimensions for smooth scroll (Lenis) and ScrollTrigger
+ */
+function recalculateScroll() {
+  if (window.lenis) {
+    console.log('[portfolio-auth] Recalculating Lenis height');
+    window.lenis.resize();
+  }
+  if (window.ScrollTrigger) {
+    console.log('[portfolio-auth] Refreshing ScrollTrigger');
+    window.ScrollTrigger.refresh();
+  }
+}
+
+/**
  * Apply the current mode to the page
  * - Hides/shows project links in .projects containers
  * - Updates next-project-banner hrefs on project detail pages
@@ -157,7 +172,7 @@ export function applyMode(mode, animate = false) {
   console.log(`[portfolio-auth] Applying mode: ${mode || 'default'}`);
 
   // 1. Filter project links in .projects containers
-  const projectContainers = document.querySelectorAll('.projects');
+  const projectContainers = document.querySelectorAll('#index .projects, #works .projects');
   projectContainers.forEach(container => {
     // Remove currently injected gated projects that don't match the new mode
     const existingInjected = container.querySelectorAll('.gated-project');
@@ -234,6 +249,13 @@ export function applyMode(mode, animate = false) {
 
   // 4. Update auth UI (password input / mode indicator)
   updateAuthUI(mode);
+
+  // 5. Recalculate page height for Lenis and ScrollTrigger
+  recalculateScroll();
+  if (animate) {
+    // If animated, also recalculate after the CSS transition for element removal completes (1250ms)
+    setTimeout(recalculateScroll, 1300);
+  }
 }
 
 /**

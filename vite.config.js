@@ -4,9 +4,44 @@ import { defineConfig } from "vite";
 import handlebars from "vite-plugin-handlebars";
 import glsl from "vite-plugin-glsl";
 import { shaderSyncPlugin } from "./vite-plugin-shader-sync.js";
+import fs from "fs";
+import path from "path";
 
 const root = resolve(__dirname, "src");
 const outDir = resolve(__dirname, "dist");
+
+// Helper function to flat-copy documents from src/assets/documents/ to public/assets/documents/
+function copyDocumentsFlat() {
+  const srcDir = resolve(__dirname, "src/assets/documents");
+  const destDir = resolve(__dirname, "public/assets/documents");
+
+  if (!fs.existsSync(srcDir)) {
+    console.warn(`[copy-documents] Source directory ${srcDir} does not exist.`);
+    return;
+  }
+
+  // Ensure destination directory exists
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
+  }
+
+  function recurse(currentDir) {
+    const items = fs.readdirSync(currentDir);
+    for (const item of items) {
+      const fullPath = path.join(currentDir, item);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        recurse(fullPath);
+      } else if (stat.isFile()) {
+                const destPath = path.join(destDir, item);
+        fs.copyFileSync(fullPath, destPath);
+        console.log(`[copy-documents] Copied flat: ${item} -> public/assets/documents/`);
+      }
+    }
+  }
+
+  recurse(srcDir);
+}
 
 // Determine the base path based on build mode
 // For GitHub Pages (build:gh): use '/portfolio/'
@@ -42,6 +77,12 @@ export default defineConfig(({ command }) => {
           server.ws.send({ type: "full-reload", path: "*" });
         }
       },
+    },
+    {
+      name: "copy-documents-flat",
+      buildStart() {
+        copyDocumentsFlat();
+      }
     },
   ],
   build: {
