@@ -3,10 +3,12 @@ export function removeSpecificElements() {
   if (resumeNavLink) {
     resumeNavLink.style.display = "none";
   }
-  const dataProjectElement = document.querySelector('[data-project="scholastic"]');
-  if (dataProjectElement) {
-    dataProjectElement.style.display = "none";
-  }
+  
+  const scholasticElements = document.querySelectorAll('[data-project="scholastic"]');
+  scholasticElements.forEach(el => el.style.display = "none");
+
+  const wabashElements = document.querySelectorAll('[data-project="wabash"]');
+  wabashElements.forEach(el => el.style.display = "none");
 }
 
 export function checkLocationAndRemoveElements() {

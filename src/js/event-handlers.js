@@ -88,6 +88,10 @@ function handleBarbaLinks(e) {
     link.classList.contains("resume") ||
     (link.getAttribute("href") && link.getAttribute("href").includes("Resume"))
   ) {
+    if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
+      // Auth is disabled, just let the browser open the resume
+      return;
+    }
     const mode = portfolioAuth.getMode();
     if (!mode) {
       // No password entered — show password modal instead of opening resume

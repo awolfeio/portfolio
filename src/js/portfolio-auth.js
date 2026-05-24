@@ -86,7 +86,13 @@ export function clearAuth() {
  * @param {string|null} mode - The current mode ('A', 'B', or null)
  * @returns {boolean}
  */
-function isProjectVisible(group, mode) {
+function isProjectVisible(group, mode, slug) {
+  // If auth is disabled, show everything except ACS
+  if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
+    if (slug === 'american-chemical-society') return false;
+    return true;
+  }
+  
   // If we are in "all" mode (shows everything), all projects are visible
   if (mode === 'all') return true;
   // "all"-flagged projects are always visible
@@ -103,7 +109,7 @@ function isProjectVisible(group, mode) {
  * @returns {Array} Filtered project list
  */
 export function getVisibleProjects(mode) {
-  return PROJECTS.filter(p => isProjectVisible(p.group, mode));
+  return PROJECTS.filter(p => isProjectVisible(p.group, mode, p.slug));
 }
 
 /**
@@ -124,7 +130,7 @@ export function getNextProject(currentSlug, mode) {
   for (let i = 1; i <= PROJECTS.length; i++) {
     const nextIndex = (currentIndex + i) % PROJECTS.length;
     const nextProject = PROJECTS[nextIndex];
-    if (isProjectVisible(nextProject.group, mode)) {
+    if (isProjectVisible(nextProject.group, mode, nextProject.slug)) {
       return nextProject;
     }
   }
@@ -178,7 +184,8 @@ export function applyMode(mode, animate = false) {
     const existingInjected = container.querySelectorAll('.gated-project');
     existingInjected.forEach(el => {
       const group = el.getAttribute('data-auth-group');
-      if (!isProjectVisible(group, mode)) {
+      const slug = el.getAttribute('data-project');
+      if (!isProjectVisible(group, mode, slug)) {
         if (animate) {
           el.setAttribute('disabled', '');
           // Remove from DOM after transition completes (matching CSS timing)
@@ -190,9 +197,9 @@ export function applyMode(mode, animate = false) {
     });
 
     // Inject new gated projects if needed
-    if (mode) {
+    if (mode || (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__)) {
       // Create a list of projects to inject for the current mode
-      const projectsToInject = __GATED_PROJECTS__.filter(p => isProjectVisible(p.group, mode));
+      const projectsToInject = __GATED_PROJECTS__.filter(p => isProjectVisible(p.group, mode, p.slug));
       
       // Reverse iterate so prepend keeps them in original array order (ACS then Wabash)
       [...projectsToInject].reverse().forEach(projectData => {
@@ -238,7 +245,9 @@ export function applyMode(mode, animate = false) {
   // 3. Update resume nav link
   const resumeLink = document.querySelector('#resume-nav-link');
   if (resumeLink) {
-    if (mode) {
+    if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
+      resumeLink.setAttribute('href', getResumeUrl('default'));
+    } else if (mode) {
       resumeLink.setAttribute('href', getResumeUrl(mode));
     } else {
       // No mode set — we'll handle the click intercept in event-handlers.js
@@ -263,6 +272,14 @@ export function applyMode(mode, animate = false) {
  */
 function updateAuthUI(mode) {
   const authContainers = document.querySelectorAll('.portfolio-auth');
+  
+  if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
+    authContainers.forEach(container => {
+      container.style.display = 'none';
+    });
+    return;
+  }
+
   authContainers.forEach(container => {
     const errorMsg = container.querySelector('.auth-error');
 
@@ -315,6 +332,11 @@ export function handlePasswordSubmit(password, errorElement) {
  */
 export function showPasswordModal() {
   return new Promise((resolve) => {
+    if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
+      resolve(null);
+      return;
+    }
+
     // Don't create multiple modals
     if (document.querySelector('.password-modal')) {
       resolve(null);
@@ -410,6 +432,8 @@ export function showPasswordModal() {
  * (Called once on initial page load, and after Barba transitions)
  */
 export function injectAuthUI() {
+  if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) return;
+
   const containers = document.querySelectorAll('.portfolio-auth');
   containers.forEach(container => {
     // Skip if already populated

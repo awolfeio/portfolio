@@ -10,6 +10,18 @@ import path from "path";
 const root = resolve(__dirname, "src");
 const outDir = resolve(__dirname, "dist");
 
+// ==============================================================================
+// 🛠️ DEVELOPMENT FLAGS
+// ==============================================================================
+// Set this to true to disable password protection and show all projects (except ACS)
+const DISABLE_AUTH = true;
+
+if (DISABLE_AUTH) {
+  console.log('\n=========================================');
+  console.log('🔓 AUTHENTICATION DISABLED (DISABLE_AUTH)');
+  console.log('=========================================\n');
+}
+
 // Helper function to flat-copy documents from src/assets/documents/ to public/assets/documents/
 function copyDocumentsFlat() {
   const srcDir = resolve(__dirname, "src/assets/documents");
@@ -33,7 +45,7 @@ function copyDocumentsFlat() {
       if (stat.isDirectory()) {
         recurse(fullPath);
       } else if (stat.isFile()) {
-                const destPath = path.join(destDir, item);
+        const destPath = path.join(destDir, item);
         fs.copyFileSync(fullPath, destPath);
         console.log(`[copy-documents] Copied flat: ${item} -> public/assets/documents/`);
       }
@@ -56,78 +68,79 @@ const gatedProjects = [
 export default defineConfig(({ command }) => {
   const isBuild = command === 'build';
   const gatedProjectsStr = JSON.stringify(gatedProjects);
-  const gatedProjectsRaw = isBuild 
+  const gatedProjectsRaw = isBuild
     ? Buffer.from(gatedProjectsStr).toString('base64')
     : gatedProjectsStr;
 
   return {
-  root,
-  base,
-  publicDir: resolve(__dirname, "public"),
-  plugins: [
-    glsl(),
-    handlebars({
-      partialDirectory: resolve(__dirname, "src/partials"),
-    }),
-    shaderSyncPlugin(),
-    {
-      name: "watch-scss",
-      handleHotUpdate({ file, server }) {
-        if (file.endsWith(".scss")) {
-          server.ws.send({ type: "full-reload", path: "*" });
+    root,
+    base,
+    publicDir: resolve(__dirname, "public"),
+    plugins: [
+      glsl(),
+      handlebars({
+        partialDirectory: resolve(__dirname, "src/partials"),
+      }),
+      shaderSyncPlugin(),
+      {
+        name: "watch-scss",
+        handleHotUpdate({ file, server }) {
+          if (file.endsWith(".scss")) {
+            server.ws.send({ type: "full-reload", path: "*" });
+          }
+        },
+      },
+      {
+        name: "copy-documents-flat",
+        buildStart() {
+          copyDocumentsFlat();
         }
       },
+    ],
+    build: {
+      outDir,
+      emptyOutDir: true,
+      rollupOptions: {
+        input: {
+          main: resolve(root, "index.html"),
+          about: resolve(root, "about.html"),
+          works: resolve(root, "works.html"),
+          contact: resolve(root, "contact.html"),
+          "projects/scholastic": resolve(root, "projects/scholastic.html"),
+          "projects/american-chemical-society": resolve(root, "projects/american-chemical-society.html"),
+          "projects/rowmark": resolve(root, "projects/rowmark.html"),
+          "projects/aave": resolve(root, "projects/aave.html"),
+          "projects/bright-future": resolve(root, "projects/bright-future.html"),
+          "projects/healpool": resolve(root, "projects/healpool.html"),
+          "projects/rentaru": resolve(root, "projects/rentaru.html"),
+          "projects/ipi": resolve(root, "projects/ipi.html"),
+          "projects/jpplus": resolve(root, "projects/jpplus.html"),
+          "projects/wabash": resolve(root, "projects/wabash.html"),
+          "labs/index": resolve(root, "labs/index.html"),
+          "labs/replica": resolve(root, "labs/replica.html"),
+          "labs/rentaru": resolve(root, "labs/rentaru.html"),
+          "labs/designsynth": resolve(root, "labs/designsynth.html"),
+          "labs/catio": resolve(root, "labs/catio.html"),
+          "labs/pdxlist": resolve(root, "labs/pdxlist.html"),
+          "labs/card-cascade": resolve(root, "labs/card-cascade.html"),
+          "labs/wolfe-tokyo": resolve(root, "labs/wolfe-tokyo.html"),
+        },
+      },
+      //commonjsOptions: {
+      //  transformMixedEsModules: true,
+      //},
     },
-    {
-      name: "copy-documents-flat",
-      buildStart() {
-        copyDocumentsFlat();
-      }
-    },
-  ],
-  build: {
-    outDir,
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: resolve(root, "index.html"),
-        about: resolve(root, "about.html"),
-        works: resolve(root, "works.html"),
-        contact: resolve(root, "contact.html"),
-        "projects/scholastic": resolve(root, "projects/scholastic.html"),
-        "projects/american-chemical-society": resolve(root, "projects/american-chemical-society.html"),
-        "projects/rowmark": resolve(root, "projects/rowmark.html"),
-        "projects/aave": resolve(root, "projects/aave.html"),
-        "projects/bright-future": resolve(root, "projects/bright-future.html"),
-        "projects/healpool": resolve(root, "projects/healpool.html"),
-        "projects/rentaru": resolve(root, "projects/rentaru.html"),
-        "projects/ipi": resolve(root, "projects/ipi.html"),
-        "projects/jpplus": resolve(root, "projects/jpplus.html"),
-        "projects/wabash": resolve(root, "projects/wabash.html"),
-        "labs/index": resolve(root, "labs/index.html"),
-        "labs/replica": resolve(root, "labs/replica.html"),
-        "labs/rentaru": resolve(root, "labs/rentaru.html"),
-        "labs/designsynth": resolve(root, "labs/designsynth.html"),
-        "labs/catio": resolve(root, "labs/catio.html"),
-        "labs/pdxlist": resolve(root, "labs/pdxlist.html"),
-        "labs/card-cascade": resolve(root, "labs/card-cascade.html"),
-        "labs/wolfe-tokyo": resolve(root, "labs/wolfe-tokyo.html"),
+    server: {
+      port: 1000,
+      strictPort: true, // fail instead of auto-picking another port
+      watch: {
+        usePolling: true,
       },
     },
-    //commonjsOptions: {
-    //  transformMixedEsModules: true,
-    //},
-  },
-  server: {
-    port: 1000,
-    strictPort: true, // fail instead of auto-picking another port
-    watch: {
-      usePolling: true,
-    },
-  },
-  define: {
-    __GATED_PROJECTS_RAW__: JSON.stringify(gatedProjectsRaw),
-    __IS_BUILD_MODE__: isBuild
-  }
+    define: {
+      __GATED_PROJECTS_RAW__: JSON.stringify(gatedProjectsRaw),
+      __IS_BUILD_MODE__: isBuild,
+      __DISABLE_AUTH__: DISABLE_AUTH || process.env.DISABLE_AUTH === "true"
+    }
   };
 });
