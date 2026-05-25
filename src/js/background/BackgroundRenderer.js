@@ -106,17 +106,20 @@ export class BackgroundRenderer {
 
   /**
    * Compute the target pixel ratio for the WebGL renderer.
-   * Mobile devices are capped at 1.25 to prevent GPU overload from
-   * high-DPI screens (2x–3x raw devicePixelRatio).
-   * Desktop stays at 1.0 per the existing performance policy.
+   * Matches the device's physical pixel density so the canvas isn't upscaled
+   * by the browser. Upscaling at DPR > 1 turns each rendered fragment into a
+   * 2×2 (or larger) block of physical pixels, which produces the stairstepped
+   * edges visible on diagonal curves.
+   *
+   * Capped at 2.0: beyond this the fragment shader runs 4×+ pixels with
+   * diminishing visual returns. Mobile is capped at 1.5 to avoid GPU overload
+   * on 3× screens (e.g. modern Android flagships).
    */
   _getTargetPixelRatio() {
+    const dpr = window.devicePixelRatio || 1.0;
     const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
       .test(navigator.userAgent);
-    if (isMobile) {
-      return 1.0; // Lock to 1:1 on mobile — prevents GPU overload from 2–3× DPI screens
-    }
-    return 1.0; // Desktop: always 1:1
+    return isMobile ? Math.min(dpr, 1.5) : Math.min(dpr, 2.0);
   }
 
   /**
@@ -168,8 +171,6 @@ export class BackgroundRenderer {
       precision: 'highp', // Force high precision for quality
     });
     
-    // Pixel ratio: desktop locked to 1.0, mobile capped at 1.25
-    // Prevents GPU overload from 2.5–3× DPI screens on phones
     const targetRatio = this._getTargetPixelRatio();
     this.renderer.setPixelRatio(targetRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -791,8 +792,7 @@ export class BackgroundRenderer {
     this.qualityLevel = level;
     console.log(`Background quality set to: ${level}`);
 
-    // CRITICAL: Always use 1.0 pixel ratio for maximum performance
-    // DPI scaling adds 25-56% more pixels with minimal visual benefit
+    // Match device pixel ratio so the canvas isn't upscaled by the browser.
     // PERF FIX: Guard canvas resize — setPixelRatio() already calls setSize() internally.
     // Calling both unconditionally causes two GPU framebuffer reallocations per quality change,
     // causing 150–300ms pipeline stalls on mobile even when dimensions are unchanged.
@@ -959,19 +959,20 @@ export class BackgroundRenderer {
     if (uniforms.u_grainIntensity) uniforms.u_grainIntensity.value = this.baseQualitySettings.grainIntensity;
     if (uniforms.u_grainFrameHold) uniforms.u_grainFrameHold.value = 3.0; // 240fps / 3 = 80 grain updates/sec
     
-    // CRITICAL: Always use 1.0 pixel ratio
-    // PERF FIX: Same guard as setQuality() — avoid double canvas resize on mobile.
+    // Use device pixel ratio so the framebuffer matches physical display resolution.
+    // PERF FIX: Guard canvas resize — setPixelRatio() already calls setSize() internally.
     if (this.renderer) {
+      const targetRatio = this._getTargetPixelRatio();
       const canvas = this.renderer.domElement;
-      const newW = Math.floor(window.innerWidth * 1.0);
-      const newH = Math.floor(window.innerHeight * 1.0);
-      if (canvas.width !== newW || canvas.height !== newH || this.renderer.getPixelRatio() !== 1.0) {
-        this.renderer.setPixelRatio(1.0); // internally calls setSize
+      const newW = Math.floor(window.innerWidth * targetRatio);
+      const newH = Math.floor(window.innerHeight * targetRatio);
+      if (canvas.width !== newW || canvas.height !== newH || this.renderer.getPixelRatio() !== targetRatio) {
+        this.renderer.setPixelRatio(targetRatio); // internally calls setSize
       }
     }
-    
+
     this.qualityLevel = 'ultra';
-    console.log('Applied ultra quality: 2 octaves, 1 warp octave, grain hold 3.0 (240fps optimized)');
+    console.log(`Applied ultra quality: 2 octaves, 1 warp octave, grain hold 3.0, pixel ratio ${this._getTargetPixelRatio().toFixed(2)}`);
   }
 }
 
