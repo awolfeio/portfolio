@@ -449,12 +449,34 @@ vec3 computeNormal(float field) {
 }
 
 vec3 thinFilmIridescence(vec3 normal, float strength) {
-  float fresnel = pow(1.0 - normal.z, 3.0);
-  return vec3(
-    sin(fresnel * 6.283 + 0.0),
-    sin(fresnel * 6.283 + 2.1),
-    sin(fresnel * 6.283 + 4.2)
-  ) * strength;
+    const float TAU = 6.28318530718;
+
+    // Gradient DIRECTION rotates through the full hue wheel as the slope direction
+    // changes — gives every angle its own distinct color across the surface.
+    float gradAngle = atan(normal.y, normal.x) / TAU; // -0.5..0.5, one full cycle
+
+    // Gradient MAGNITUDE adds steepness-based hue cycling: steeper slopes cycle
+    // through more color bands, mimicking viewing-angle shift on holographic foil.
+    float gradMag = length(normal.xy);
+
+    // Slow time sweep so the shimmer feels alive without dominating motion.
+    float timePhase = u_time * 0.05;
+
+    float opd = gradAngle + gradMag * 5.0 + timePhase;
+
+    // Balanced cosine hue wheel: 120° (TAU/3) phase offsets between channels
+    // produces a pure, unbiased full-spectrum rainbow — equivalent to HSV→RGB
+    // at full saturation.
+    float r = 0.5 + 0.5 * cos(opd * TAU);
+    float g = 0.5 + 0.5 * cos(opd * TAU + TAU / 3.0);
+    float b = 0.5 + 0.5 * cos(opd * TAU + 2.0 * TAU / 3.0);
+
+    // Vehicle-wrap style: effect is present across the whole surface, not just
+    // grazing edges. Steeper slopes get a stronger highlight.
+    float shimmer = 0.5 + 0.5 * (1.0 - clamp(normal.z, 0.0, 1.0));
+
+    // Additive tint centred at 0: positive channels add colour, negative subtract.
+    return (vec3(r, g, b) - 0.5) * (2.0 * strength * shimmer);
 }
 
 vec3 fresnelTint(vec3 normal, vec3 tintColor, float strength) {
