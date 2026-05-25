@@ -4305,12 +4305,34 @@ vec3 computeNormal(float field) {
 }
 
 vec3 thinFilmIridescence(vec3 normal, float strength) {
-  float fresnel = pow(1.0 - normal.z, 3.0);
-  return vec3(
-    sin(fresnel * 6.283 + 0.0),
-    sin(fresnel * 6.283 + 2.1),
-    sin(fresnel * 6.283 + 4.2)
-  ) * strength;
+    const float TAU = 6.28318530718;
+
+    
+    
+    float gradAngle = atan(normal.y, normal.x) / TAU; 
+
+    
+    
+    float gradMag = length(normal.xy);
+
+    
+    float timePhase = u_time * 0.05;
+
+    float opd = gradAngle + gradMag * 5.0 + timePhase;
+
+    
+    
+    
+    float r = 0.5 + 0.5 * cos(opd * TAU);
+    float g = 0.5 + 0.5 * cos(opd * TAU + TAU / 3.0);
+    float b = 0.5 + 0.5 * cos(opd * TAU + 2.0 * TAU / 3.0);
+
+    
+    
+    float shimmer = 0.5 + 0.5 * (1.0 - clamp(normal.z, 0.0, 1.0));
+
+    
+    return (vec3(r, g, b) - 0.5) * (2.0 * strength * shimmer);
 }
 
 vec3 fresnelTint(vec3 normal, vec3 tintColor, float strength) {
