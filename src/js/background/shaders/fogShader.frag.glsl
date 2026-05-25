@@ -89,6 +89,8 @@ uniform float u_postPosterize;             // Final color posterization steps (0
 
 // Phase 6: Liquid-Chromatic Post-Processing
 uniform float u_iridescenceStrength;       // Strength of Thin-Film Interference
+uniform float u_iridescenceSmoothness;     // Hue-cycle width: 0 = tight crisp bands, 1 = wide soft wash
+uniform int   u_iridescenceBlendMode;      // 0=Add  1=Screen  2=Overlay  3=Multiply  4=Soft Light
 uniform float u_fresnelStrength;           // Strength of Fresnel Edge Tint
 uniform float u_specularStrength;          // Strength of Clear-Coat Specular
 uniform float u_flakeStrength;             // Strength of Metallic Flakes
@@ -448,7 +450,10 @@ vec3 computeNormal(float field) {
   return normalize(vec3(dx, dy, 1.0));
 }
 
-vec3 thinFilmIridescence(vec3 normal, float strength) {
+// Returns the raw iridescence hue as a balanced [0, 1] RGB colour.
+// Strength, shimmer, and blend mode are all handled at the call site so the
+// same hue computation feeds every blend mode without duplication.
+vec3 thinFilmIridescence(vec3 normal) {
     const float TAU = 6.28318530718;
 
     // Gradient DIRECTION rotates through the full hue wheel as the slope direction
@@ -462,21 +467,22 @@ vec3 thinFilmIridescence(vec3 normal, float strength) {
     // Slow time sweep so the shimmer feels alive without dominating motion.
     float timePhase = u_time * 0.05;
 
-    float opd = gradAngle + gradMag * 5.0 + timePhase;
+    // Smoothness controls spatial hue-cycle density.
+    // 0 → cycleRate 5.0: many tight bands (vivid, crisp rainbow).
+    // 1 → cycleRate 0.3: <1 full cycle across the surface (wide, soft colour wash).
+    // Only the magnitude term is scaled — direction-based hue diversity is preserved
+    // at all settings, so even a fully smooth surface still shows spatial colour variety.
+    float cycleRate = mix(5.0, 0.3, clamp(u_iridescenceSmoothness, 0.0, 1.0));
+    float opd = gradAngle + gradMag * cycleRate + timePhase;
 
     // Balanced cosine hue wheel: 120° (TAU/3) phase offsets between channels
     // produces a pure, unbiased full-spectrum rainbow — equivalent to HSV→RGB
     // at full saturation.
-    float r = 0.5 + 0.5 * cos(opd * TAU);
-    float g = 0.5 + 0.5 * cos(opd * TAU + TAU / 3.0);
-    float b = 0.5 + 0.5 * cos(opd * TAU + 2.0 * TAU / 3.0);
-
-    // Vehicle-wrap style: effect is present across the whole surface, not just
-    // grazing edges. Steeper slopes get a stronger highlight.
-    float shimmer = 0.5 + 0.5 * (1.0 - clamp(normal.z, 0.0, 1.0));
-
-    // Additive tint centred at 0: positive channels add colour, negative subtract.
-    return (vec3(r, g, b) - 0.5) * (2.0 * strength * shimmer);
+    return vec3(
+        0.5 + 0.5 * cos(opd * TAU),
+        0.5 + 0.5 * cos(opd * TAU + TAU / 3.0),
+        0.5 + 0.5 * cos(opd * TAU + 2.0 * TAU / 3.0)
+    );
 }
 
 vec3 fresnelTint(vec3 normal, vec3 tintColor, float strength) {
@@ -942,7 +948,40 @@ void main() {
 
     // Step 1: Thin-Film Iridescence
     if (u_iridescenceStrength > 0.001) {
-        finalColor += thinFilmIridescence(sharedNormal, u_iridescenceStrength);
+        vec3  hue     = thinFilmIridescence(sharedNormal);
+        // Vehicle-wrap shimmer: present everywhere, stronger at steeper slopes.
+        float shimmer = 0.5 + 0.5 * (1.0 - clamp(sharedNormal.z, 0.0, 1.0));
+        float amt     = u_iridescenceStrength * shimmer;
+
+        // Pre-compute every blend mode (branchless — GPU runs all branches in SIMD,
+        // so computing all upfront and selecting is faster than true branching).
+        // Mirrors the applyGrain() pattern used for film grain.
+        vec3 bAdd      = finalColor + (hue - 0.5) * (2.0 * amt);
+        vec3 bScreen   = mix(finalColor, 1.0 - (1.0 - finalColor) * (1.0 - hue), amt);
+        vec3 bOverlay  = mix(finalColor,
+                             mix(2.0 * finalColor * hue,
+                                 1.0 - 2.0 * (1.0 - finalColor) * (1.0 - hue),
+                                 step(0.5, finalColor)),
+                             amt);
+        vec3 bMultiply = mix(finalColor, finalColor * hue * 2.0, amt);
+        // Soft Light (Pegtop approximation — fully branchless, matches Photoshop closely)
+        vec3 bSoftLight = mix(finalColor,
+                              finalColor + (2.0 * hue - 1.0) * finalColor * (1.0 - finalColor),
+                              amt);
+
+        // Branchless mode selection (same step-function pattern as applyGrain)
+        float m  = float(u_iridescenceBlendMode);
+        float is0 = 1.0 - min(m, 1.0);                          // mode == 0
+        float is1 = step(0.5, m) * step(m, 1.5);                // mode == 1
+        float is2 = step(1.5, m) * step(m, 2.5);                // mode == 2
+        float is3 = step(2.5, m) * step(m, 3.5);                // mode == 3
+        float is4 = step(3.5, m);                                // mode >= 4
+
+        finalColor = bAdd      * is0
+                   + bScreen   * is1
+                   + bOverlay  * is2
+                   + bMultiply * is3
+                   + bSoftLight * is4;
     }
     
     // Step 2: Fresnel Edge Tint

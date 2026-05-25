@@ -597,6 +597,13 @@ export const parameterDefinitions = {
 
   // Liquid Metal & Oil
   u_iridescenceStrength: { folder: '💧 Liquid Metal & Oil', label: 'Oil Slick (Iridescence)', min: 0.0, max: 1.0, step: 0.01 },
+  u_iridescenceSmoothness: { folder: '💧 Liquid Metal & Oil', label: 'Oil Slick Smoothness', min: 0.0, max: 1.0, step: 0.01 },
+  u_iridescenceBlendMode: {
+    folder: '💧 Liquid Metal & Oil',
+    label: 'Oil Slick Blend Mode',
+    type: 'select',
+    options: { 'Add': 0, 'Screen': 1, 'Overlay': 2, 'Multiply': 3, 'Soft Light': 4 }
+  },
   u_fresnelStrength: { folder: '💧 Liquid Metal & Oil', label: 'Metallic Edge (Fresnel)', min: 0.0, max: 250.0, step: 0.1 },
   u_specularStrength: { folder: '💧 Liquid Metal & Oil', label: 'Glossy Clear-Coat (Specular)', min: 0.0, max: 2.0, step: 0.001 },
   u_flakeStrength: { folder: '💧 Liquid Metal & Oil', label: 'Glitter (M. Flakes)', min: 0.0, max: 5.0, step: 0.01 },
