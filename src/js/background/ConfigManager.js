@@ -22,10 +22,10 @@ export class ConfigManager {
       parameters: {
         u_zoom: 0.1,
         u_noiseScale: 1.6,
-        u_octaves: 2,
-        u_lacunarity: 2.5,
+        u_octaves: 2.0,
+        u_lacunarity: 1.5,
         u_gain: 0.35,
-        u_turbulence: 2.0,
+        u_turbulence: 1.2,
         u_warpOctaves: 2,
         u_ridgeAmount: 0.0,
         u_detailScale: 1.0,
@@ -53,7 +53,7 @@ export class ConfigManager {
         u_colorSpread: 0.66,
         u_colorSeparation: 0.3,
         u_colorBands: 0.0,
-        u_grainIntensity: 0.56,
+        u_grainIntensity: 0.26,
         u_grainSpeed: 30.0,
         u_grainSize: 2100.0,
         u_grainBlendMode: 2,
@@ -63,16 +63,16 @@ export class ConfigManager {
         u_evolutionSpeed: 0.15,
         u_layerBlend: 0.3,
         u_colorEvolutionSpeed: 0.1,
-        
+
         // Phase 1: Spectral Separation
         u_baseWeight: 1.2,
         u_midWeight: 0.7,
         u_highWeight: 0.25,
-        
+
         // Phase 2: Advanced Distortion & Flow
         u_warpScale: 1.0,
         u_flowType: 0.0,
-        
+
         // Phase 3: Texture & Structure (Worley)
         u_noiseType: 0.0,
         u_cellScale: 2.0,
@@ -90,12 +90,13 @@ export class ConfigManager {
         u_postPosterize: 0.0,
 
         // Phase 6: Liquid-Chromatic Post-Processing
-        u_iridescenceStrength: 0.0,
-        u_iridescenceSmoothness: 1.0,
+        u_iridescenceStrength: 0.3,
+        u_iridescenceSmoothness: 5.0,
+        u_iridescenceBlendMode: 1,
         u_fresnelStrength: 250.0,
         u_specularStrength: 0.44,
         u_flakeStrength: 0.0,
-        u_flakeScale: 1500.0,
+        u_flakeScale: 1600.0,
 
         u_rippleFrequency: 23.8,
         u_mirrorX: 0.0,
@@ -113,6 +114,7 @@ export class ConfigManager {
         u_noiseDistortion: 0.0,
         u_turbulentFbm: 0.0,
         u_layerInteraction: 0.0,
+        u_translationScale: 0.0,
       },
     });
 
@@ -162,7 +164,7 @@ export class ConfigManager {
   getConfig(namespace) {
     const config = this.pageConfigs[namespace] || this.pageConfigs['default'];
     const defaultParams = backgroundPresets['default'].parameters;
-    
+
     // Extract film grain defaults to ensure they persist across all pages
     const filmGrainDefaults = {
       u_grainIntensity: defaultParams.u_grainIntensity,
@@ -172,7 +174,7 @@ export class ConfigManager {
       u_grainAspect: defaultParams.u_grainAspect,
       u_grainComplexity: defaultParams.u_grainComplexity,
     };
-    
+
     if (config.type === 'preset') {
       // Get preset parameters
       const preset = backgroundPresets[config.preset];
@@ -188,7 +190,7 @@ export class ConfigManager {
       const merged = { ...defaultParams, ...config.parameters };
       return { ...merged, ...filmGrainDefaults };
     }
-    
+
     // Fallback to default preset
     return { ...defaultParams };
   }
@@ -198,10 +200,10 @@ export class ConfigManager {
    */
   transitionToPage(namespace, duration = 7.0) {
     console.log(`ConfigManager: Transitioning to "${namespace}" page`);
-    
+
     // Get the configuration for this page
     const config = this.getConfig(namespace);
-    
+
     // Define color palettes
     const palettes = {
       default: {
@@ -220,7 +222,7 @@ export class ConfigManager {
 
     // Select palette
     const palette = namespace === 'about' ? palettes.about : palettes.default;
-    
+
     // Prepare uniforms object for transition dynamically from config
     // Start with colors from palette
     const uniforms = {
@@ -229,7 +231,7 @@ export class ConfigManager {
       u_color3: palette.u_color3,
       u_baseColor: palette.u_baseColor,
     };
-    
+
     // Add all parameters from config (these come from presets or custom configs)
     // This ensures ALL parameters defined in presets are applied
     Object.keys(config).forEach(key => {
@@ -238,13 +240,13 @@ export class ConfigManager {
         uniforms[key] = config[key];
       }
     });
-    
+
     // Use ShaderController's transitionTo for smooth GSAP transitions
     this.shaderController.transitionTo(uniforms, duration);
-    
+
     // Update current page
     this.currentPage = namespace;
-    
+
     console.log(`ConfigManager: Applied "${namespace}" configuration with Mid Tone color ${namespace === 'about' ? '#8218c9' : '#4e2bda'}`);
   }
 
@@ -254,45 +256,45 @@ export class ConfigManager {
    */
   shouldTransition(newNamespace) {
     if (!this.currentPage) return true;
-    
+
     const currentConfig = this.pageConfigs[this.currentPage] || this.pageConfigs['default'];
     const newConfig = this.pageConfigs[newNamespace] || this.pageConfigs['default'];
-    
+
     // Compare preset names for preset-based configs
     if (currentConfig.type === 'preset' && newConfig.type === 'preset') {
       return currentConfig.preset !== newConfig.preset;
     }
-    
+
     // If one is preset and one is custom, they're different
     if (currentConfig.type !== newConfig.type) {
       return true;
     }
-    
+
     // Both are custom configs - compare their actual parameters
     // If both configs point to the same function (rendererBaseParams), they're identical
     if (currentConfig.type === 'custom' && newConfig.type === 'custom') {
       // Get the actual parameter objects
       const currentParams = this.getConfig(this.currentPage);
       const newParams = this.getConfig(newNamespace);
-      
+
       // Compare key parameters that define the "background mode"
       const keyParams = [
         'u_zoom', 'u_speed', 'u_modulationSpeed', 'u_modulationIntensity',
         'u_turbulenceModulation', 'u_brightness', 'u_contrast'
       ];
-      
+
       // Check if all key parameters are identical
-      const areIdentical = keyParams.every(param => 
+      const areIdentical = keyParams.every(param =>
         currentParams[param] === newParams[param]
       );
-      
+
       // Also check if Mid Tone colors would be the same
       const currentMidTone = this.currentPage === 'about' ? 0x8218c9 : 0x4e2bda;
       const newMidTone = newNamespace === 'about' ? 0x8218c9 : 0x4e2bda;
-      
+
       return !areIdentical || currentMidTone !== newMidTone;
     }
-    
+
     // Default: transition needed
     return true;
   }

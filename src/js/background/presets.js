@@ -11,10 +11,10 @@ export const backgroundPresets = {
     parameters: {
       u_zoom: 0.1,
       u_noiseScale: 1.6,
-      u_octaves: 1,
-      u_lacunarity: 1.8,
+      u_octaves: 2.0,
+      u_lacunarity: 1.5,
       u_gain: 0.5,
-      u_turbulence: 0.2,
+      u_turbulence: 1.2,
       u_warpOctaves: 2,
       u_ridgeAmount: 0.0,
       u_detailScale: 1.0,
@@ -42,7 +42,7 @@ export const backgroundPresets = {
       u_colorSpread: 0.66,
       u_colorSeparation: 0.3,
       u_colorBands: 0.0,
-      u_grainIntensity: 0.2,
+      u_grainIntensity: 0.26,
       u_grainSpeed: 20.0,
       u_grainSize: 2100.0,
       u_grainBlendMode: 2,
@@ -72,21 +72,22 @@ export const backgroundPresets = {
       u_layerInteraction: 0.0,
 
       // Animation Balance
-      u_translationScale: 1.0,
+      u_translationScale: 0.0,
 
       // Phase 6: Liquid-Chromatic
-      u_iridescenceStrength: 0.0,
-      u_iridescenceSmoothness: 1.0,
+      u_iridescenceStrength: 0.3,
+      u_iridescenceSmoothness: 5.0,
+      u_iridescenceBlendMode: 1,
       u_fresnelStrength: 250.0,
       u_specularStrength: 7.5,
       u_flakeStrength: 0.0,
-      u_flakeScale: 1500.0,
+      u_flakeScale: 1600.0,
 
       // Phase 1: Spectral Separation overrides (for default preset usage)
       u_baseWeight: 0.3,
       u_midWeight: 1.0,
       u_highWeight: 0.68,
-      
+
       // Composition
       u_vignetteStrength: 0.12,
       u_vignetteRadius: 0.12,
@@ -458,16 +459,16 @@ export const backgroundPresets = {
       u_evolutionSpeed: 0.15,
       u_layerBlend: 0.3,
       u_colorEvolutionSpeed: 0.1,
-      
+
       // Phase 1: Spectral Separation
       u_baseWeight: 0.65,
       u_midWeight: 0.0,
       u_highWeight: 0.3,
-      
+
       // Phase 2: Advanced Distortion & Flow
       u_warpScale: 1.2,
       u_flowType: 1.0,
-      
+
       // Phase 3: Texture & Structure (Worley)
       u_noiseType: 0.0,
       u_cellScale: 7.0,
@@ -599,7 +600,7 @@ export const parameterDefinitions = {
 
   // Liquid Metal & Oil
   u_iridescenceStrength: { folder: '💧 Liquid Metal & Oil', label: 'Oil Slick (Iridescence)', min: 0.0, max: 1.0, step: 0.01 },
-  u_iridescenceSmoothness: { folder: '💧 Liquid Metal & Oil', label: 'Oil Slick Smoothness', min: 0.0, max: 1.0, step: 0.01 },
+  u_iridescenceSmoothness: { folder: '💧 Liquid Metal & Oil', label: 'Oil Slick Smoothness', min: 0.0, max: 5.0, step: 0.01 },
   u_iridescenceBlendMode: {
     folder: '💧 Liquid Metal & Oil',
     label: 'Oil Slick Blend Mode',
@@ -653,11 +654,11 @@ export const parameterDefinitions = {
   u_grainIntensity: { folder: '🎬 Film Grain', label: 'Intensity', min: 0.0, max: 1.0, step: 0.01 },
   u_grainSpeed: { folder: '🎬 Film Grain', label: 'Speed', min: 0.0, max: 100.0, step: 0.01 },
   u_grainSize: { folder: '🎬 Film Grain', label: 'Size', min: 10.0, max: 2500.0, step: 1.0 },
-  u_grainBlendMode: { 
-    folder: '🎬 Film Grain', 
-    label: 'Blend Mode', 
-    type: 'select', 
-    options: { 'Overlay': 0, 'Multiply': 1, 'Add': 2, 'Screen': 3 } 
+  u_grainBlendMode: {
+    folder: '🎬 Film Grain',
+    label: 'Blend Mode',
+    type: 'select',
+    options: { 'Overlay': 0, 'Multiply': 1, 'Add': 2, 'Screen': 3 }
   },
   u_grainAspect: { folder: '🎬 Film Grain', label: 'Square Amount', min: 0.0, max: 1.0, step: 0.01 },
   u_grainComplexity: { folder: '🎬 Film Grain', label: 'Complexity', min: 0.0, max: 1.0, step: 0.01 },

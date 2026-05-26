@@ -33,7 +33,7 @@ export class BackgroundRenderer {
     this.performanceMonitor = performanceMonitor;
     this.qualityLevel = 'high'; // 'low', 'medium', 'high'
     this.lastQualityChange = 0;
-    
+
     // Dirty flags for optimized uniform updates
     this.uniformsDirty = {
       time: true,
@@ -68,11 +68,11 @@ export class BackgroundRenderer {
       modColorSpread: 0.66,
       colorShift: 0
     };
-    
+
     // PERFORMANCE: Track last update to throttle modulation calculations
     this._lastModulationUpdate = 0;
     this._modulationUpdateInterval = 16; // Update modulation every ~60fps worth of time
-    
+
     // ACCUMULATION: Track time integration on CPU to prevent shader derivative jumps
     // BOUNDED: These wrap at LOOP_DUR (600s) to match the shader's bounded time system
     this.LOOP_DUR = 600.0; // Must match LOOP_DUR in fogShader.frag.glsl
@@ -170,7 +170,7 @@ export class BackgroundRenderer {
       failIfMajorPerformanceCaveat: false,
       precision: 'highp', // Force high precision for quality
     });
-    
+
     const targetRatio = this._getTargetPixelRatio();
     this.renderer.setPixelRatio(targetRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -209,10 +209,10 @@ export class BackgroundRenderer {
         // Noise parameters (OPTIMIZED FOR HIGH FPS - 165fps+)
         u_zoom: { value: 0.1 },
         u_noiseScale: { value: 1.6 },
-        u_octaves: { value: 2 },
-        u_lacunarity: { value: 2.5 },
+        u_octaves: { value: 2.0 },
+        u_lacunarity: { value: 1.5 },
         u_gain: { value: 0.35 },
-        u_turbulence: { value: 2.0 },        // Warping for organic fog motion
+        u_turbulence: { value: 1.2 },        // Warping for organic fog motion
         u_warpOctaves: { value: 1 },          // REDUCED: 1 warp octave instead of 2 (but using sine now anyway)
         u_ridgeAmount: { value: 0.0 },        // 0 = smooth fog, 1 = sharp ridges
         u_detailScale: { value: 1.0 },        // Secondary detail scale
@@ -258,7 +258,7 @@ export class BackgroundRenderer {
         u_colorMix2Effective: { value: 0.5 },
         u_colorSpreadEffective: { value: 0.66 },
         u_colorShiftOffset: { value: 0.0 },
-        
+
         // Organic motion controls (NEW - VFX techniques)
         u_circularMotionIntensity: { value: 0.3 },  // Circular swirl strength (0-1)
         u_evolutionSpeed: { value: 0.15 },          // Noise evolution speed (0-1)
@@ -291,13 +291,13 @@ export class BackgroundRenderer {
         u_postPosterize: { value: 0.0 },            // Posterization steps (0=off)
 
         // Phase 6: Liquid-Chromatic Post-Processing
-        u_iridescenceStrength: { value: 0.0 },       // Iridescence strength (0-1)
-        u_iridescenceSmoothness: { value: 1.0 },     // Hue-cycle width: 0=crisp bands, 1=soft wash
-        u_iridescenceBlendMode: { value: 0 },        // 0=Add 1=Screen 2=Overlay 3=Multiply 4=Soft Light
+        u_iridescenceStrength: { value: 0.3 },       // Iridescence strength (0-1)
+        u_iridescenceSmoothness: { value: 5.0 },     // Hue-cycle width: 0=crisp bands, 1=soft wash
+        u_iridescenceBlendMode: { value: 1 },        // 0=Add 1=Screen 2=Overlay 3=Multiply 4=Soft Light
         u_fresnelStrength: { value: 250.0 },          // Fresnel edge tint strength (0-1)
         u_specularStrength: { value: 0.44 },         // Clear-Coat Specular strength (0-1)
         u_flakeStrength: { value: 0.0 },            // Metallic flakes strength (0-1)
-        u_flakeScale: { value: 1500.0 },             // Metallic flakes scale
+        u_flakeScale: { value: 1600.0 },             // Metallic flakes scale
 
         // Artistic controls (NEW - Phase 4)
         u_rippleFrequency: { value: 23.8 },          // Frequency of ripple distortion
@@ -320,10 +320,10 @@ export class BackgroundRenderer {
         u_layerInteraction: { value: 0.0 },         // Spectral blend mode (0=add, 1=multiply)
 
         // Animation Balance
-        u_translationScale: { value: 1.0 },         // Translation vs evolution (0=evolve in place, 1=normal movement)
+        u_translationScale: { value: 0.0 },         // Translation vs evolution (0=evolve in place, 1=normal movement)
 
         // Film grain
-        u_grainIntensity: { value: 0.2 },     // Film grain intensity
+        u_grainIntensity: { value: 0.26 },     // Film grain intensity
         u_grainSpeed: { value: 20.0 },        // Grain animation speed
         u_grainSize: { value: 2100.0 },       // Grain particle size
         u_grainBlendMode: { value: 2 },       // 0: overlay, 1: multiply, 2: add, 3: screen
@@ -450,7 +450,7 @@ export class BackgroundRenderer {
 
     // Use getDelta() for time integration
     const dt = this.clock.getDelta();
-    
+
     // Accumulate total time based on current speed
     // This integration prevents "velocity scrub" artifacts when u_speed changes via transition
     const speed = this.material.uniforms.u_speed.value;
@@ -460,7 +460,7 @@ export class BackgroundRenderer {
     if (this.accumulatedTime > this.LOOP_DUR) {
       this.accumulatedTime -= this.LOOP_DUR;
     }
-    
+
     // Update modulation dynamics with delta time
     this.updateModulationUniforms(dt);
 
@@ -486,16 +486,16 @@ export class BackgroundRenderer {
 
     const uniforms = this.material.uniforms;
     const cache = this._modulationCache;
-    
+
     // PERFORMANCE: Throttle modulation updates to ~60fps
     // At 240fps, this reduces modulation CPU work by 75%
     const now = performance.now();
     const shouldUpdateModulation = (now - this._lastModulationUpdate) >= this._modulationUpdateInterval;
-    
+
     // Global modulation control
     const modulationSpeed = uniforms.u_modulationSpeed.value;
     const masterIntensity = uniforms.u_modulationIntensity.value;
-    
+
     // Integrator: Accumulate modulation time
     // Same fix as main time: avoid derivative jumps when modulationSpeed changes
     this.accumulatedModulationTime += dt * modulationSpeed;
@@ -515,13 +515,13 @@ export class BackgroundRenderer {
       uniforms.u_colorMix2Effective.value = uniforms.u_colorMix2.value;
       uniforms.u_colorSpreadEffective.value = uniforms.u_colorSpread.value;
       uniforms.u_colorShiftOffset.value = 0;
-      return; 
+      return;
     }
 
     // Only recalculate modulation values at throttled rate
     if (shouldUpdateModulation) {
       this._lastModulationUpdate = now;
-      
+
       // Base values - read once per update
       const baseNoiseScale = uniforms.u_noiseScale.value;
       const baseGain = uniforms.u_gain.value;
@@ -535,7 +535,7 @@ export class BackgroundRenderer {
 
       // Use lower frequency time for slower, more organic feel
       // Use ACCUMULATED modulation time instead of time * modulationSpeed
-      cache.modTime = this.accumulatedModulationTime * 0.2; 
+      cache.modTime = this.accumulatedModulationTime * 0.2;
 
       // 1. Turbulence Modulation
       cache.modTurbulence = baseTurbulence;
@@ -551,7 +551,7 @@ export class BackgroundRenderer {
       cache.modZoom = baseZoom;
       const zoomMod = uniforms.u_zoomModulation.value;
       if (zoomMod > 0.01) {
-        cache.zoomCycle = Math.sin(cache.modTime * 0.8) * 0.5 + 0.5; 
+        cache.zoomCycle = Math.sin(cache.modTime * 0.8) * 0.5 + 0.5;
         const amount = zoomMod * 0.2 * masterIntensity;
         cache.modZoom = baseZoom * (1.0 + (cache.zoomCycle - 0.5) * amount);
       }
@@ -560,7 +560,7 @@ export class BackgroundRenderer {
       cache.modDirX = baseDirX;
       cache.modDirY = baseDirY;
       const rotMod = uniforms.u_rotationModulation.value;
-      
+
       if (rotMod > 0.01) {
         const amount = rotMod * 1.5 * masterIntensity;
         // Accumulate rotation incrementally to prevent jumping when intensity changes
@@ -574,14 +574,14 @@ export class BackgroundRenderer {
         } else if (this.accumulatedRotation < -TWO_PI) {
           this.accumulatedRotation += TWO_PI;
         }
-        
+
         cache.angle = this.accumulatedRotation;
         cache.cosA = Math.cos(cache.angle);
         cache.sinA = Math.sin(cache.angle);
         cache.modDirX = baseDirX * cache.cosA - baseDirY * cache.sinA;
         cache.modDirY = baseDirX * cache.sinA + baseDirY * cache.cosA;
       }
-      
+
       // 4. Color Mix Modulation
       cache.modColorMix1 = baseColorMix1;
       cache.modColorMix2 = baseColorMix2;
@@ -646,9 +646,9 @@ export class BackgroundRenderer {
     uniforms.u_directionEffective.value.set(cache.modDirX, cache.modDirY);
     uniforms.u_colorMix1Effective.value = cache.modColorMix1;
     uniforms.u_colorMix2Effective.value = cache.modColorMix2;
-    uniforms.u_colorSpreadEffective.value = cache.modColorSpread; 
+    uniforms.u_colorSpreadEffective.value = cache.modColorSpread;
     uniforms.u_colorShiftOffset.value = cache.colorShift;
-    
+
     // Update settings for debug/feedback (only when modulation was recalculated)
     if (this.qualityLevel === 'high' && this.baseQualitySettings) {
       this.baseQualitySettings.modulationIntensity = masterIntensity;
@@ -909,7 +909,7 @@ export class BackgroundRenderer {
   setTargetFps(fps) {
     if (this.frameRateController) {
       this.frameRateController.setTargetFps(fps);
-      
+
       // Auto-adjust grain frame hold based on FPS target
       if (this.material && this.material.uniforms.u_grainFrameHold) {
         if (fps >= 240) {
@@ -948,9 +948,9 @@ export class BackgroundRenderer {
    */
   setQualityUltra() {
     if (!this.material) return;
-    
+
     const uniforms = this.material.uniforms;
-    
+
     // Ultra quality: maximum performance while maintaining visuals
     if (uniforms.u_octaves) uniforms.u_octaves.value = 2;
     if (uniforms.u_warpOctaves) uniforms.u_warpOctaves.value = 1;
@@ -960,7 +960,7 @@ export class BackgroundRenderer {
     if (uniforms.u_grainComplexity) uniforms.u_grainComplexity.value = this.baseQualitySettings.grainComplexity * 0.85;
     if (uniforms.u_grainIntensity) uniforms.u_grainIntensity.value = this.baseQualitySettings.grainIntensity;
     if (uniforms.u_grainFrameHold) uniforms.u_grainFrameHold.value = 3.0; // 240fps / 3 = 80 grain updates/sec
-    
+
     // Use device pixel ratio so the framebuffer matches physical display resolution.
     // PERF FIX: Guard canvas resize — setPixelRatio() already calls setSize() internally.
     if (this.renderer) {

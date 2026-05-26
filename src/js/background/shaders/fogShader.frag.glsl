@@ -467,12 +467,13 @@ vec3 thinFilmIridescence(vec3 normal) {
     // Slow time sweep so the shimmer feels alive without dominating motion.
     float timePhase = u_time * 0.05;
 
-    // Smoothness controls spatial hue-cycle density.
-    // 0 → cycleRate 5.0: many tight bands (vivid, crisp rainbow).
-    // 1 → cycleRate 0.3: <1 full cycle across the surface (wide, soft colour wash).
-    // Only the magnitude term is scaled — direction-based hue diversity is preserved
-    // at all settings, so even a fully smooth surface still shows spatial colour variety.
-    float cycleRate = mix(5.0, 0.3, clamp(u_iridescenceSmoothness, 0.0, 1.0));
+    // Smoothness controls spatial hue-cycle density — two linear stages:
+    //   Stage 1  [0 → 1]: cycleRate 5.0 → 0.3  (crisp bands to soft wash, original range)
+    //   Stage 2  [1 → 5]: cycleRate 0.3 → 0.0  (continued reduction toward near-monochromatic)
+    // Branchless: two additive clamp ramps, exact same result as before for s ∈ [0, 1].
+    float _s = max(u_iridescenceSmoothness, 0.0);
+    float cycleRate = mix(5.0, 0.3, clamp(_s, 0.0, 1.0))
+                    - 0.3 * clamp((_s - 1.0) / 4.0, 0.0, 1.0);
     float opd = gradAngle + gradMag * cycleRate + timePhase;
 
     // Balanced cosine hue wheel: 120° (TAU/3) phase offsets between channels
