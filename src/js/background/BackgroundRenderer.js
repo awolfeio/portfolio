@@ -291,8 +291,8 @@ export class BackgroundRenderer {
         u_postPosterize: { value: 0.0 },            // Posterization steps (0=off)
 
         // Phase 6: Liquid-Chromatic Post-Processing
-        u_iridescenceStrength: { value: 0.14 },      // Iridescence strength (0-1)
-        u_iridescenceSmoothness: { value: 0.0 },     // Hue-cycle width: 0=crisp bands, 1=soft wash
+        u_iridescenceStrength: { value: 0.0 },       // Iridescence strength (0-1)
+        u_iridescenceSmoothness: { value: 1.0 },     // Hue-cycle width: 0=crisp bands, 1=soft wash
         u_iridescenceBlendMode: { value: 0 },        // 0=Add 1=Screen 2=Overlay 3=Multiply 4=Soft Light
         u_fresnelStrength: { value: 250.0 },          // Fresnel edge tint strength (0-1)
         u_specularStrength: { value: 0.44 },         // Clear-Coat Specular strength (0-1)

@@ -90,7 +90,8 @@ export class ConfigManager {
         u_postPosterize: 0.0,
 
         // Phase 6: Liquid-Chromatic Post-Processing
-        u_iridescenceStrength: 0.14,
+        u_iridescenceStrength: 0.0,
+        u_iridescenceSmoothness: 1.0,
         u_fresnelStrength: 250.0,
         u_specularStrength: 0.44,
         u_flakeStrength: 0.0,

@@ -75,7 +75,8 @@ export const backgroundPresets = {
       u_translationScale: 1.0,
 
       // Phase 6: Liquid-Chromatic
-      u_iridescenceStrength: 0.14,
+      u_iridescenceStrength: 0.0,
+      u_iridescenceSmoothness: 1.0,
       u_fresnelStrength: 250.0,
       u_specularStrength: 7.5,
       u_flakeStrength: 0.0,
@@ -484,7 +485,8 @@ export const backgroundPresets = {
       u_postPosterize: 0.0,
 
       // Phase 6: Liquid-Chromatic Post-Processing
-      u_iridescenceStrength: 0.1,
+      u_iridescenceStrength: 0.0,
+      u_iridescenceSmoothness: 1.0,
       u_fresnelStrength: 2.0,
       u_specularStrength: 0.0,
       u_flakeStrength: 0.0,
