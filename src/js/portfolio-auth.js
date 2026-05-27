@@ -87,6 +87,14 @@ export function clearAuth() {
  * @returns {boolean}
  */
 function isProjectVisible(group, mode, slug) {
+  // If ACSOnly mode is enabled
+  if (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__) {
+    // Hide scholastic and wabash
+    if (slug === 'scholastic' || slug === 'wabash') return false;
+    // Show american-chemical-society
+    if (slug === 'american-chemical-society') return true;
+  }
+
   // If auth is disabled, show everything except ACS
   if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
     if (slug === 'american-chemical-society') return false;
@@ -144,6 +152,9 @@ export function getNextProject(currentSlug, mode) {
  * @returns {string}
  */
 export function getResumeUrl(mode) {
+  if (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__) {
+    return '/assets/documents/AdrainWolfe-UIDev-Resume.pdf';
+  }
   if (mode && RESUME_URLS[mode]) {
     return RESUME_URLS[mode];
   }
@@ -180,24 +191,31 @@ export function applyMode(mode, animate = false) {
   // 1. Filter project links in .projects containers
   const projectContainers = document.querySelectorAll('#index .projects, #works .projects');
   projectContainers.forEach(container => {
-    // Remove currently injected gated projects that don't match the new mode
-    const existingInjected = container.querySelectorAll('.gated-project');
-    existingInjected.forEach(el => {
+    // Hide or remove projects that shouldn't be visible
+    const allLinks = container.querySelectorAll('a[data-project]');
+    allLinks.forEach(el => {
       const group = el.getAttribute('data-auth-group');
       const slug = el.getAttribute('data-project');
       if (!isProjectVisible(group, mode, slug)) {
-        if (animate) {
-          el.setAttribute('disabled', '');
-          // Remove from DOM after transition completes (matching CSS timing)
-          setTimeout(() => el.remove(), 1250); 
+        if (el.classList.contains('gated-project')) {
+          if (animate) {
+            el.setAttribute('disabled', '');
+            // Remove from DOM after transition completes
+            setTimeout(() => el.remove(), 1250); 
+          } else {
+            el.remove();
+          }
         } else {
-          el.remove();
+          // Hide hardcoded links like scholastic
+          el.style.display = 'none';
         }
+      } else {
+        el.style.display = '';
       }
     });
 
     // Inject new gated projects if needed
-    if (mode || (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__)) {
+    if (mode || (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) || (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__)) {
       // Create a list of projects to inject for the current mode
       const projectsToInject = __GATED_PROJECTS__.filter(p => isProjectVisible(p.group, mode, p.slug));
       
@@ -245,7 +263,7 @@ export function applyMode(mode, animate = false) {
   // 3. Update resume nav link
   const resumeLink = document.querySelector('#resume-nav-link');
   if (resumeLink) {
-    if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
+    if ((typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) || (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__)) {
       resumeLink.setAttribute('href', getResumeUrl('default'));
     } else if (mode) {
       resumeLink.setAttribute('href', getResumeUrl(mode));
@@ -273,7 +291,7 @@ export function applyMode(mode, animate = false) {
 function updateAuthUI(mode) {
   const authContainers = document.querySelectorAll('.portfolio-auth');
   
-  if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
+  if ((typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) || (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__)) {
     authContainers.forEach(container => {
       container.style.display = 'none';
     });
@@ -332,7 +350,7 @@ export function handlePasswordSubmit(password, errorElement) {
  */
 export function showPasswordModal() {
   return new Promise((resolve) => {
-    if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
+    if ((typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) || (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__)) {
       resolve(null);
       return;
     }
@@ -432,7 +450,7 @@ export function showPasswordModal() {
  * (Called once on initial page load, and after Barba transitions)
  */
 export function injectAuthUI() {
-  if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) return;
+  if ((typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) || (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__)) return;
 
   const containers = document.querySelectorAll('.portfolio-auth');
   containers.forEach(container => {

@@ -70,6 +70,7 @@ export function setupEventHandlers() {
   });
 
   setupMobileMenuHandlers();
+  checkSkillsWrapping();
 }
 
 /**
@@ -88,8 +89,8 @@ function handleBarbaLinks(e) {
     link.classList.contains("resume") ||
     (link.getAttribute("href") && link.getAttribute("href").includes("Resume"))
   ) {
-    if (typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) {
-      // Auth is disabled, just let the browser open the resume
+    if ((typeof __DISABLE_AUTH__ !== 'undefined' && __DISABLE_AUTH__) || (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__)) {
+      // Auth is disabled or ACS fallback mode, just let the browser open the resume
       return;
     }
     const mode = portfolioAuth.getMode();
@@ -196,6 +197,39 @@ export function setupMobileMenuHandlers() {
 function handleMobileMenuClick() {
       document.body.classList.toggle("menu-active");
       this.classList.toggle("active");
+}
+
+/**
+ * Check if .skills-wrapper h5 elements wrap to two lines
+ */
+export function checkSkillsWrapping() {
+  const h5Elements = document.querySelectorAll(".skills-wrapper h5");
+  if (!h5Elements.length) return;
+
+  function evaluateWrapping() {
+    h5Elements.forEach(h5 => {
+      // Get line height
+      const style = window.getComputedStyle(h5);
+      const lineHeight = parseFloat(style.lineHeight) || (parseFloat(style.fontSize) * 1.25);
+      
+      // If element height is more than 1.5 times the line height, it has wrapped
+      if (h5.offsetHeight > lineHeight * 1.5) {
+        h5.parentElement.classList.add("is-wrapped");
+      } else {
+        h5.parentElement.classList.remove("is-wrapped");
+      }
+    });
+  }
+
+  // Initial check
+  evaluateWrapping();
+
+  // Resize listener
+  let timeout;
+  window.addEventListener("resize", () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(evaluateWrapping, 150);
+  });
 }
 
 

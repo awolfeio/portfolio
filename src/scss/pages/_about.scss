@@ -156,6 +156,14 @@
                 }
             }
 
+            &.is-wrapped:hover {
+                h5 {
+                    @media (min-width: 640px) and (max-width: 820px) {
+                        top: 15%;
+                    }
+                }
+            }
+
             &.leaving {
                 transition-delay: 0.1s !important;
             }
