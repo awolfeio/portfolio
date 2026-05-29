@@ -1,5 +1,6 @@
 import { cursorCheck } from "./cursor-element.js";
 import portfolioAuth from "./portfolio-auth.js";
+import jinxUrl from "../assets/jinx.png";
 
 /**
  * Handle all general event handlers on every page load
@@ -12,6 +13,95 @@ export function setupEventHandlers() {
     }
   `;
   document.head.appendChild(styleElement);
+
+  // Easter egg: hover over span.infinite-titles to change it to any of the list
+  if (!document.body.hasAttribute("data-infinite-titles-listener")) {
+    document.body.setAttribute("data-infinite-titles-listener", "true");
+    
+    document.body.addEventListener("mouseover", function (e) {
+      const target = e.target.closest("span.infinite-titles");
+      if (target && !target.classList.contains("blip-active")) {
+        target.classList.add("blip-active");
+        
+        target.addEventListener("animationend", function handleAnimEnd() {
+          target.classList.remove("blip-active");
+          target.removeEventListener("animationend", handleAnimEnd);
+        });
+        
+        const titlesList = [
+          "UI/UX Designer + Developer",
+          "UX Engineer",
+          "Creative Technologist",
+          "Design Engineer",
+          "UI Developer",
+          "UX Designer"
+        ];
+        const currentText = target.textContent.trim();
+        const availableTitles = titlesList.filter(t => t !== currentText);
+        const randomIndex = Math.floor(Math.random() * availableTitles.length);
+        target.textContent = availableTitles[randomIndex];
+      }
+    });
+  }
+
+  // Easter egg: hover over span.cat-jinx to show floating Jinx image centered on cursor
+  if (!document.body.hasAttribute("data-cat-jinx-listener")) {
+    document.body.setAttribute("data-cat-jinx-listener", "true");
+
+    let jinxEl = null;
+
+    const createJinxEl = () => {
+      jinxEl = document.createElement("div");
+      jinxEl.className = "floating-jinx";
+      const img = document.createElement("img");
+      img.src = jinxUrl;
+      img.style.width = "100%";
+      img.style.height = "auto";
+      img.style.display = "block";
+      jinxEl.appendChild(img);
+      document.body.appendChild(jinxEl);
+    };
+
+    document.body.addEventListener("mouseover", function (e) {
+      const target = e.target.closest("span.cat-jinx");
+      if (target) {
+        let isFirstTime = false;
+        if (!jinxEl) {
+          createJinxEl();
+          isFirstTime = true;
+        }
+        
+        // Position immediately before showing
+        jinxEl.style.left = `${e.clientX}px`;
+        jinxEl.style.top = `${e.clientY}px`;
+
+        if (isFirstTime) {
+          // Force layout reflow so the browser registers the scale(0.88) and opacity:0 state in the DOM first
+          void jinxEl.offsetWidth;
+        }
+
+        jinxEl.classList.add("visible");
+      }
+    });
+
+    document.body.addEventListener("mousemove", function (e) {
+      const target = e.target.closest("span.cat-jinx");
+      if (target && jinxEl) {
+        jinxEl.style.left = `${e.clientX}px`;
+        jinxEl.style.top = `${e.clientY}px`;
+      }
+    });
+
+    document.body.addEventListener("mouseout", function (e) {
+      const target = e.target.closest("span.cat-jinx");
+      if (target && jinxEl) {
+        const relatedTarget = e.relatedTarget;
+        if (!relatedTarget || !target.contains(relatedTarget)) {
+          jinxEl.classList.remove("visible");
+        }
+      }
+    });
+  }
 
   // Delegate click event for all internal links to use Barba
   document.body.addEventListener("click", handleBarbaLinks);

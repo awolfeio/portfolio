@@ -277,7 +277,19 @@ export function applyMode(mode, animate = false) {
   // 4. Update auth UI (password input / mode indicator)
   updateAuthUI(mode);
 
-  // 5. Recalculate page height for Lenis and ScrollTrigger
+  // 5. Update project aspects in ACS Only Mode
+  if (typeof __ACS_ONLY__ !== 'undefined' && __ACS_ONLY__) {
+    const aspectsContainer = document.querySelector('.project-aspects');
+    if (aspectsContainer) {
+      const dateSpan = Array.from(aspectsContainer.querySelectorAll('div span'))
+        .find(span => span.textContent.trim() === '2024-2026');
+      if (dateSpan) {
+        dateSpan.textContent = '2023-2026';
+      }
+    }
+  }
+
+  // 6. Recalculate page height for Lenis and ScrollTrigger
   recalculateScroll();
   if (animate) {
     // If animated, also recalculate after the CSS transition for element removal completes (1250ms)

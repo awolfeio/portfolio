@@ -1,2 +1,4 @@
 $desktop-viewport: 1024px;
 $mobile-viewport: 640px;
+
+$text-width-max: clamp(45ch, 60vw, 70ch);

@@ -291,19 +291,21 @@ h2 {
 #about.page,
 #contact.page {
     p {
-        font-size: 32px;
-        width: 1200px;
+        font-size: 28px;
+        width: $text-width-max;
         max-width: calc(100% - 32px);
         margin: 32px auto;
         text-align: center;
+        text-wrap: balance;
+        text-wrap: pretty;
 
         @media (max-width:1368px) {
             font-size: 20px;
-            width: 734px;
+            width: $text-width-max;
         }
 
         @media (max-width: $desktop-viewport) {
-            width: 672px;
+            width: $text-width-max;
         }
 
         @media (max-width:480px) {

@@ -212,6 +212,52 @@
         }
     }
 
+    .infinite-titles {
+        cursor: pointer;
+        display: inline-block;
+        border-bottom: 1px dotted rgba(255, 255, 255, 0.4);
+        transform-origin: center;
+        will-change: transform;
+
+        &.blip-active {
+            animation: title-blip 0.65s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+    }
+
+    .cat-jinx {
+        cursor: pointer;
+        display: inline-block;
+        color: $primary;
+        /* cute soft pink */
+        border-bottom: 1px dashed rgba($primary, 0.5);
+        transition: color 0.3s ease, border-bottom-color 0.3s ease;
+
+        &:hover {
+            color: $primary;
+            border-bottom-color: $primary;
+        }
+    }
+
+}
+
+@keyframes title-blip {
+    0% {
+        color: inherit;
+        border-bottom-color: rgba(255, 255, 255, 0.4);
+        transform: scale(1);
+    }
+
+    15% {
+        color: $primary;
+        border-bottom-color: $primary;
+        transform: scale(1.04);
+    }
+
+    100% {
+        color: inherit;
+        border-bottom-color: rgba(255, 255, 255, 0.4);
+        transform: scale(1);
+    }
 }
 
 html.about {
@@ -249,5 +295,30 @@ html.about {
                 transform: translate(-50%, -50%);
             }
         }
+    }
+}
+
+.floating-jinx {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99999999;
+    width: 500px;
+    max-width: calc(100vw - 32px);
+    height: auto;
+    border-radius: 32px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 159, 178, 0.2);
+    /* cute pink glow */
+    border: 8px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    transform: translate(-50%, -50%) scale(0.88);
+    opacity: 0;
+    transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    transform-origin: center;
+    //mix-blend-mode: luminosity;
+    filter: brightness(1.4);
+
+    &.visible {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
     }
 }

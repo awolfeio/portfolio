@@ -181,7 +181,7 @@ export class BackgroundRenderer {
     canvas.style.position = "fixed";
     canvas.style.top = "0";
     canvas.style.left = "0";
-    canvas.style.width = "100%";
+    canvas.style.width = "100vw";
     canvas.style.height = "100%";
     canvas.style.zIndex = "-1"; // Behind all content
     canvas.style.pointerEvents = "none"; // Don't block interactions
