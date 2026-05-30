@@ -55,6 +55,21 @@ export function removeSpecificElements() {
       dateSpan.textContent = '2023-2026';
     }
   }
+
+  // Fix next-project banner links since Wabash and Scholastic are removed
+  const projectPage = document.querySelector('.page.project[data-current-project]');
+  if (projectPage) {
+    const currentSlug = projectPage.getAttribute('data-current-project');
+    const bannerLink = projectPage.querySelector('.next-project-banner a');
+    
+    if (bannerLink) {
+      if (currentSlug === 'american-chemical-society') {
+        bannerLink.setAttribute('href', '/projects/jpplus.html');
+      } else if (currentSlug === 'ipi') {
+        bannerLink.setAttribute('href', '/projects/american-chemical-society.html');
+      }
+    }
+  }
 }
 
 export function checkLocationAndRemoveElements() {
