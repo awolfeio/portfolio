@@ -1,23 +1,26 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Adrain Wolfe | Contact</title>
-  </head>
-  {{> meta }}
-  <body data-barba="wrapper">
-    {{> loadingsplash }}
-    <div id="stage">
-      <div id="viewport">
-        <header>{{> nav }}</header>
-        <main data-barba="container" data-barba-namespace="contact">
-          <div class="page" id="contact">
-            <h1 class="display" data-splitting>Contact Me</h1>
-            <p class="splitting-rows fade-reveal">
-              I am currently open to new opportunities in both design, development, and combinative roles. I'd love to hear from you if you are looking for a designer or need a website built.
-            </p>
 
-            <div class="contact-options fade-reveal"><span class="email" data-splitting>adrainwolfe@gmail.com</span></div>
-            <div class="icon-links fade-reveal">
+<head>
+  <title>Adrain Wolfe | Contact</title>
+</head>
+{{> meta }}
+
+<body data-barba="wrapper">
+  {{> loadingsplash }}
+  <div id="stage">
+    <div id="viewport">
+      <header>{{> nav }}</header>
+      <main data-barba="container" data-barba-namespace="contact">
+        <div class="page" id="contact">
+          <h1 class="display" data-splitting>Contact Me</h1>
+          <p class="splitting-rows fade-reveal">
+            I am currently open to new opportunities in both design, development, and combinative roles. I'd love to
+            hear from you if you are looking for a designer or need a website built.
+          </p>
+
+          <div class="contact-options fade-reveal"><span class="email" data-splitting>adrainwolfe@gmail.com</span></div>
+          <!--<div class="icon-links fade-reveal">
               <div>
                 <a href="https://www.linkedin.com/in/adrainwolfe/" target="_blank">
                   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -28,13 +31,14 @@
                   </svg>
                 </a>
               </div>
-            </div>
-            <div class="background-logo"><canvas id="bg-logo"></canvas></div>
-          </div>
-        </main>
-      </div>
+            </div>-->
+          <div class="background-logo"><canvas id="bg-logo"></canvas></div>
+        </div>
+      </main>
     </div>
+  </div>
 
-    <script type="module" src="./index.js"></script>
-  </body>
+  <script type="module" src="./index.js"></script>
+</body>
+
 </html>

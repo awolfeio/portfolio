@@ -20,6 +20,25 @@ export function hasPassedRevealThreshold(element) {
 // Store active reveal chains to manage sequential reveals
 const revealChains = new Map();
 
+// ---------------------------------------------------------------------------
+// Sequential reveal stagger (MODIFIABLE)
+// Every .fade-reveal element that is already on-screen at load reveals this
+// many milliseconds after the previous on-screen one, in DOM order. Elements
+// do NOT need to share a wrapper — the stagger is a single running counter
+// across the whole document. A data-reveal-delay attribute on an element
+// hard-overrides this for that element only.
+//
+// Change the default here, or override at runtime via window.fadeRevealStaggerMs.
+// ---------------------------------------------------------------------------
+const REVEAL_STAGGER_STEP_MS = 400;
+
+/** Resolve the active stagger step (ms), allowing a runtime window override. */
+function getRevealStaggerStepMs() {
+  return Number.isFinite(window.fadeRevealStaggerMs)
+    ? window.fadeRevealStaggerMs
+    : REVEAL_STAGGER_STEP_MS;
+}
+
 /**
  * Unified reveal system that handles all element reveals sequentially
  * All elements use .fade-reveal class and reveal in DOM order
@@ -39,17 +58,17 @@ export function setupUnifiedReveals() {
   // Check if loading screen is present
   const loadingSplash = document.querySelector('#loading-splash');
   const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-  const revealThreshold = viewportHeight * 0.8;
 
   // Batch ALL getBoundingClientRect reads BEFORE the forEach to avoid
   // repeated forced layout/reflow inside the loop.
   const rects = allRevealElements.map(el => el.getBoundingClientRect());
 
-  // Stagger counter for elements that are already in-viewport at load time.
-  // Each in-viewport element gets a delay = BASE_DELAY + (staggerIndex * STAGGER_STEP)
-  // so they reveal one after another rather than all at once.
-  const STAGGER_BASE  = 0.4;  // seconds (matches the .active CSS base transition-delay)
-  const STAGGER_STEP  = 0.35; // seconds between each sequential element
+  // Stagger counter for elements that are already on-screen at load time.
+  // Each on-screen element reveals (staggerIndex * step) ms after the first,
+  // in DOM order, so a stack fades in one-after-another. The counter is shared
+  // across ALL elements regardless of wrapper, so the Nth visible element waits
+  // on the (N-1)th even if they live in different containers.
+  const staggerStepSeconds = getRevealStaggerStepMs() / 1000;
   let staggerIndex = 0;
 
   // Prevent duplicate triggers: Kill any existing ScrollTriggers on these elements
@@ -77,16 +96,26 @@ export function setupUnifiedReveals() {
       markers: false,
     });
 
-    // If no loading screen and element is already in viewport, reveal with stagger.
-    // Use the pre-batched rect instead of calling getBoundingClientRect() again.
-    if (!loadingSplash && rects[index].top <= revealThreshold) {
+    // Reveal-on-load for anything actually visible.
+    // We test TRUE viewport intersection (any part of the element on-screen)
+    // rather than the old "top <= 80% of viewport" threshold. That threshold
+    // left a dead band: an element sitting in the lower portion of the viewport
+    // was below the 80% line (so no on-load reveal) yet already past the
+    // ScrollTrigger "top 85%" start (so onEnter never fires without a scroll,
+    // and no scroll happens on load). Such elements falsely stayed invisible
+    // even though they were fully within the viewport. Intersection testing
+    // guarantees every on-screen element reveals.
+    const rect = rects[index];
+    const isWithinViewport = rect.top < viewportHeight && rect.bottom > 0;
+
+    if (!loadingSplash && isWithinViewport) {
       // data-reveal-delay (ms) hard-overrides the auto-stagger for this element.
       const manualDelay = element.dataset.revealDelay;
       if (manualDelay !== undefined) {
         // Use exact ms value converted to seconds; do NOT consume a stagger slot.
         revealElement(element, parseFloat(manualDelay) / 1000);
       } else {
-        const delay = STAGGER_BASE + staggerIndex * STAGGER_STEP;
+        const delay = staggerIndex * staggerStepSeconds;
         staggerIndex++;
         revealElement(element, delay);
       }

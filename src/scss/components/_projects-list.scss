@@ -73,9 +73,10 @@
 
         max-height: 200px;
         overflow: hidden;
+        // Only opacity, filter, and transform transition universally.
+        // margin and max-height are opt-in via .is-animating to prevent
+        // false slide-down animations when the page is entered via a transition.
         transition: opacity 0.8s ease,
-        max-height 1.2s ease,
-        margin 1.2s ease,
         filter 0.8s ease,
         transform 0.3s ease;
 
@@ -87,5 +88,16 @@
             margin-top: 0;
             margin-bottom: 0;
         }
+    }
+
+    // Opt margin and max-height into transitions only when JS is
+    // actively animating items in/out (add/remove via access code).
+    // Prevents the false slide-down on page entry.
+    &.is-animating a {
+        transition: opacity 0.8s ease,
+        max-height 1.2s ease,
+        margin 1.2s ease,
+        filter 0.8s ease,
+        transform 0.3s ease;
     }
 }

@@ -191,6 +191,11 @@ export function applyMode(mode, animate = false) {
   // 1. Filter project links in .projects containers
   const projectContainers = document.querySelectorAll('#index .projects, #works .projects');
   projectContainers.forEach(container => {
+    // Enable margin/max-height transitions only for intentional animations,
+    // not on page entry (which would cause a false slide-down).
+    if (animate) {
+      container.classList.add('is-animating');
+    }
     // Hide or remove projects that shouldn't be visible
     const allLinks = container.querySelectorAll('a[data-project]');
     allLinks.forEach(el => {
@@ -294,6 +299,13 @@ export function applyMode(mode, animate = false) {
   if (animate) {
     // If animated, also recalculate after the CSS transition for element removal completes (1250ms)
     setTimeout(recalculateScroll, 1300);
+    // Remove .is-animating once all transitions have finished so that
+    // future page entries don't inherit the margin/max-height transition.
+    setTimeout(() => {
+      document.querySelectorAll('#index .projects, #works .projects').forEach(container => {
+        container.classList.remove('is-animating');
+      });
+    }, 1350);
   }
 }
 

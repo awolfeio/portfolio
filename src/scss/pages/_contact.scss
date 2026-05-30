@@ -2,14 +2,6 @@
 @use "../components" as *;
 
 #contact.page {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    //height:100vh;
-    .splitting-rows {
-        // Handled by global fade-reveal logic
-    }
 
     .contact-options {
         display: flex;
@@ -53,7 +45,8 @@
         left: 0;
         width: 100%;
         height: 100%;
-        z-index:-1;
+        z-index: -1;
+
         canvas#bg-logo {
             width: 100vw;
             height: 100vh;

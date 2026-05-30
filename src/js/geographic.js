@@ -20,8 +20,9 @@ export function checkLocationAndRemoveElements() {
       const isNearbyCommutable =
         (data.region_code === "MD" && ["Montgomery", "Prince George's"].includes(data.city)) ||
         (data.region_code === "VA" && ["Arlington", "Alexandria", "Fairfax", "Falls Church"].includes(data.city));
+      const isAlbania = data.country_code === "AL" || data.country === "AL" || data.country_name === "Albania";
 
-      if (isDC || isNearbyCommutable) {
+      if (isDC || isNearbyCommutable || isAlbania) {
         removeSpecificElements();
       } else {
         // Elements will remain visible for other locations
