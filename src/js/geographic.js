@@ -18,10 +18,20 @@ if (document.head) {
 }
 
 export function removeSpecificElements() {
+  const styleTag = document.getElementById("geo-restriction-style");
+  if (styleTag) {
+    styleTag.innerHTML = `
+      [data-project="scholastic"],
+      [data-project="wabash"] {
+        display: none !important;
+      }
+    `;
+  }
+
   const resumeNavLink = document.getElementById("resume-nav-link");
   if (resumeNavLink) {
     resumeNavLink.href = "/assets/documents/AdrainWolfe-UIDev-Resume.pdf";
-    resumeNavLink.style.display = "block";
+    resumeNavLink.style.display = "";
   }
 
   const scholasticElements = document.querySelectorAll('[data-project="scholastic"]');
