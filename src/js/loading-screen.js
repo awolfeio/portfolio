@@ -231,7 +231,7 @@ export function loadingSplash() {
             preloadingPromise.then(() => {
               console.log("Page preloading finished, continuing with initialization");
 
-              setTimeout(function () {
+              setTimeout(async function () {
                 // Add loaded class to body
                 document.body.classList.add("loaded");
 
@@ -258,8 +258,8 @@ export function loadingSplash() {
                 
                 const contentElements = mainContent ? mainContent.children : [];
 
-                // Check location restrictions
-                checkLocationAndRemoveElements();
+                // Check location restrictions and WAIT for them to resolve before revealing page
+                await checkLocationAndRemoveElements();
 
                 // Make sure container and content are visible
                 ensureContainersAreVisible();

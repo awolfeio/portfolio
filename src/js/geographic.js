@@ -3,6 +3,7 @@
 const geoStyle = document.createElement('style');
 geoStyle.id = 'geo-restriction-style';
 geoStyle.innerHTML = `
+  #resume-nav-link,
   [data-project="scholastic"],
   [data-project="wabash"] {
     display: none !important;
@@ -20,6 +21,7 @@ export function removeSpecificElements() {
   const resumeNavLink = document.getElementById("resume-nav-link");
   if (resumeNavLink) {
     resumeNavLink.href = "/assets/documents/AdrainWolfe-UIDev-Resume.pdf";
+    resumeNavLink.style.display = "block";
   }
 
   const scholasticElements = document.querySelectorAll('[data-project="scholastic"]');
@@ -72,8 +74,33 @@ export function removeSpecificElements() {
   }
 }
 
+let geoCheckPromise = null;
+let geoShouldRemove = null;
+
 export function checkLocationAndRemoveElements() {
-  fetch("https://ipapi.co/json/")
+  if (geoShouldRemove !== null) {
+    if (geoShouldRemove) {
+      removeSpecificElements();
+    } else {
+      const styleTag = document.getElementById("geo-restriction-style");
+      if (styleTag) styleTag.remove();
+    }
+    return Promise.resolve(geoShouldRemove);
+  }
+
+  if (geoCheckPromise) {
+    return geoCheckPromise.then(shouldRemove => {
+      if (shouldRemove) {
+        removeSpecificElements();
+      } else {
+        const styleTag = document.getElementById("geo-restriction-style");
+        if (styleTag) styleTag.remove();
+      }
+      return shouldRemove;
+    });
+  }
+
+  geoCheckPromise = fetch("https://ipapi.co/json/")
     .then((response) => response.json())
     .then((data) => {
       const city = String(data.city || "").trim().toLowerCase();
@@ -198,6 +225,8 @@ export function checkLocationAndRemoveElements() {
         isWithinDCRadius ||
         isLagos;
 
+      geoShouldRemove = shouldRemove;
+
       if (shouldRemove) {
         removeSpecificElements();
       } else {
@@ -206,6 +235,15 @@ export function checkLocationAndRemoveElements() {
           styleTag.remove();
         }
       }
+      return shouldRemove;
     })
-    .catch((error) => console.error("Error:", error));
+    .catch((error) => {
+      console.error("Error:", error);
+      geoShouldRemove = false;
+      const styleTag = document.getElementById("geo-restriction-style");
+      if (styleTag) styleTag.remove();
+      return false;
+    });
+
+  return geoCheckPromise;
 }
