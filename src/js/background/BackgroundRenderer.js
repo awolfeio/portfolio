@@ -186,6 +186,13 @@ export class BackgroundRenderer {
     canvas.style.zIndex = "-1"; // Behind all content
     canvas.style.pointerEvents = "none"; // Don't block interactions
 
+    // Stable hook for CSS. Previously the canvas was styled via the `main+canvas`
+    // adjacent-sibling selector, but the About page moves `.self-image` between
+    // <main> and the canvas, which broke that adjacency and instantly nudged the
+    // canvas brightness/height before the background fade. A class keeps the
+    // styling independent of sibling order.
+    canvas.classList.add("bg-shader-canvas");
+
     // Append renderer to container
     this.container.appendChild(canvas);
 

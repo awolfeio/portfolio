@@ -9,8 +9,10 @@
 }
 
 html {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
 
     .dg.ac {
         z-index: 9999999999999;
@@ -25,7 +27,11 @@ html {
         scroll-behavior: auto;
     }
 
-    main+canvas {
+    // Target the shader canvas by class rather than `main+canvas` adjacency.
+    // The About page inserts `.self-image` between <main> and the canvas, which
+    // would otherwise break the sibling selector and instantly shift the canvas
+    // brightness/height before it fades out for the parameter switch.
+    canvas.bg-shader-canvas {
         filter: brightness(1.2);
         height: 100lvh !important;
 
@@ -36,8 +42,10 @@ html {
 }
 
 body {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
     overflow-x: hidden;
     min-height: 100vh;
     margin: 0;
