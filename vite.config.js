@@ -13,12 +13,19 @@ const outDir = resolve(__dirname, "dist");
 // ==============================================================================
 // 🛠️ DEVELOPMENT FLAGS
 // ==============================================================================
-// Set this to true to disable password protection and show all projects (except ACS)
+
 const DISABLE_AUTH = true;
+const ACS_ONLY = false;
 
 if (DISABLE_AUTH) {
   console.log('\n=========================================');
   console.log('🔓 AUTHENTICATION DISABLED (DISABLE_AUTH)');
+  console.log('=========================================\n');
+}
+
+if (ACS_ONLY) {
+  console.log('\n=========================================');
+  console.log('🧪 ACS ONLY MODE ENABLED (ACS_ONLY)');
   console.log('=========================================\n');
 }
 
@@ -140,7 +147,8 @@ export default defineConfig(({ command }) => {
     define: {
       __GATED_PROJECTS_RAW__: JSON.stringify(gatedProjectsRaw),
       __IS_BUILD_MODE__: isBuild,
-      __DISABLE_AUTH__: DISABLE_AUTH || process.env.DISABLE_AUTH === "true"
+      __DISABLE_AUTH__: DISABLE_AUTH || process.env.DISABLE_AUTH === "true",
+      __ACS_ONLY__: ACS_ONLY
     }
   };
 });
