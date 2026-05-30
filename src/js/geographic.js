@@ -3,7 +3,6 @@
 const geoStyle = document.createElement('style');
 geoStyle.id = 'geo-restriction-style';
 geoStyle.innerHTML = `
-  #resume-nav-link,
   [data-project="scholastic"],
   [data-project="wabash"] {
     display: none !important;
@@ -20,7 +19,7 @@ if (document.head) {
 export function removeSpecificElements() {
   const resumeNavLink = document.getElementById("resume-nav-link");
   if (resumeNavLink) {
-    resumeNavLink.style.display = "none";
+    resumeNavLink.href = "/assets/documents/AdrainWolfe-UIDev-Resume.pdf";
   }
 
   const scholasticElements = document.querySelectorAll('[data-project="scholastic"]');
