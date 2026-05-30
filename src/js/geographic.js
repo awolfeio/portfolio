@@ -27,6 +27,34 @@ export function removeSpecificElements() {
 
   const wabashElements = document.querySelectorAll('[data-project="wabash"]');
   wabashElements.forEach(el => el.style.display = "none");
+
+  // Re-inject ACS portfolio object since portfolio-auth removes it by default when auth is disabled
+  const projectContainers = document.querySelectorAll('#index .projects, #works .projects');
+  projectContainers.forEach(container => {
+    let acsEl = container.querySelector('[data-project="american-chemical-society"]');
+    if (!acsEl) {
+      acsEl = document.createElement('a');
+      acsEl.href = '/projects/american-chemical-society.html';
+      acsEl.setAttribute('data-project', 'american-chemical-society');
+      acsEl.setAttribute('data-text', 'ACS');
+      acsEl.setAttribute('data-auth-group', 'B');
+      acsEl.className = 'gated-project';
+      acsEl.textContent = 'ACS';
+      container.prepend(acsEl);
+    } else {
+      acsEl.style.display = '';
+    }
+  });
+
+  // Update project aspects date if we are on the ACS project page
+  const aspectsContainer = document.querySelector('.project-aspects');
+  if (aspectsContainer) {
+    const dateSpan = Array.from(aspectsContainer.querySelectorAll('div span'))
+      .find(span => span.textContent.trim() === '2024-2026');
+    if (dateSpan) {
+      dateSpan.textContent = '2023-2026';
+    }
+  }
 }
 
 export function checkLocationAndRemoveElements() {
