@@ -25,7 +25,7 @@ const __GATED_PROJECTS__ = __IS_BUILD_MODE__
 // Canonical ordered project list with group assignments
 const PROJECTS = [
   ...__GATED_PROJECTS__,
-  { slug: 'scholastic', group: 'all', href: '/projects/scholastic.html' },
+  { slug: 'scholastic', group: 'A', href: '/projects/scholastic.html' },
   { slug: 'jpplus', group: 'all', href: '/projects/jpplus.html' },
   { slug: 'rowmark', group: 'all', href: '/projects/rowmark.html' },
   { slug: 'ipi', group: 'all', href: '/projects/ipi.html' },

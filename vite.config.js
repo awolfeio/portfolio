@@ -14,7 +14,7 @@ const outDir = resolve(__dirname, "dist");
 // 🛠️ DEVELOPMENT FLAGS
 // ==============================================================================
 
-const DISABLE_AUTH = true;
+const DISABLE_AUTH = false;
 const ACS_ONLY = false;
 
 if (DISABLE_AUTH) {
