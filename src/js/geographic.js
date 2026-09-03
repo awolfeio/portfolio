@@ -68,8 +68,11 @@ export function removeSpecificElements() {
     }
   }
 
-  // Fix next-project banner links since Wabash and Scholastic are removed
-  const projectPage = document.querySelector('.page.project[data-current-project]');
+  // Fix next-project banner links since Wabash and Scholastic are removed.
+  // Target the live Barba container so we do not rewrite the page being left.
+  const projectPage =
+    document.querySelector('[data-barba="container"]:not(.barba-old-container) .page.project[data-current-project]') ||
+    document.querySelector('.page.project[data-current-project]');
   if (projectPage) {
     const currentSlug = projectPage.getAttribute('data-current-project');
     const bannerLink = projectPage.querySelector('.next-project-banner a');

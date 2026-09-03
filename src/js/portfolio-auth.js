@@ -121,6 +121,43 @@ export function getVisibleProjects(mode) {
 }
 
 /**
+ * Check whether a project slug is visible in the given mode
+ * @param {string} slug
+ * @param {string|null} [mode]
+ * @returns {boolean}
+ */
+export function canAccessSlug(slug, mode = getMode()) {
+  if (!slug) return true;
+  const project = PROJECTS.find(p => p.slug === slug);
+  // Pages not in the auth-managed list are not password-gated
+  if (!project) return true;
+  return isProjectVisible(project.group, mode, project.slug);
+}
+
+/**
+ * The live project page — never the Barba container being left
+ * @param {ParentNode} [root]
+ * @returns {Element|null}
+ */
+export function getActiveProjectPage(root = document) {
+  if (root !== document && root.querySelector) {
+    return root.querySelector('.page.project[data-current-project]');
+  }
+
+  const liveContainer = document.querySelector('[data-barba="container"]:not(.barba-old-container)');
+  if (liveContainer) {
+    const page = liveContainer.querySelector('.page.project[data-current-project]');
+    if (page) return page;
+  }
+
+  const pages = document.querySelectorAll('.page.project[data-current-project]');
+  for (const page of pages) {
+    if (!page.closest('.barba-old-container')) return page;
+  }
+  return null;
+}
+
+/**
  * Get the next visible project in the circular list
  * @param {string} currentSlug - Current project's slug
  * @param {string|null} mode - Current mode
@@ -144,6 +181,48 @@ export function getNextProject(currentSlug, mode) {
   }
 
   return visible[0]; // fallback
+}
+
+/**
+ * Resolve the next-project URL for the active project page
+ * @param {string|null} [mode]
+ * @param {ParentNode} [root]
+ * @returns {string|null}
+ */
+export function resolveNextProjectHref(mode = getMode(), root = document) {
+  const projectPage = getActiveProjectPage(root);
+  if (!projectPage) return null;
+
+  const currentSlug = projectPage.getAttribute('data-current-project');
+  const nextProject = getNextProject(currentSlug, mode);
+  return nextProject?.href || null;
+}
+
+/**
+ * Send the user away from a gated project they are not allowed to see
+ * @param {string|null} mode
+ * @param {ParentNode} [root]
+ */
+function guardGatedProjectPage(mode, root = document) {
+  const projectPage = getActiveProjectPage(root);
+  if (!projectPage) return;
+
+  const slug = projectPage.getAttribute('data-current-project');
+  if (canAccessSlug(slug, mode)) return;
+
+  const fallback = getVisibleProjects(mode)[0]?.href || '/works.html';
+  console.log(`[portfolio-auth] Blocking gated project "${slug}", redirecting to ${fallback}`);
+
+  projectPage.style.visibility = 'hidden';
+
+  // Defer so this never starts a nested Barba transition from afterEnter
+  setTimeout(() => {
+    if (window.barba) {
+      window.barba.go(fallback);
+    } else {
+      window.location.replace(fallback);
+    }
+  }, 0);
 }
 
 /**
@@ -181,12 +260,15 @@ function recalculateScroll() {
  * - Updates next-project-banner hrefs on project detail pages
  * - Updates the resume nav link href
  */
-export function applyMode(mode, animate = false) {
+export function applyMode(mode, animate = false, root = document) {
   if (mode === undefined) {
     mode = getMode();
   }
 
   console.log(`[portfolio-auth] Applying mode: ${mode || 'default'}`);
+
+  // Bounce anyone who landed on a gated project without the matching access code
+  guardGatedProjectPage(mode, root);
 
   // 1. Filter project links in .projects containers
   const projectContainers = document.querySelectorAll('#index .projects, #works .projects');
@@ -253,8 +335,8 @@ export function applyMode(mode, animate = false) {
     }
   });
 
-  // 2. Update next-project-banner on project detail pages
-  const projectPage = document.querySelector('.page.project[data-current-project]');
+  // 2. Update next-project-banner on the live project detail page only
+  const projectPage = getActiveProjectPage(root);
   if (projectPage) {
     const currentSlug = projectPage.getAttribute('data-current-project');
     const nextProject = getNextProject(currentSlug, mode);
@@ -561,4 +643,7 @@ export default {
   handlePasswordSubmit,
   showPasswordModal,
   injectAuthUI,
+  canAccessSlug,
+  getActiveProjectPage,
+  resolveNextProjectHref,
 };

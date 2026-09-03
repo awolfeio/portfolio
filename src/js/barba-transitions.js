@@ -495,9 +495,9 @@ function handleEnter(data) {
 function handleAfterEnter(data) {
   console.log("Barba afterEnter: preparing animations");
 
-  // Inject and apply auth mode on the new page
+  // Inject and apply auth mode on the incoming page only
   portfolioAuth.injectAuthUI();
-  portfolioAuth.applyMode();
+  portfolioAuth.applyMode(undefined, false, data.next.container);
 
   // Make sure old containers are completely hidden
   document.querySelectorAll(".barba-old-container").forEach((oldContainer) => {
@@ -741,6 +741,8 @@ function setupLinkPrefetch() {
       return false;
     }
     if (prefetched.has(link.href)) return false;
+    const projectMatch = link.pathname.match(/\/projects\/([^/]+?)(?:\.html)?$/);
+    if (projectMatch && !portfolioAuth.canAccessSlug(projectMatch[1])) return false;
     return true;
   };
 

@@ -204,6 +204,13 @@ nav {
                 color: #fff !important;
                 background: linear-gradient(0deg, #a675dd, #b3d4fc) !important;
                 @include text-clip;
+
+                // Pill stays hidden until menu-active; :after can paint outside
+                // the parent opacity fade (backdrop-filter + z-index: -1).
+                &:before,
+                &:after {
+                    opacity: 0;
+                }
             }
         }
 
@@ -222,6 +229,7 @@ nav {
             color: #fff !important;
             opacity: 0 !important;
             pointer-events: none;
+            isolation: isolate;
             transition: opacity 0.4s ease, pointer-events 0.1s ease;
             transition-delay: 0s;
         }
@@ -235,6 +243,11 @@ nav {
             &:nth-of-type(#{$i}) {
                 @media (max-width: $desktop-viewport) {
                     transition-delay: #{0.25 + $i * 0.1}s;
+
+                    &:before,
+                    &:after {
+                        transition-delay: #{0.25 + $i * 0.1}s;
+                    }
                 }
             }
         }
@@ -274,6 +287,7 @@ nav {
 
             @media (max-width: $desktop-viewport) {
                 background: rgba(117, 135, 221, 0.07);
+                transition: opacity 0.4s ease;
             }
         }
     }
@@ -327,6 +341,13 @@ body:not(.menu-active) nav a {
     @media (max-width: $desktop-viewport) {
         transition: none !important;
         transition-delay: 0s !important;
+
+        &:before,
+        &:after {
+            opacity: 0 !important;
+            transition: none !important;
+            transition-delay: 0s !important;
+        }
     }
 }
 
@@ -343,6 +364,11 @@ body.menu-active {
             @media (max-width: $desktop-viewport) {
                 pointer-events: auto;
                 opacity: 1 !important;
+
+                &.active:before,
+                &.active:after {
+                    opacity: 1;
+                }
             }
         }
     }

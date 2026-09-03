@@ -164,6 +164,22 @@ export function setupEventHandlers() {
 }
 
 /**
+ * Extract a portfolio project slug from an internal /projects/ URL
+ * @param {string} href
+ * @returns {string|null}
+ */
+function getProjectSlugFromHref(href) {
+  if (!href) return null;
+  try {
+    const url = new URL(href, window.location.origin);
+    const match = url.pathname.match(/\/projects\/([^/]+?)(?:\.html)?$/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Centralized handler for all links that should use Barba transitions
  */
 function handleBarbaLinks(e) {
@@ -215,8 +231,20 @@ function handleBarbaLinks(e) {
   // Prevent default link behavior
   e.preventDefault();
 
-  // Get the href to check if it's the homepage
-  const href = link.getAttribute("href");
+  // Resolve destination from the live auth mode — never trust a hardcoded
+  // sequential Next Project href, which can point at a gated case study.
+  let href = link.getAttribute("href") || "";
+  if (link.closest(".next-project-banner")) {
+    const resolved = portfolioAuth.resolveNextProjectHref();
+    if (resolved) href = resolved;
+  }
+
+  const projectSlug = getProjectSlugFromHref(href);
+  if (projectSlug && !portfolioAuth.canAccessSlug(projectSlug)) {
+    console.log(`[portfolio-auth] Blocked navigation to gated project: ${projectSlug}`);
+    href = "/works.html";
+  }
+
   const isHomepage = href === "/" || href === "/index.html" || href === "index.html";
 
   // Handle navigation transition styling if it's a nav link
