@@ -75,7 +75,7 @@
                 line-height: 1.25;
                 cursor: default;
                 will-change: transform;
-
+                user-select:none;
                 @media (max-width:1200px) {
                     font-size: 16px;
                 }
@@ -103,7 +103,7 @@
                 cursor: default;
                 will-change: opacity, transform;
                 text-wrap: pretty;
-
+                user-select:none;
                 @media (max-width:1200px) {
                     font-size: 12px;
                 }
@@ -214,10 +214,13 @@
 
     .infinite-titles {
         cursor: pointer;
+        user-select:none;
         display: inline-block;
         border-bottom: 1px dotted rgba(255, 255, 255, 0.4);
         transform-origin: center;
         will-change: transform;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
 
         &.blip-active {
             animation: title-blip 0.65s cubic-bezier(0.25, 1, 0.5, 1);
@@ -316,6 +319,10 @@ html.about {
     transform-origin: center;
     //mix-blend-mode: luminosity;
     filter: brightness(1.4);
+
+    @media (max-width: $desktop-viewport) {
+        left: 50%;
+    }
 
     &.visible {
         opacity: 1;

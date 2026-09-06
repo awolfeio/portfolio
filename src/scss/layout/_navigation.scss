@@ -191,25 +191,38 @@ nav {
 
         // Active state
         &.active {
-            opacity: 1;
             cursor: default;
-            @include transition-medium;
 
-            &:before,
             &:after {
+                display: none;
+                opacity: 0 !important;
+            }
+
+            // Desktop keeps the existing transition.
+            // Mobile must use the same opacity fade as inactive links —
+            // transition-medium is higher specificity and interpolates
+            // background/color, which snaps on menu-open.
+            @media (min-width: #{$desktop-viewport + 1px}) {
                 opacity: 1;
+                @include transition-medium;
             }
 
             @media (max-width: $desktop-viewport) {
-                color: #fff !important;
-                background: linear-gradient(0deg, #a675dd, #b3d4fc) !important;
-                @include text-clip;
+                transition: opacity 0.4s ease, pointer-events 0.1s ease;
+                background: none !important;
+                -webkit-background-clip: border-box !important;
+                background-clip: border-box !important;
+                -webkit-text-fill-color: inherit !important;
 
-                // Pill stays hidden until menu-active; :after can paint outside
-                // the parent opacity fade (backdrop-filter + z-index: -1).
                 &:before,
                 &:after {
-                    opacity: 0;
+                    display: none;
+                    opacity: 0 !important;
+                }
+
+                span {
+                    background: linear-gradient(0deg, #dcce21, #a6ff99);
+                    @include text-clip;
                 }
             }
         }
@@ -229,7 +242,6 @@ nav {
             color: #fff !important;
             opacity: 0 !important;
             pointer-events: none;
-            isolation: isolate;
             transition: opacity 0.4s ease, pointer-events 0.1s ease;
             transition-delay: 0s;
         }
@@ -364,11 +376,6 @@ body.menu-active {
             @media (max-width: $desktop-viewport) {
                 pointer-events: auto;
                 opacity: 1 !important;
-
-                &.active:before,
-                &.active:after {
-                    opacity: 1;
-                }
             }
         }
     }

@@ -14,33 +14,42 @@ export function setupEventHandlers() {
   `;
   document.head.appendChild(styleElement);
 
-  // Easter egg: hover over span.infinite-titles to change it to any of the list
+  // Easter egg: hover (desktop) or tap (mobile) span.infinite-titles to cycle titles.
+  // mouseover alone sticks on touch devices — the pointer never leaves, so a
+  // second tap does nothing until you tap elsewhere. click retriggers in place.
   if (!document.body.hasAttribute("data-infinite-titles-listener")) {
     document.body.setAttribute("data-infinite-titles-listener", "true");
-    
+
+    const cycleInfiniteTitle = (target) => {
+      if (!target || target.classList.contains("blip-active")) return;
+
+      target.classList.add("blip-active");
+
+      target.addEventListener("animationend", function handleAnimEnd() {
+        target.classList.remove("blip-active");
+        target.removeEventListener("animationend", handleAnimEnd);
+      });
+
+      const titlesList = [
+        "UI/UX Designer + Developer",
+        "UX Engineer",
+        "Creative Technologist",
+        "Design Engineer",
+        "UI Developer",
+        "UX Designer"
+      ];
+      const currentText = target.textContent.trim();
+      const availableTitles = titlesList.filter(t => t !== currentText);
+      const randomIndex = Math.floor(Math.random() * availableTitles.length);
+      target.textContent = availableTitles[randomIndex];
+    };
+
     document.body.addEventListener("mouseover", function (e) {
-      const target = e.target.closest("span.infinite-titles");
-      if (target && !target.classList.contains("blip-active")) {
-        target.classList.add("blip-active");
-        
-        target.addEventListener("animationend", function handleAnimEnd() {
-          target.classList.remove("blip-active");
-          target.removeEventListener("animationend", handleAnimEnd);
-        });
-        
-        const titlesList = [
-          "UI/UX Designer + Developer",
-          "UX Engineer",
-          "Creative Technologist",
-          "Design Engineer",
-          "UI Developer",
-          "UX Designer"
-        ];
-        const currentText = target.textContent.trim();
-        const availableTitles = titlesList.filter(t => t !== currentText);
-        const randomIndex = Math.floor(Math.random() * availableTitles.length);
-        target.textContent = availableTitles[randomIndex];
-      }
+      cycleInfiniteTitle(e.target.closest("span.infinite-titles"));
+    });
+
+    document.body.addEventListener("click", function (e) {
+      cycleInfiniteTitle(e.target.closest("span.infinite-titles"));
     });
   }
 
@@ -62,6 +71,18 @@ export function setupEventHandlers() {
       document.body.appendChild(jinxEl);
     };
 
+    const isMobileViewport = () => window.innerWidth <= 1024;
+
+    const positionJinx = (e) => {
+      if (!jinxEl) return;
+      if (isMobileViewport()) {
+        jinxEl.style.left = "";
+      } else {
+        jinxEl.style.left = `${e.clientX}px`;
+      }
+      jinxEl.style.top = `${e.clientY}px`;
+    };
+
     document.body.addEventListener("mouseover", function (e) {
       const target = e.target.closest("span.cat-jinx");
       if (target) {
@@ -70,10 +91,8 @@ export function setupEventHandlers() {
           createJinxEl();
           isFirstTime = true;
         }
-        
-        // Position immediately before showing
-        jinxEl.style.left = `${e.clientX}px`;
-        jinxEl.style.top = `${e.clientY}px`;
+
+        positionJinx(e);
 
         if (isFirstTime) {
           // Force layout reflow so the browser registers the scale(0.88) and opacity:0 state in the DOM first
@@ -87,8 +106,7 @@ export function setupEventHandlers() {
     document.body.addEventListener("mousemove", function (e) {
       const target = e.target.closest("span.cat-jinx");
       if (target && jinxEl) {
-        jinxEl.style.left = `${e.clientX}px`;
-        jinxEl.style.top = `${e.clientY}px`;
+        positionJinx(e);
       }
     });
 
