@@ -3,6 +3,10 @@ import { getActiveBackgroundFrameRateCap } from "./frameRateCap.js";
 import vertexShader from "./shaders/fogShader.vert.glsl";
 import fragmentShader from "./shaders/fogShader.frag.glsl";
 
+// At or below this width (the site's mobile breakpoint) the canvas size is locked
+// against height-only viewport changes — see _syncCanvasSize()
+const LOCKED_SIZE_QUERY = "(max-width: 1024px)";
+
 /**
  * BackgroundRenderer - Manages Three.js scene and rendering
  * Handles fullscreen quad with custom shader material
@@ -93,6 +97,9 @@ export class BackgroundRenderer {
     // GPU framebuffer reallocation (150–300ms stall). 150ms settles the animation completely.
     this._resizeDebounceTimer = null;
 
+    // Viewport size the canvas is locked to at/below LOCKED_SIZE_QUERY (null on desktop)
+    this._lockedSize = null;
+
     /** @see frameRateCap.js — last time updateUniforms + GPU render ran when capped */
     this._lastCapDrawAt = 0;
 
@@ -120,6 +127,99 @@ export class BackgroundRenderer {
     const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
       .test(navigator.userAgent);
     return isMobile ? Math.min(dpr, 1.5) : Math.min(dpr, 2.0);
+  }
+
+  /**
+   * Viewport edge the canvas is pinned to.
+   *
+   * Mobile browsers collapse their toolbar on scroll, which moves one edge of the
+   * fixed-position viewport on screen; whatever is pinned to that edge slides with it.
+   * Android Chrome's URL bar is at the top, so its bottom edge is the stationary one;
+   * iOS Safari's toolbar is at the bottom, so its top edge is. The canvas is as tall as
+   * the large viewport (browser UI retracted), so the other end just tucks behind the UI.
+   */
+  _getAnchorEdge() {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    return /Android/i.test(ua) && !isIOS ? "bottom" : "top";
+  }
+
+  /**
+   * Size of the large viewport (100vw × 100lvh): the height with mobile browser UI retracted.
+   * Where lvh is unsupported, 100vh already resolves to the large viewport on mobile.
+   */
+  _measureLargeViewport() {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;visibility:hidden;pointer-events:none;";
+    probe.style.height = "100lvh";
+    document.documentElement.appendChild(probe);
+    const rect = probe.getBoundingClientRect();
+    probe.remove();
+    return { width: Math.round(rect.width), height: Math.round(rect.height) };
+  }
+
+  /**
+   * Match the drawing buffer (and u_resolution) to the canvas's on-screen size.
+   *
+   * Desktop (> 1024px): follows the window. The canvas CSS box (100vw × 100vh + 40px) is
+   * measured and the buffer resized whenever it changes.
+   *
+   * Mobile/tablet (≤ 1024px): the browser resizes the viewport every time the address bar
+   * hides or reveals (and when the keyboard opens). Reacting to that — a new buffer size or
+   * a new u_resolution aspect — visibly snaps the shader. So the canvas is sized once to the
+   * large viewport with its CSS height pinned in px, and height-only changes are ignored
+   * unless the viewport grows past the locked height (e.g. a narrow desktop window made
+   * taller). A width change (rotation, real window resize) re-measures everything.
+   */
+  _syncCanvasSize() {
+    if (!this.renderer) return;
+
+    const canvas = this.renderer.domElement;
+    const ratio = this._getTargetPixelRatio();
+    let width;
+    let height;
+
+    if (window.matchMedia(LOCKED_SIZE_QUERY).matches) {
+      const viewport = this._measureLargeViewport();
+      const locked = this._lockedSize;
+      if (
+        locked &&
+        locked.width === viewport.width &&
+        viewport.height <= locked.height &&
+        this.renderer.getPixelRatio() === ratio
+      ) {
+        return;
+      }
+
+      ({ width, height } = viewport);
+      this._lockedSize = { width, height };
+      // Inline !important beats the stylesheet's 100lvh, which can still move (e.g. keyboard)
+      canvas.style.setProperty("height", `${height}px`, "important");
+    } else {
+      this._lockedSize = null;
+      canvas.style.setProperty("height", "100%"); // hand height back to the stylesheet
+      // Computed style rather than getBoundingClientRect(): the canvas has no layout box
+      // while the page is still hidden behind the loading splash
+      const style = getComputedStyle(canvas);
+      width = Math.round(parseFloat(style.width)) || window.innerWidth;
+      height = Math.round(parseFloat(style.height)) || window.innerHeight;
+    }
+
+    // Only touch the GPU framebuffer when the drawing-buffer size actually changes
+    if (
+      canvas.width === Math.floor(width * ratio) &&
+      canvas.height === Math.floor(height * ratio) &&
+      this.renderer.getPixelRatio() === ratio
+    ) {
+      return;
+    }
+
+    // Single framebuffer reallocation; leaves CSS sizing to the stylesheet / pin above
+    this.renderer.setDrawingBufferSize(width, height, ratio);
+
+    if (this.material && this.material.uniforms.u_resolution) {
+      this.material.uniforms.u_resolution.value.set(canvas.width, canvas.height);
+    }
   }
 
   /**
@@ -171,15 +271,10 @@ export class BackgroundRenderer {
       precision: 'highp', // Force high precision for quality
     });
 
-    const targetRatio = this._getTargetPixelRatio();
-    this.renderer.setPixelRatio(targetRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    console.log(`BackgroundRenderer: pixel ratio set to ${targetRatio.toFixed(2)} (device: ${(window.devicePixelRatio || 1).toFixed(2)})`);
-
     // Style canvas for fixed positioning
     const canvas = this.renderer.domElement;
     canvas.style.position = "fixed";
-    canvas.style.top = "0";
+    canvas.style[this._getAnchorEdge()] = "0";
     canvas.style.left = "0";
     canvas.style.width = "100vw";
     canvas.style.height = "100%";
@@ -195,6 +290,10 @@ export class BackgroundRenderer {
 
     // Append renderer to container
     this.container.appendChild(canvas);
+
+    // Size the drawing buffer from the canvas's laid-out size (needs it in the DOM)
+    this._syncCanvasSize();
+    console.log(`BackgroundRenderer: pixel ratio set to ${this.renderer.getPixelRatio().toFixed(2)} (device: ${(window.devicePixelRatio || 1).toFixed(2)})`);
 
     // Create shader material with uniforms
     this.material = new THREE.ShaderMaterial({
@@ -388,35 +487,16 @@ export class BackgroundRenderer {
    * Handle window resize — debounced to prevent GPU stalls on mobile.
    *
    * Mobile browsers (iOS Safari, Android Chrome) fire window.resize repeatedly while
-   * the address bar animates in/out, which genuinely changes innerHeight. Without debouncing
-   * each event triggers setSize() which flushes the GPU command buffer and reallocates the
-   * framebuffer — a 150–300ms stall per event.
-   *
-   * The 150ms debounce absorbs the burst of events during the address-bar animation, then
-   * applies a single resize only if the drawing-buffer dimensions actually changed.
-   * setPixelRatio() calls setSize() internally (THREE.js r174) so we never call setSize twice.
+   * the address bar animates in/out. The 150ms debounce absorbs the burst; _syncCanvasSize()
+   * then ignores it entirely at/below 1024px and only reallocates the framebuffer when the
+   * drawing-buffer dimensions actually change.
    */
   handleResize() {
     if (!this.renderer) return;
 
     clearTimeout(this._resizeDebounceTimer);
     this._resizeDebounceTimer = setTimeout(() => {
-      if (!this.renderer) return; // Guard: renderer may have been destroyed during the delay
-
-      const targetRatio = this._getTargetPixelRatio();
-      const canvas = this.renderer.domElement;
-      const newW = Math.floor(window.innerWidth * targetRatio);
-      const newH = Math.floor(window.innerHeight * targetRatio);
-
-      // Only touch the GPU framebuffer when the drawing-buffer size actually changes
-      if (canvas.width === newW && canvas.height === newH && this.renderer.getPixelRatio() === targetRatio) return;
-
-      this.renderer.setPixelRatio(targetRatio); // calls setSize internally — no second call
-
-      // Update resolution uniform to match new drawing-buffer size
-      if (this.material && this.material.uniforms.u_resolution) {
-        this.material.uniforms.u_resolution.value.set(canvas.width, canvas.height);
-      }
+      this._syncCanvasSize(); // no-ops if the renderer was destroyed during the delay
     }, 150);
   }
 
@@ -802,19 +882,9 @@ export class BackgroundRenderer {
     console.log(`Background quality set to: ${level}`);
 
     // Match device pixel ratio so the canvas isn't upscaled by the browser.
-    // PERF FIX: Guard canvas resize — setPixelRatio() already calls setSize() internally.
-    // Calling both unconditionally causes two GPU framebuffer reallocations per quality change,
-    // causing 150–300ms pipeline stalls on mobile even when dimensions are unchanged.
-    if (this.renderer) {
-      const targetRatio = this._getTargetPixelRatio();
-      const canvas = this.renderer.domElement;
-      const newW = Math.floor(window.innerWidth * targetRatio);
-      const newH = Math.floor(window.innerHeight * targetRatio);
-      if (canvas.width !== newW || canvas.height !== newH || this.renderer.getPixelRatio() !== targetRatio) {
-        this.renderer.setPixelRatio(targetRatio); // internally calls setSize — no second call needed
-        console.log(`Pixel ratio set to: ${targetRatio.toFixed(2)} (quality: ${level})`);
-      }
-    }
+    // PERF FIX: _syncCanvasSize() only reallocates the GPU framebuffer when the size or
+    // ratio actually changed, avoiding 150–300ms pipeline stalls on mobile.
+    this._syncCanvasSize();
 
     // Apply quality-specific shader parameters
     this.applyQualitySettings(level);
@@ -969,16 +1039,8 @@ export class BackgroundRenderer {
     if (uniforms.u_grainFrameHold) uniforms.u_grainFrameHold.value = 3.0; // 240fps / 3 = 80 grain updates/sec
 
     // Use device pixel ratio so the framebuffer matches physical display resolution.
-    // PERF FIX: Guard canvas resize — setPixelRatio() already calls setSize() internally.
-    if (this.renderer) {
-      const targetRatio = this._getTargetPixelRatio();
-      const canvas = this.renderer.domElement;
-      const newW = Math.floor(window.innerWidth * targetRatio);
-      const newH = Math.floor(window.innerHeight * targetRatio);
-      if (canvas.width !== newW || canvas.height !== newH || this.renderer.getPixelRatio() !== targetRatio) {
-        this.renderer.setPixelRatio(targetRatio); // internally calls setSize
-      }
-    }
+    // PERF FIX: Only reallocates the framebuffer if the size or ratio actually changed.
+    this._syncCanvasSize();
 
     this.qualityLevel = 'ultra';
     console.log(`Applied ultra quality: 2 octaves, 1 warp octave, grain hold 3.0, pixel ratio ${this._getTargetPixelRatio().toFixed(2)}`);

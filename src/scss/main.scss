@@ -31,6 +31,8 @@ html {
     // The About page inserts `.self-image` between <main> and the canvas, which
     // would otherwise break the sibling selector and instantly shift the canvas
     // brightness/height before it fades out for the parameter switch.
+    // At/below 1024px BackgroundRenderer pins this height in px (inline !important)
+    // so mobile address-bar/keyboard resizes never touch the canvas.
     canvas.bg-shader-canvas {
         filter: brightness(1.2);
         height: 100lvh !important;
