@@ -90,6 +90,13 @@
         }
     }
 
+    // GSAP drives transforms while existing items glide down to make room
+    // for unlocked items, so drop the CSS transform transition meanwhile.
+    &.is-shifting a {
+        transition: opacity 0.8s ease,
+        filter 0.8s ease;
+    }
+
     // Opt margin and max-height into transitions only when JS is
     // actively animating items in/out (add/remove via access code).
     // Prevents the false slide-down on page entry.
@@ -99,5 +106,16 @@
         margin 1.2s ease,
         filter 0.8s ease,
         transform 0.3s ease;
+    }
+
+    // Newly unlocked item waiting for the list to make room (see
+    // revealUnlockedProjects). Hidden instantly; removing the class fades it
+    // in via the regular opacity/filter transitions. Kept last so it wins
+    // over the .is-shifting / .is-animating transition lists.
+    a.is-entering {
+        opacity: 0;
+        pointer-events: none;
+        filter: blur(12px);
+        transition: none;
     }
 }

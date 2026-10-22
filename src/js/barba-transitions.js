@@ -14,6 +14,7 @@ import SplitType from "split-type";
 import mediaPreloader from "./media-preloader.js";
 import { refreshFill } from "./text-fill.js";
 import portfolioAuth from "./portfolio-auth.js";
+import { scheduleSpinner, hideSpinner } from "./loading-spinner.js";
 
 /**
  * Initialize Barba.js and set up page transitions
@@ -392,8 +393,12 @@ function handleLeave(data) {
     // Let fadeTransition.leave handle all animation logic - don't set any GSAp props here
     stopScroll();
 
-    // Animation for leaving the page
-    fadeTransition.leave(data.current.container).then(resolve);
+    // Animation for leaving the page. Once the old content is gone, arm the
+    // fallback spinner in case the next page is slow to fetch/preload.
+    fadeTransition.leave(data.current.container).then(() => {
+      scheduleSpinner();
+      resolve();
+    });
   });
 }
 
@@ -451,7 +456,10 @@ function handleEnter(data) {
     // Wait for media to be ready (critical assets at least)
     await mediaPromise;
     console.log("Media ready! proceeding with transition");
-    
+
+    // Cancel the fallback spinner, or fade it out first if it already showed
+    await hideSpinner();
+
     // Animation for entering the new page
     fadeTransition.enter(data.next.container).then(() => {
       console.log("BARBA PAGE TRANSITION COMPLETE - Now safe to run animations");

@@ -8,7 +8,13 @@
  * - "B" (password: UXEngineering): "all" + "B" projects, Resume2
  */
 
+import { gsap } from 'gsap';
+
 const STORAGE_KEY = 'portfolio-auth-mode';
+
+// Unlock reveal timing: auth field fade → list shift → new items fade in
+const AUTH_FADE_DURATION = 0.35;
+const ITEM_FADE_STAGGER = 140; // ms between each newly unlocked item
 
 // Password → mode mapping
 const PASSWORD_MAP = {
@@ -428,6 +434,99 @@ function updateAuthUI(mode) {
 }
 
 /**
+ * Project links currently laid out in the live .projects lists, in DOM order
+ * @returns {HTMLElement[]}
+ */
+function getVisibleProjectLinks() {
+  return Array.from(document.querySelectorAll('#index .projects a[data-project], #works .projects a[data-project]'))
+    .filter(el => !el.hasAttribute('disabled') && el.getClientRects().length > 0);
+}
+
+/**
+ * Animated unlock sequence after a correct access code:
+ * 1. The password field fades out in place
+ * 2. The existing project items glide down by exactly the room the new items need (FLIP)
+ * 3. The newly unlocked items fade in, top to bottom
+ * @param {string} mode
+ */
+function revealUnlockedProjects(mode) {
+  const projectContainers = document.querySelectorAll('#index .projects, #works .projects');
+  const authContainers = document.querySelectorAll('.portfolio-auth');
+  const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (prefersReducedMotion || projectContainers.length === 0 || authContainers.length === 0) {
+    applyMode(mode);
+    return;
+  }
+
+  // Lock the field so a second submit can't restart the sequence mid-fade, and
+  // drop the inline CSS transition left by updateAuthUI so GSAP drives the fade alone
+  authContainers.forEach(container => {
+    container.style.pointerEvents = 'none';
+    container.style.transition = 'none';
+  });
+
+  gsap.to(authContainers, {
+    opacity: 0,
+    duration: AUTH_FADE_DURATION,
+    ease: 'power1.out',
+    onComplete: () => shiftAndRevealProjects(mode, projectContainers),
+  });
+}
+
+/**
+ * Steps 2 and 3 of revealUnlockedProjects
+ * @param {string} mode
+ * @param {NodeListOf<Element>} projectContainers
+ */
+function shiftAndRevealProjects(mode, projectContainers) {
+  // FLIP "first": where the existing items sit before the list changes
+  const existingLinks = getVisibleProjectLinks();
+  const firstTops = new Map(existingLinks.map(el => [el, el.getBoundingClientRect().top]));
+
+  // Apply the mode in one synchronous pass (collapses the auth UI, inserts the unlocked items)
+  applyMode(mode);
+
+  // Hold the unlocked items invisible until the list has made room for them.
+  // Added before the next paint, so they never flash in.
+  const enteringLinks = getVisibleProjectLinks().filter(el => !firstTops.has(el));
+  enteringLinks.forEach(el => el.classList.add('is-entering'));
+
+  // FLIP "last" + "invert": offset each existing item back to where it was
+  const shiftingLinks = existingLinks.filter(el => el.isConnected && el.getClientRects().length > 0);
+  const offsets = shiftingLinks.map(el => firstTops.get(el) - el.getBoundingClientRect().top);
+  const maxDistance = Math.max(0, ...offsets.map(Math.abs));
+
+  const revealEntering = () => {
+    projectContainers.forEach(container => container.classList.remove('is-shifting'));
+    enteringLinks.forEach((el, i) => {
+      setTimeout(() => el.classList.remove('is-entering'), i * ITEM_FADE_STAGGER);
+    });
+    setTimeout(recalculateScroll, enteringLinks.length * ITEM_FADE_STAGGER + 850);
+  };
+
+  if (maxDistance < 1) {
+    revealEntering();
+    return;
+  }
+
+  // Keep the CSS transform transition from fighting the tween
+  projectContainers.forEach(container => container.classList.add('is-shifting'));
+
+  // FLIP "play": glide down to the new resting place; longer moves take a touch longer
+  const duration = Math.min(1.1, 0.6 + maxDistance / 800);
+  shiftingLinks.forEach((el, i) => {
+    gsap.fromTo(el, { y: offsets[i] }, {
+      y: 0,
+      duration,
+      ease: 'power3.inOut',
+      clearProps: 'transform',
+    });
+  });
+  gsap.delayedCall(duration, revealEntering);
+}
+
+/**
  * Handle password submission from the inline input
  * @param {string} password
  * @param {HTMLElement} errorElement - Element to show error message
@@ -436,7 +535,7 @@ function updateAuthUI(mode) {
 export function handlePasswordSubmit(password, errorElement) {
   const result = authenticate(password);
   if (result) {
-    applyMode(result, true);
+    revealUnlockedProjects(result);
     return true;
   } else {
     if (errorElement) {
@@ -589,8 +688,12 @@ export function injectAuthUI() {
     const trySubmit = () => {
       const password = inputField.value.trim();
       if (!password) return;
-      handlePasswordSubmit(password, errorMsg);
-      inputField.value = '';
+      if (handlePasswordSubmit(password, errorMsg)) {
+        // Keep the code visible while the field fades out; just drop focus (closes mobile keyboards)
+        inputField.blur();
+      } else {
+        inputField.value = '';
+      }
     };
 
     inputField.addEventListener('keydown', (e) => {
